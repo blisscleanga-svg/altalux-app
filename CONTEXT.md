@@ -59,3 +59,12 @@ altalux-app/
 - Equipo: Dario (técnico), Ami
 - Teléfono AltaLux: por confirmar
 - Sitio: altaluxdetail.com
+
+## Identidad Visual AltaLux
+- Azul principal: #104872
+- Naranja: #FF8C00
+- Dorado: #FFAA00
+- Blanco: #FFFFFF
+- Fondo oscuro UI: #0a1628
+- Tipografía web: Rajdhani (títulos) + Inter (cuerpo)
+- Logo archivo: /shared/assets/logo-altalux.png
