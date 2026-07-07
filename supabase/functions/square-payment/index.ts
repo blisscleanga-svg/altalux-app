@@ -1,0 +1,183 @@
+// ============================================================
+// AltaLux — Square Payment Edge Function
+// ============================================================
+// Handles three actions from the client:
+//   - create_link : creates a Square-hosted payment link
+//   - charge      : tokenized card charge via Square Payments API
+//   - record_payment : manual insert (Cash/Zelle/Check/Other) that
+//                       still needs the payments/jobs bookkeeping
+//
+// Deploy with:
+//   supabase functions deploy square-payment
+// Set the secret once with:
+//   supabase secrets set SQUARE_ACCESS_TOKEN=your_token_here
+//
+// SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are auto-injected by
+// the Supabase platform into every Edge Function — no manual setup
+// needed for those two.
+// ============================================================
+
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const SQUARE_ACCESS_TOKEN = Deno.env.get('SQUARE_ACCESS_TOKEN') ?? '';
+const SQUARE_LOCATION_ID = 'LEWG2XNWRA7BS';
+const SQUARE_API_BASE = 'https://connect.squareup.com/v2';
+
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+function getSupabaseAdmin() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error('Supabase service credentials are not configured for this function.');
+  }
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+}
+
+async function squareRequest(path: string, method: string, body?: unknown) {
+  if (!SQUARE_ACCESS_TOKEN) {
+    throw new Error('SQUARE_ACCESS_TOKEN is not configured. Set it with `supabase secrets set SQUARE_ACCESS_TOKEN=...`.');
+  }
+  const res = await fetch(`${SQUARE_API_BASE}${path}`, {
+    method,
+    headers: {
+      'Authorization': `Bearer ${SQUARE_ACCESS_TOKEN}`,
+      'Content-Type': 'application/json',
+      'Square-Version': '2024-01-18',
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const message = data?.errors?.[0]?.detail || data?.errors?.[0]?.code || 'Square API request failed.';
+    throw new Error(message);
+  }
+  return data;
+}
+
+// ---- Records a completed payment against Supabase and returns the updated job ----
+async function recordPaymentInSupabase(params: {
+  jobId: string; amount: number; method: string; reference?: string; notes?: string;
+}) {
+  const supabase = getSupabaseAdmin();
+  const numericJobNumber = Number(params.jobId);
+
+  const { data: job, error: jobFindErr } = await supabase
+    .from('jobs')
+    .select('*')
+    .eq('job_number', numericJobNumber)
+    .single();
+  if (jobFindErr || !job) throw new Error(`Job ${params.jobId} was not found in the database.`);
+
+  const { error: paymentErr } = await supabase.from('payments').insert([{
+    job_id: job.id,
+    amount: params.amount,
+    payment_method: params.method,
+    payment_type: 'Balance',
+    payment_date: new Date().toISOString().slice(0, 10),
+    reference_number: params.reference || null,
+    notes: params.notes || null,
+  }]);
+  if (paymentErr) throw new Error(paymentErr.message);
+
+  const { data: allPayments, error: paymentsListErr } = await supabase
+    .from('payments')
+    .select('amount')
+    .eq('job_id', job.id);
+  if (paymentsListErr) throw new Error(paymentsListErr.message);
+
+  const totalPaid = (allPayments || []).reduce((sum: number, p: { amount: number }) => sum + Number(p.amount), 0);
+  const balanceDue = Math.max(0, Number(job.total) - totalPaid);
+  const paymentStatus = balanceDue <= 0.005 ? 'Paid in Full' : (totalPaid > 0 ? 'Deposit Paid' : 'Unpaid');
+
+  const { data: updatedJob, error: updateErr } = await supabase
+    .from('jobs')
+    .update({ balance_due: balanceDue, payment_status: paymentStatus })
+    .eq('id', job.id)
+    .select()
+    .single();
+  if (updateErr) throw new Error(updateErr.message);
+
+  return updatedJob;
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    const body = await req.json();
+    const { action } = body;
+
+    if (action === 'create_link') {
+      const { amount, jobId, customerName, description, redirectUrl } = body;
+      if (!amount || !jobId) return jsonResponse({ error: 'amount and jobId are required.' }, 400);
+
+      const result = await squareRequest('/online-checkout/payment-links', 'POST', {
+        idempotency_key: crypto.randomUUID(),
+        quick_pay: {
+          name: description || `AltaLux Detail — Job ${jobId}`,
+          price_money: { amount, currency: 'USD' },
+          location_id: SQUARE_LOCATION_ID,
+        },
+        checkout_options: redirectUrl ? { redirect_url: redirectUrl } : undefined,
+      });
+
+      return jsonResponse({ url: result.payment_link?.url, id: result.payment_link?.id });
+    }
+
+    if (action === 'charge') {
+      const { sourceId, amount, jobId } = body;
+      if (!sourceId || !amount || !jobId) {
+        return jsonResponse({ error: 'sourceId, amount, and jobId are required.' }, 400);
+      }
+
+      const result = await squareRequest('/payments', 'POST', {
+        source_id: sourceId,
+        idempotency_key: crypto.randomUUID(),
+        amount_money: { amount, currency: 'USD' },
+        location_id: SQUARE_LOCATION_ID,
+        note: `AltaLux Job ${jobId}`,
+      });
+
+      const paymentId = result.payment?.id;
+      let updatedJob = null;
+      try {
+        updatedJob = await recordPaymentInSupabase({
+          jobId, amount: amount / 100, method: 'Square', reference: paymentId,
+        });
+      } catch (recordErr) {
+        console.error('[square-payment] Square charge succeeded but Supabase recording failed:', recordErr);
+      }
+
+      return jsonResponse({ success: true, paymentId, job: updatedJob });
+    }
+
+    if (action === 'record_payment') {
+      const { jobId, amount, method, reference, notes } = body;
+      if (!jobId || !amount || !method) {
+        return jsonResponse({ error: 'jobId, amount, and method are required.' }, 400);
+      }
+      const updatedJob = await recordPaymentInSupabase({ jobId, amount, method, reference, notes });
+      return jsonResponse({ success: true, job: updatedJob });
+    }
+
+    return jsonResponse({ error: `Unknown action: ${action}` }, 400);
+  } catch (err) {
+    console.error('[square-payment] Error:', err);
+    return jsonResponse({ error: err instanceof Error ? err.message : 'Unexpected error.' }, 500);
+  }
+});

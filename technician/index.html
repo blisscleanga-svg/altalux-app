@@ -276,6 +276,11 @@
     position:absolute; top:6px; right:8px; font-size:16px; cursor:pointer; color:rgba(255,255,255,.25);
   }
   .pm-star.is-default{ color:var(--gold); }
+  .payment-method-btn.locked{ opacity:.45; cursor:not-allowed; }
+  .pm-coming-soon{ display:block; font-size:9px; font-weight:700; color:var(--ink-faint); margin-top:2px; text-transform:uppercase; letter-spacing:.4px; }
+  .square-card-box{ background:#fff; border-radius:var(--radius-sm); padding:14px; margin-bottom:10px; min-height:80px; }
+  .square-link-result{ display:flex; gap:8px; margin-top:10px; }
+  .square-link-result input{ flex:1; }
 
   .success-screen{ text-align:center; padding:20px 4px; }
   .success-check{
@@ -326,9 +331,33 @@
   }
 
   ::-webkit-scrollbar{ width:0; height:0; }
+
+  /* ================= TOASTS / LOADING ================= */
+  .toast-container{ position:fixed; top:12px; left:50%; transform:translateX(-50%); width:100%; max-width:400px; z-index:300; padding:0 12px; display:flex; flex-direction:column; gap:8px; pointer-events:none; }
+  .toast{
+    background:rgba(15,25,45,.97); border:1px solid var(--line); border-left:4px solid var(--gold);
+    border-radius:12px; padding:12px 14px; font-size:13px; color:#fff; box-shadow:0 10px 30px rgba(0,0,0,.4);
+    animation:toastIn .25s ease;
+  }
+  .toast-success{ border-left-color:var(--green); }
+  .toast-error{ border-left-color:var(--red); }
+  @keyframes toastIn{ from{ opacity:0; transform:translateY(-10px); } to{ opacity:1; transform:translateY(0); } }
+  .loading-overlay{
+    position:fixed; inset:0; max-width:430px; margin:0 auto; background:rgba(10,22,40,.92); z-index:400;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+  }
+  .loading-spinner{ width:36px; height:36px; border:3px solid rgba(255,255,255,.2); border-top-color:var(--gold); border-radius:50%; animation:spin .8s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .loading-text{ font-size:13px; color:var(--ink-muted); }
 </style>
 </head>
 <body>
+
+<div class="toast-container" id="toast-container"></div>
+<div class="loading-overlay hidden" id="loading-overlay">
+  <div class="loading-spinner"></div>
+  <p class="loading-text" id="loading-text">Loading your dashboard...</p>
+</div>
 
 <!-- ================= LOGIN SCREEN ================= -->
 <div id="login-screen">
@@ -435,9 +464,9 @@
       <div class="field" style="margin-bottom:20px;">
         <label for="profile-default-payment-select">Default Payment Method</label>
         <select id="profile-default-payment-select">
-          <option value="Stripe Link">Stripe Link</option>
           <option value="Square Reader">Square Reader</option>
           <option value="Square Link">Square Link</option>
+          <option value="Stripe Link" disabled>Stripe Link (Coming Soon)</option>
           <option value="Cash">Cash</option>
           <option value="Zelle">Zelle</option>
           <option value="Check">Check</option>
@@ -790,9 +819,44 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://web.squarecdn.com/v1/square.js"></script>
 <script>
 (function(){
   "use strict";
+
+  // ---------- Supabase ----------
+  const SUPABASE_URL = 'https://xmhsehfdmiqbwhpqjgon.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtaHNlaGZkbWlxYndocHFqZ29uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzODU5NzQsImV4cCI6MjA5ODk2MTk3NH0.J2UOp-pgzP6ByvDBoHcocFAmarWdlDK8M31YgKrUNss';
+  const SQUARE_FUNCTION_URL = SUPABASE_URL + '/functions/v1/square-payment';
+  let db = null;
+  try {
+    if (typeof supabase !== 'undefined'){
+      const { createClient } = supabase;
+      db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+  } catch (err){
+    console.error('[Supabase] Client failed to initialize:', err);
+  }
+
+  // ---------- Square ----------
+  const SQUARE_APP_ID = 'sq0idp-jVMn1EDrut74rDnsRGgzrQ';
+  const SQUARE_LOCATION_ID = 'LEWG2XNWRA7BS';
+
+  async function callSquareFunction(action, extra){
+    const res = await fetch(SQUARE_FUNCTION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'apikey': SUPABASE_ANON_KEY
+      },
+      body: JSON.stringify({ action, ...extra })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Payment request failed.');
+    return data;
+  }
 
   // ================= HELPERS =================
   function todayDate(){ const d = new Date(); d.setHours(0,0,0,0); return d; }
@@ -1055,6 +1119,130 @@
     return perms().seeAllJobs ? JOBS : JOBS.filter(j => j.assignedEmployeeIds.includes(currentUser.id));
   }
 
+  // ================= SUPABASE DATA SYNC =================
+  function showToast(message, type){
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast' + (type ? ' toast-' + type : '');
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => { toast.remove(); }, 5000);
+  }
+  function showLoading(text){
+    document.getElementById('loading-text').textContent = text || 'Loading...';
+    document.getElementById('loading-overlay').classList.remove('hidden');
+  }
+  function hideLoading(){ document.getElementById('loading-overlay').classList.add('hidden'); }
+
+  function mapJobRow(row, index){
+    const parsedVehicle = parseVehicleString(row.vehicle || '');
+    return {
+      id: index + 1,
+      supabaseId: row.id,
+      jobNumber: padNum(row.job_number),
+      customer: {
+        name: (row.customers && row.customers.full_name) || '',
+        phone: (row.customers && row.customers.phone) || '',
+        email: (row.customers && row.customers.email) || ''
+      },
+      category: /interior/i.test(row.category || '') ? 'interior' : /exterior/i.test(row.category || '') ? 'exterior' : 'full',
+      packageKey: null,
+      service: row.package || row.category || '',
+      vehicleType: '',
+      vehicleYear: parsedVehicle.year, vehicleMake: parsedVehicle.make, vehicleModel: parsedVehicle.model, vehicleColor: '',
+      vehicle: row.vehicle || '',
+      address: (row.customers && row.customers.address) || '',
+      date: row.service_date ? fromInputDate(row.service_date) : new Date(TODAY),
+      time: row.service_time || ADMIN_TIME_SLOTS[0],
+      addons: (row.job_addons || []).map(a => ({ name:a.name, price:Number(a.price)||0 })),
+      subtotal: Number(row.subtotal) || 0, addonsTotal: Number(row.addons_total) || 0, total: Number(row.total) || 0,
+      status: row.status || 'Pending', notes: row.notes || '',
+      assignedEmployeeIds: row.assigned_to && currentUser ? [currentUser.id] : [],
+      payments: [], priceOverride: null, depositOverride: null, auditLog: [],
+      photosBefore: [], photosAfter: [],
+      startTime: row.start_time ? new Date(row.start_time) : null,
+      endTime: row.end_time ? new Date(row.end_time) : null
+    };
+  }
+
+  async function resolveEmployeeSupabaseId(){
+    if (!db || !currentUser) return null;
+    try {
+      const { data, error } = await db.from('employees').select('id').eq('email', currentUser.email).single();
+      if (error) throw error;
+      return data ? data.id : null;
+    } catch (err){
+      console.error('[Supabase] Could not resolve employee record:', err);
+      return null;
+    }
+  }
+
+  async function loadTodaysJobsFromSupabase(){
+    if (!db){
+      console.log('[Supabase] Client unavailable — using sample data.');
+      return;
+    }
+    showLoading('Loading your dashboard...');
+    try {
+      currentUser.supabaseId = await resolveEmployeeSupabaseId();
+      let query = db.from('jobs').select('*, customers(*), job_addons(*)').eq('service_date', toInputDate(TODAY));
+      if (!perms().seeAllJobs && currentUser.supabaseId){
+        query = query.eq('assigned_to', currentUser.supabaseId);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      if (data && data.length){
+        JOBS.length = 0;
+        data.forEach((row, i) => JOBS.push(mapJobRow(row, i)));
+        console.log(`[Supabase] Loaded ${data.length} job(s) from database.`);
+      } else {
+        console.log('[Supabase] No jobs in database for today — keeping sample data.');
+      }
+    } catch (err){
+      console.error('[Supabase] Failed to load jobs, falling back to sample data:', err);
+      showToast('Could not load live data — showing sample jobs.', 'error');
+    } finally {
+      hideLoading();
+    }
+  }
+
+  let realtimeJobsSubscribed = false;
+  function setupRealtimeJobsSubscription(){
+    if (!db || realtimeJobsSubscribed) return;
+    realtimeJobsSubscribed = true;
+    try {
+      db.channel('technician-jobs')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'jobs' }, (payload) => {
+          const job = JOBS.find(j => j.supabaseId === payload.new.id);
+          if (job){
+            job.status = payload.new.status || job.status;
+            refreshAllViews();
+            if (currentJobId === job.id) populateJobDetail(job);
+          }
+        })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'jobs' }, (payload) => {
+          if (currentUser && currentUser.supabaseId && payload.new.assigned_to === currentUser.supabaseId){
+            showToast('New job assigned!', 'success');
+            loadTodaysJobsFromSupabase().then(refreshAllViews);
+          }
+        })
+        .subscribe();
+    } catch (err){
+      console.error('[Supabase] Realtime subscription failed:', err);
+    }
+  }
+
+  async function syncJobStatusToSupabase(job, extraFields){
+    if (!db || !job.supabaseId) return;
+    try {
+      const { error } = await db.from('jobs').update({ status: job.status, ...extraFields }).eq('id', job.supabaseId);
+      if (error) throw error;
+    } catch (err){
+      console.error('[Supabase] Failed to sync job status, kept locally only:', err);
+      showToast('Status saved locally — sync will retry later.', 'error');
+    }
+  }
+
   // ================= LOGIN =================
   const loginScreen = document.getElementById('login-screen');
   const appShell = document.getElementById('app');
@@ -1146,15 +1334,17 @@
     if (currentView === 'profile' && appShell.classList.contains('active')) renderClockHistory();
   }
 
-  function enterApp(){
+  async function enterApp(){
     loginScreen.classList.add('hidden');
     appShell.classList.add('active');
     document.getElementById('app-greeting').textContent = `${greetingForNow()}, ${currentUser.name.split(' ')[0]}`;
     renderClockToggle();
     tickClock();
     setInterval(tickClock, 1000);
-    seedCustomerProfilesFromJobs();
     applyRolePermissionsUI();
+    await loadTodaysJobsFromSupabase();
+    seedCustomerProfilesFromJobs();
+    setupRealtimeJobsSubscription();
     switchView('today');
   }
 
@@ -1379,6 +1569,7 @@
     job.startTime = new Date();
     logJobActivity(job, 'Status changed — Confirmed → In Progress');
     populateJobDetail(job);
+    syncJobStatusToSupabase(job, { start_time: job.startTime.toISOString() });
   });
 
   document.getElementById('dj-complete-btn').addEventListener('click', () => {
@@ -1394,6 +1585,7 @@
     job.status = 'Completed';
     job.endTime = new Date();
     logJobActivity(job, 'Status changed — In Progress → Completed');
+    syncJobStatusToSupabase(job, { end_time: job.endTime.toISOString() });
     populateJobDetail(job);
   });
 
@@ -1444,15 +1636,35 @@
     document.getElementById('detail-content').addEventListener(evt, () => { clearTimeout(longPressTimer); });
   });
 
+  async function uploadPhotoToStorage(job, file, type){
+    if (!db) throw new Error('Supabase client is not available.');
+    const path = `${job.jobNumber}/${type}/${Date.now()}.jpg`;
+    const { error: uploadErr } = await db.storage.from('job-photos').upload(path, file, { contentType: file.type || 'image/jpeg' });
+    if (uploadErr) throw uploadErr;
+    const { data } = db.storage.from('job-photos').getPublicUrl(path);
+    if (!data || !data.publicUrl) throw new Error('Could not resolve uploaded photo URL.');
+    return data.publicUrl;
+  }
+
   function handlePhotoFile(input, type){
     input.addEventListener('change', () => {
       const file = input.files[0];
       if (!file) return;
+      const job = findJob(currentJobId);
+      const targetArray = type === 'before' ? job.photosBefore : job.photosAfter;
+      const gridId = type === 'before' ? 'dj-photos-before' : 'dj-photos-after';
       const reader = new FileReader();
       reader.onload = () => {
-        const job = findJob(currentJobId);
-        (type === 'before' ? job.photosBefore : job.photosAfter).push(reader.result);
-        renderPhotoGrid(type === 'before' ? 'dj-photos-before' : 'dj-photos-after', type === 'before' ? job.photosBefore : job.photosAfter, type);
+        const localIndex = targetArray.push(reader.result) - 1;
+        renderPhotoGrid(gridId, targetArray, type);
+        uploadPhotoToStorage(job, file, type)
+          .then(publicUrl => {
+            targetArray[localIndex] = publicUrl;
+            if (currentJobId === job.id) renderPhotoGrid(gridId, targetArray, type);
+          })
+          .catch(err => {
+            console.error('[Supabase] Photo upload failed, kept as local base64:', err);
+          });
       };
       reader.readAsDataURL(file);
       input.value = '';
@@ -1743,18 +1955,23 @@
   // ================= COLLECT PAYMENT MODAL =================
   let cpSelectedMethod = null;
 
+  const LOCKED_PAYMENT_METHODS = ['Stripe Link'];
+
   function renderPaymentMethodGrid(){
     const grid = document.getElementById('cp-method-grid');
-    grid.innerHTML = PAYMENT_METHODS.map(m => `
-      <div class="payment-method-btn ${m === cpSelectedMethod ? 'selected' : ''}" data-method="${m}">
-        <span class="pm-star ${currentUser.defaultPaymentMethod === m ? 'is-default' : ''}" data-star="${m}">★</span>
-        <span class="pm-icon">${PAYMENT_METHOD_ICON[m]}</span>
-        <span class="pm-name">${m}</span>
+    grid.innerHTML = PAYMENT_METHODS.map(m => {
+      const locked = LOCKED_PAYMENT_METHODS.includes(m);
+      return `
+      <div class="payment-method-btn ${m === cpSelectedMethod ? 'selected' : ''} ${locked ? 'locked' : ''}" data-method="${m}" ${locked ? 'data-locked="1"' : ''}>
+        ${!locked ? `<span class="pm-star ${currentUser.defaultPaymentMethod === m ? 'is-default' : ''}" data-star="${m}">★</span>` : ''}
+        <span class="pm-icon">${locked ? '🔒' : PAYMENT_METHOD_ICON[m]}</span>
+        <span class="pm-name">${m}${locked ? '<span class="pm-coming-soon">Coming Soon</span>' : ''}</span>
       </div>
-    `).join('');
+    `;
+    }).join('');
     grid.querySelectorAll('.payment-method-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        if (e.target.closest('.pm-star')) return;
+        if (e.target.closest('.pm-star') || btn.dataset.locked) return;
         cpSelectedMethod = btn.dataset.method;
         renderPaymentMethodGrid();
         renderMethodFields(cpSelectedMethod, findJob(currentJobId));
@@ -1777,28 +1994,48 @@
     document.getElementById('cp-change-due').textContent = formatCurrency(Math.max(0, received - bal));
   }
 
+  let cpSquarePayments = null;
+  let cpSquareCard = null;
+  let cpSquareCardAttached = false;
+
+  async function ensureCpSquareCard(){
+    if (cpSquareCardAttached) return;
+    if (typeof Square === 'undefined') return;
+    try {
+      cpSquarePayments = Square.payments(SQUARE_APP_ID, SQUARE_LOCATION_ID);
+      cpSquareCard = await cpSquarePayments.card();
+      await cpSquareCard.attach('#cp-square-card-container');
+      cpSquareCardAttached = true;
+    } catch (err){
+      console.error('[Square] Card init failed:', err);
+      document.getElementById('cp-square-card-error').textContent = 'Unable to load the card form (requires HTTPS).';
+      document.getElementById('cp-square-card-error').style.display = 'block';
+    }
+  }
+
   function renderMethodFields(method, job){
     const container = document.getElementById('cp-method-fields');
     const bal = balanceDue(job);
-    if (method === 'Stripe Link'){
+    if (method === 'Square Reader'){
       container.innerHTML = `
-        <div class="field"><label>Customer Email</label><input type="email" id="cp-field-email" value="${job.customer.email}"></div>
-        <div class="field" style="margin-top:12px;"><label>Customer Phone</label><input type="tel" id="cp-field-phone" value="${job.customer.phone}"></div>
-        <div class="field" style="margin-top:12px;"><label>Amount</label><input type="number" id="cp-field-amount" value="${bal.toFixed(2)}" step="0.01"></div>
-        <button type="button" class="btn btn-primary btn-full" id="cp-submit-btn" style="margin-top:16px;">Send Stripe Payment Link</button>
-      `;
-    } else if (method === 'Square Reader'){
-      container.innerHTML = `
-        <p style="font-size:13.5px; color:var(--ink-muted); margin:6px 0 14px;">Open the Square app and charge ${formatCurrency(bal)}.</p>
         <div class="field"><label>Amount</label><input type="number" id="cp-field-amount" value="${bal.toFixed(2)}" step="0.01"></div>
-        <button type="button" class="btn btn-primary btn-full" id="cp-submit-btn" style="margin-top:16px;">Confirm Payment Received</button>
+        <div class="square-card-box" id="cp-square-card-container"></div>
+        <p style="font-size:11.5px; color:var(--red); margin:0 0 10px; display:none;" id="cp-square-card-error"></p>
+        <button type="button" class="btn btn-primary btn-full" id="cp-submit-btn">Charge with Square</button>
       `;
+      ensureCpSquareCard();
     } else if (method === 'Square Link'){
       container.innerHTML = `
         <div class="field"><label>Customer Email</label><input type="email" id="cp-field-email" value="${job.customer.email}"></div>
-        <div class="field" style="margin-top:12px;"><label>Customer Phone</label><input type="tel" id="cp-field-phone" value="${job.customer.phone}"></div>
         <div class="field" style="margin-top:12px;"><label>Amount</label><input type="number" id="cp-field-amount" value="${bal.toFixed(2)}" step="0.01"></div>
-        <button type="button" class="btn btn-primary btn-full" id="cp-submit-btn" style="margin-top:16px;">Send Square Payment Link</button>
+        <button type="button" class="btn btn-primary btn-full" id="cp-submit-btn" style="margin-top:16px;">Generate Square Payment Link</button>
+        <div class="square-link-result hidden" id="cp-square-link-result">
+          <input type="text" id="cp-square-link-url" readonly>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:10px;" id="cp-square-link-actions" class="hidden">
+          <button type="button" class="btn btn-ghost" id="cp-square-link-copy" style="flex:1;">Copy Link</button>
+          <button type="button" class="btn btn-ghost" id="cp-square-link-sms" style="flex:1;">Text to Customer</button>
+        </div>
       `;
     } else if (method === 'Cash'){
       container.innerHTML = `
@@ -1826,23 +2063,104 @@
         <button type="button" class="btn btn-primary btn-full" id="cp-submit-btn" style="margin-top:16px;">Record Payment</button>
       `;
     }
-    document.getElementById('cp-submit-btn').addEventListener('click', () => handlePaymentSubmit(method, job));
+    if (method === 'Square Link'){
+      document.getElementById('cp-submit-btn').addEventListener('click', () => handleSquareLinkGenerate(job));
+    } else if (method === 'Square Reader'){
+      document.getElementById('cp-submit-btn').addEventListener('click', () => handleSquareReaderCharge(job));
+    } else {
+      document.getElementById('cp-submit-btn').addEventListener('click', () => handlePaymentSubmit(method, job));
+    }
+  }
+
+  async function recordSupabasePayment(job, amount, method, reference){
+    if (!db || !job.supabaseId) return;
+    try {
+      const { error: payErr } = await db.from('payments').insert([{
+        job_id: job.supabaseId, amount, payment_method: method, payment_type: 'Balance',
+        payment_date: toInputDate(new Date()), reference_number: reference || null
+      }]);
+      if (payErr) throw payErr;
+      const newBalance = balanceDue(job);
+      const { error: jobErr } = await db.from('jobs').update({
+        balance_due: newBalance, payment_status: getPaymentStatus(job)
+      }).eq('id', job.supabaseId);
+      if (jobErr) throw jobErr;
+    } catch (err){
+      console.error('[Supabase] Failed to sync payment, kept locally only:', err);
+    }
+  }
+
+  async function handleSquareReaderCharge(job){
+    const amount = parseFloat(document.getElementById('cp-field-amount').value) || balanceDue(job);
+    if (!amount || amount <= 0){ alert('Please enter a valid amount.'); return; }
+    if (!cpSquareCard){ alert('The card form is not ready yet. Please wait a moment.'); return; }
+
+    const btn = document.getElementById('cp-submit-btn');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+    document.getElementById('cp-square-card-error').style.display = 'none';
+    try {
+      const tokenResult = await cpSquareCard.tokenize();
+      if (tokenResult.status !== 'OK'){
+        throw new Error((tokenResult.errors && tokenResult.errors[0] && tokenResult.errors[0].message) || 'Card was declined.');
+      }
+      const chargeResult = await callSquareFunction('charge', {
+        sourceId: tokenResult.token, amount: Math.round(amount * 100), jobId: job.jobNumber
+      });
+      job.payments.push({ id: nextPaymentIdCounter++, label:'Balance', amount, method:'Square', date:new Date(), reference: chargeResult.paymentId || '' });
+      logJobActivity(job, `Payment recorded — ${formatCurrency(amount)} via Square`);
+      recordSupabasePayment(job, amount, 'Square', chargeResult.paymentId);
+      showPaymentSuccess(job);
+    } catch (err){
+      console.error('[Square] Charge failed:', err);
+      document.getElementById('cp-square-card-error').textContent = err.message || 'Payment failed.';
+      document.getElementById('cp-square-card-error').style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  }
+
+  async function handleSquareLinkGenerate(job){
+    const amount = parseFloat(document.getElementById('cp-field-amount').value) || balanceDue(job);
+    if (!amount || amount <= 0){ alert('Please enter a valid amount.'); return; }
+    const email = document.getElementById('cp-field-email').value.trim();
+    const btn = document.getElementById('cp-submit-btn');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Generating...';
+    try {
+      const result = await callSquareFunction('create_link', {
+        amount: Math.round(amount * 100), jobId: job.jobNumber, customerEmail: email,
+        description: `Job #${job.jobNumber} — ${job.service}`
+      });
+      if (!result.url) throw new Error('Could not create a Square payment link.');
+      document.getElementById('cp-square-link-url').value = result.url;
+      document.getElementById('cp-square-link-result').classList.remove('hidden');
+      document.getElementById('cp-square-link-actions').classList.remove('hidden');
+
+      document.getElementById('cp-square-link-copy').addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(result.url); showToast('Link copied.', 'success'); }
+        catch (e){ document.getElementById('cp-square-link-url').select(); document.execCommand('copy'); }
+      });
+      document.getElementById('cp-square-link-sms').addEventListener('click', () => {
+        const message = `Hi ${job.customer.name.split(' ')[0]}, your AltaLux detail is complete!\nPlease pay your balance of ${formatCurrency(amount)} here: ${result.url}\nThank you! — AltaLux Mobile Detail`;
+        const phoneDigits = (job.customer.phone || '').replace(/[^\d+]/g, '');
+        window.location.href = `sms:${phoneDigits}?&body=${encodeURIComponent(message)}`;
+      });
+    } catch (err){
+      console.error('[Square] Link creation failed:', err);
+      showToast('Could not generate a Square payment link.', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
   }
 
   function handlePaymentSubmit(method, job){
-    let amount, recordedMethod = method, integrationAlert = null;
-    if (method === 'Stripe Link'){
-      amount = parseFloat(document.getElementById('cp-field-amount').value) || balanceDue(job);
-      recordedMethod = 'Stripe - Link Sent';
-      integrationAlert = 'Stripe integration coming soon.';
-    } else if (method === 'Square Reader'){
-      amount = parseFloat(document.getElementById('cp-field-amount').value) || balanceDue(job);
-      recordedMethod = 'Square - Reader';
-    } else if (method === 'Square Link'){
-      amount = parseFloat(document.getElementById('cp-field-amount').value) || balanceDue(job);
-      recordedMethod = 'Square - Link Sent';
-      integrationAlert = 'Square integration coming soon.';
-    } else if (method === 'Cash'){
+    let amount, recordedMethod = method;
+    if (method === 'Cash'){
       amount = balanceDue(job);
     } else if (method === 'Zelle' || method === 'Check'){
       amount = balanceDue(job);
@@ -1853,7 +2171,7 @@
 
     job.payments.push({ id: nextPaymentIdCounter++, label:'Balance', amount, method: recordedMethod, date: new Date(), reference:'' });
     logJobActivity(job, `Payment recorded — ${formatCurrency(amount)} via ${recordedMethod}`);
-    if (integrationAlert) alert(integrationAlert);
+    recordSupabasePayment(job, amount, recordedMethod, '');
     showPaymentSuccess(job);
   }
 
@@ -1900,6 +2218,7 @@
     document.getElementById('cp-success-panel').classList.add('hidden');
     document.getElementById('cp-balance-display').textContent = formatCurrency(balanceDue(job));
     cpSelectedMethod = currentUser.defaultPaymentMethod || 'Cash';
+    if (LOCKED_PAYMENT_METHODS.includes(cpSelectedMethod)) cpSelectedMethod = 'Square Reader';
     renderPaymentMethodGrid();
     renderMethodFields(cpSelectedMethod, job);
     document.getElementById('collect-payment-modal').classList.remove('hidden');

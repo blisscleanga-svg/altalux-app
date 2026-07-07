@@ -746,6 +746,21 @@
   .radio-option .radio-label{ flex:1; font-size:13.5px; font-weight:600; }
   .radio-option .radio-amount{ font-weight:700; color:var(--gold); font-family:'Rajdhani',sans-serif; font-size:14.5px; }
 
+  /* ================= PAYMENT METHOD GRID (Square / Stripe) ================= */
+  .pm-method-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; }
+  .pm-method-btn{
+    position:relative; border:1.5px solid rgba(255,255,255,.14); background:rgba(255,255,255,.03);
+    border-radius:var(--radius-sm); padding:12px 8px; text-align:center; cursor:pointer; color:var(--white);
+    font-family:'Rajdhani',sans-serif; font-size:13px; font-weight:700;
+  }
+  .pm-method-btn.selected{ border-color:var(--gold); background:rgba(255,170,0,.08); color:var(--gold); }
+  .pm-method-btn.locked{ opacity:.45; cursor:not-allowed; }
+  .pm-method-btn .lock-icon{ margin-right:4px; }
+  .pm-coming-soon{ display:block; font-size:9.5px; font-weight:700; color:var(--ink-faint); margin-top:2px; text-transform:uppercase; letter-spacing:.4px; }
+  .square-card-box{ background:#fff; border-radius:var(--radius-sm); padding:14px; margin-bottom:14px; min-height:80px; }
+  .square-link-result{ display:flex; gap:8px; margin-top:10px; }
+  .square-link-result input{ flex:1; }
+
   /* ================= PAYMENT HISTORY (Job modal) ================= */
   .payment-history-table{ width:100%; border-collapse:collapse; font-size:12.5px; margin:8px 0 4px; }
   .payment-history-table th{
@@ -1646,63 +1661,93 @@
     <div class="summary-line"><span>Customer</span><span id="rp-customer-name"></span></div>
 
     <hr class="summary-divider">
-    <p class="modal-section-title">Payment Amount</p>
+    <p class="modal-section-title">Payment Method</p>
+    <input type="hidden" id="rp-method" value="Square Reader">
+    <div class="pm-method-grid" id="rp-method-grid">
+      <button type="button" class="pm-method-btn selected" data-method="Square Reader">Square Reader</button>
+      <button type="button" class="pm-method-btn" data-method="Square Link">Square Link</button>
+      <button type="button" class="pm-method-btn locked" data-method="Stripe Reader" disabled>🔒 Stripe Reader<span class="pm-coming-soon">Coming Soon</span></button>
+      <button type="button" class="pm-method-btn locked" data-method="Stripe Link" disabled>🔒 Stripe Link<span class="pm-coming-soon">Coming Soon</span></button>
+      <button type="button" class="pm-method-btn" data-method="Cash">Cash</button>
+      <button type="button" class="pm-method-btn" data-method="Zelle">Zelle</button>
+      <button type="button" class="pm-method-btn" data-method="Check">Check</button>
+      <button type="button" class="pm-method-btn" data-method="Other">Other</button>
+    </div>
+
+    <div id="rp-stripe-locked-note" hidden style="text-align:center; padding:20px 10px; color:var(--ink-faint); font-size:13px;">
+      🔒 Coming Soon — Add Stripe keys to activate.
+    </div>
+
     <form id="record-payment-form">
-      <label class="radio-option" data-option="deposit">
-        <input type="radio" name="rp-amount-option" value="deposit">
-        <span class="radio-label">Deposit Only (25%)</span>
-        <span class="radio-amount" id="rp-preset-deposit">$0.00</span>
-      </label>
-      <label class="radio-option" data-option="balance">
-        <input type="radio" name="rp-amount-option" value="balance">
-        <span class="radio-label">Balance Due (75%)</span>
-        <span class="radio-amount" id="rp-preset-balance">$0.00</span>
-      </label>
-      <label class="radio-option" data-option="full">
-        <input type="radio" name="rp-amount-option" value="full">
-        <span class="radio-label">Full Amount (100%)</span>
-        <span class="radio-amount" id="rp-preset-full">$0.00</span>
-      </label>
-      <label class="radio-option" data-option="custom">
-        <input type="radio" name="rp-amount-option" value="custom">
-        <span class="radio-label">Custom Amount</span>
-      </label>
+      <div id="rp-amount-section">
+        <label class="radio-option" data-option="deposit">
+          <input type="radio" name="rp-amount-option" value="deposit">
+          <span class="radio-label">Deposit Only (25%)</span>
+          <span class="radio-amount" id="rp-preset-deposit">$0.00</span>
+        </label>
+        <label class="radio-option" data-option="balance">
+          <input type="radio" name="rp-amount-option" value="balance">
+          <span class="radio-label">Balance Due (75%)</span>
+          <span class="radio-amount" id="rp-preset-balance">$0.00</span>
+        </label>
+        <label class="radio-option" data-option="full">
+          <input type="radio" name="rp-amount-option" value="full">
+          <span class="radio-label">Full Amount (100%)</span>
+          <span class="radio-amount" id="rp-preset-full">$0.00</span>
+        </label>
+        <label class="radio-option" data-option="custom">
+          <input type="radio" name="rp-amount-option" value="custom">
+          <span class="radio-label">Custom Amount</span>
+        </label>
 
-      <div class="field" style="margin-top:14px;">
-        <label for="rp-amount">Amount</label>
-        <input type="number" id="rp-amount" min="0" step="0.01" placeholder="0.00">
+        <div class="field" style="margin-top:14px;">
+          <label for="rp-amount">Amount</label>
+          <input type="number" id="rp-amount" min="0" step="0.01" placeholder="0.00">
+        </div>
       </div>
 
-      <div class="field" style="margin-top:14px;">
-        <label for="rp-method">Payment Method</label>
-        <select id="rp-method">
-          <option value="Stripe">Stripe</option>
-          <option value="Cash">Cash</option>
-          <option value="Check">Check</option>
-          <option value="Zelle">Zelle</option>
-          <option value="Other">Other</option>
-        </select>
+      <div id="rp-square-reader-section" hidden>
+        <div class="square-card-box" id="rp-square-card-container"></div>
+        <p class="step-error" id="rp-square-card-error" style="display:none; color:var(--danger,#ef4444); font-size:12.5px;"></p>
       </div>
 
-      <div class="field" style="margin-top:14px;">
-        <label for="rp-date">Payment Date</label>
-        <input type="date" id="rp-date">
+      <div id="rp-square-link-section" hidden>
+        <div class="field">
+          <label for="rp-square-link-email">Customer Email</label>
+          <input type="email" id="rp-square-link-email">
+        </div>
+        <div class="square-link-result" id="rp-square-link-result" hidden>
+          <input type="text" id="rp-square-link-url" readonly>
+        </div>
+        <div class="modal-actions" id="rp-square-link-actions" hidden style="margin-top:10px;">
+          <button type="button" class="btn btn-ghost" id="rp-square-link-copy">Copy Link</button>
+          <button type="button" class="btn btn-ghost" id="rp-square-link-open">Open Link</button>
+        </div>
+        <p style="font-size:11.5px; color:var(--ink-faint); margin-top:8px;">SMS/Email delivery coming soon.</p>
       </div>
 
-      <div class="field" style="margin-top:14px;">
-        <label for="rp-reference">Reference # <span style="color:var(--ink-faint); text-transform:none; font-weight:400;">(optional)</span></label>
-        <input type="text" id="rp-reference" placeholder="Check # or Zelle confirmation">
-      </div>
+      <div id="rp-manual-fields-section">
+        <div class="field" style="margin-top:14px;">
+          <label for="rp-date">Payment Date</label>
+          <input type="date" id="rp-date">
+        </div>
 
-      <div class="field" style="margin-top:14px;">
-        <label for="rp-notes">Notes <span style="color:var(--ink-faint); text-transform:none; font-weight:400;">(optional)</span></label>
-        <textarea id="rp-notes" placeholder="Add notes about this payment..."></textarea>
+        <div class="field" style="margin-top:14px;">
+          <label for="rp-reference">Reference # <span style="color:var(--ink-faint); text-transform:none; font-weight:400;">(optional)</span></label>
+          <input type="text" id="rp-reference" placeholder="Check # or Zelle confirmation">
+        </div>
+
+        <div class="field" style="margin-top:14px;">
+          <label for="rp-notes">Notes <span style="color:var(--ink-faint); text-transform:none; font-weight:400;">(optional)</span></label>
+          <textarea id="rp-notes" placeholder="Add notes about this payment..."></textarea>
+        </div>
       </div>
     </form>
 
     <div class="modal-actions">
       <button type="button" class="btn btn-ghost" id="rp-cancel">Cancel</button>
       <button type="button" class="btn btn-primary" id="rp-submit">Record Payment</button>
+      <button type="button" class="btn btn-primary" id="rp-square-link-generate" hidden>Generate Square Payment Link</button>
     </div>
   </div>
 </div>
@@ -2314,6 +2359,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://web.squarecdn.com/v1/square.js"></script>
 <script>
 (function(){
   "use strict";
@@ -2323,6 +2369,12 @@
   // ---------- Supabase ----------
   const SUPABASE_URL = 'https://xmhsehfdmiqbwhpqjgon.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtaHNlaGZkbWlxYndocHFqZ29uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzODU5NzQsImV4cCI6MjA5ODk2MTk3NH0.J2UOp-pgzP6ByvDBoHcocFAmarWdlDK8M31YgKrUNss';
+  const SQUARE_FUNCTION_URL = SUPABASE_URL + '/functions/v1/square-payment';
+
+  // ---------- Square ----------
+  const SQUARE_APP_ID = 'sq0idp-jVMn1EDrut74rDnsRGgzrQ';
+  const SQUARE_LOCATION_ID = 'LEWG2XNWRA7BS';
+
   let db = null;
   try {
     if (typeof supabase !== 'undefined'){
@@ -3927,6 +3979,75 @@
   const rpForm = document.getElementById('record-payment-form');
   const rpAmountInput = document.getElementById('rp-amount');
 
+  async function callSquareFunction(action, extra){
+    const res = await fetch(SQUARE_FUNCTION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+        'apikey': SUPABASE_ANON_KEY
+      },
+      body: JSON.stringify({ action, ...extra })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Payment request failed.');
+    return data;
+  }
+
+  let rpSquarePayments = null;
+  let rpSquareCard = null;
+  let rpSquareCardAttached = false;
+
+  async function ensureRpSquareCard(){
+    if (rpSquareCardAttached) return;
+    if (typeof Square === 'undefined'){
+      document.getElementById('rp-square-card-error').textContent = 'Square payment form failed to load.';
+      document.getElementById('rp-square-card-error').style.display = 'block';
+      return;
+    }
+    try {
+      rpSquarePayments = Square.payments(SQUARE_APP_ID, SQUARE_LOCATION_ID);
+      rpSquareCard = await rpSquarePayments.card();
+      await rpSquareCard.attach('#rp-square-card-container');
+      rpSquareCardAttached = true;
+    } catch (err){
+      console.error('[Square] Card init failed:', err);
+      document.getElementById('rp-square-card-error').textContent = 'Unable to load the card form (requires HTTPS). Please try again on the live site.';
+      document.getElementById('rp-square-card-error').style.display = 'block';
+    }
+  }
+
+  function updatePaymentMethodUI(method){
+    document.getElementById('rp-method').value = method;
+    document.querySelectorAll('#rp-method-grid .pm-method-btn').forEach(btn => {
+      btn.classList.toggle('selected', btn.dataset.method === method);
+    });
+
+    const isSquareReader = method === 'Square Reader';
+    const isSquareLink = method === 'Square Link';
+    const isStripeLocked = method === 'Stripe Reader' || method === 'Stripe Link';
+    const isManual = !isSquareReader && !isSquareLink && !isStripeLocked;
+
+    document.getElementById('rp-amount-section').hidden = isStripeLocked;
+    document.getElementById('rp-square-reader-section').hidden = !isSquareReader;
+    document.getElementById('rp-square-link-section').hidden = !isSquareLink;
+    document.getElementById('rp-stripe-locked-note').hidden = !isStripeLocked;
+    document.getElementById('rp-manual-fields-section').hidden = !isManual;
+
+    document.getElementById('rp-submit').hidden = isSquareLink || isStripeLocked;
+    document.getElementById('rp-submit').textContent = isSquareReader ? 'Charge with Square' : 'Record Payment';
+    document.getElementById('rp-square-link-generate').hidden = !isSquareLink;
+
+    if (isSquareReader) ensureRpSquareCard();
+  }
+
+  document.querySelectorAll('#rp-method-grid .pm-method-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.disabled) return;
+      updatePaymentMethodUI(btn.dataset.method);
+    });
+  });
+
   function openRecordPaymentModal(jobId){
     const job = findJob(jobId);
     currentRecordPaymentJobId = jobId;
@@ -3943,12 +4064,16 @@
 
     rpForm.reset();
     document.querySelectorAll('.radio-option').forEach(el => el.classList.remove('selected'));
-    rpAmountInput.value = '';
-    document.getElementById('rp-method').value = 'Stripe';
+    rpAmountInput.value = balancePreset.toFixed(2);
     document.getElementById('rp-date').value = toInputDate(TODAY);
     document.getElementById('rp-reference').value = '';
     document.getElementById('rp-notes').value = '';
+    document.getElementById('rp-square-link-email').value = job.customer.email || '';
+    document.getElementById('rp-square-link-result').hidden = true;
+    document.getElementById('rp-square-link-actions').hidden = true;
+    document.getElementById('rp-square-card-error').style.display = 'none';
 
+    updatePaymentMethodUI('Square Reader');
     recordPaymentOverlay.hidden = false;
   }
 
@@ -3979,7 +4104,18 @@
     if (e.target === recordPaymentOverlay) closeRecordPaymentModal();
   });
 
-  document.getElementById('rp-submit').addEventListener('click', () => {
+  function applyLocalPayment(job, amount, method, label, reference, notes){
+    job.payments.push({
+      id: nextPaymentId++,
+      label, amount, method, date: new Date(), reference, notes, recordedBy: 'Admin'
+    });
+    logJobActivity(job, `Payment recorded — ${formatCurrency(amount)} via ${method}`);
+    if (balanceDue(job) <= 0.005) job.paymentStatusOverride = null;
+    closeRecordPaymentModal();
+    refreshAfterPaymentChange(job.id);
+  }
+
+  document.getElementById('rp-submit').addEventListener('click', async () => {
     const job = findJob(currentRecordPaymentJobId);
     if (!job) return;
     const amount = parseFloat(rpAmountInput.value);
@@ -3997,14 +4133,41 @@
       ? { deposit:'Deposit', balance:'Balance', full:'Full Payment', custom:'Custom Payment' }[selectedOption.value]
       : 'Custom Payment';
 
-    job.payments.push({
-      id: nextPaymentId++,
-      label, amount, method, date, reference, notes, recordedBy: 'Admin'
-    });
-    logJobActivity(job, `Payment recorded — ${formatCurrency(amount)} via ${method}`);
+    if (method === 'Square Reader'){
+      if (!rpSquareCard){
+        alert('The Square card form is not ready yet. Please wait a moment and try again.');
+        return;
+      }
+      const submitBtn = document.getElementById('rp-submit');
+      const originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Processing...';
+      document.getElementById('rp-square-card-error').style.display = 'none';
+      try {
+        const tokenResult = await rpSquareCard.tokenize();
+        if (tokenResult.status !== 'OK'){
+          throw new Error((tokenResult.errors && tokenResult.errors[0] && tokenResult.errors[0].message) || 'Card was declined.');
+        }
+        const chargeResult = await callSquareFunction('charge', {
+          sourceId: tokenResult.token,
+          amount: Math.round(amount * 100),
+          jobId: job.jobNumber
+        });
+        applyLocalPayment(job, amount, 'Square', label, chargeResult.paymentId || '', notes);
+        showToast(`Charged ${formatCurrency(amount)} with Square.`, 'success');
+      } catch (err){
+        console.error('[Square] Charge failed:', err);
+        document.getElementById('rp-square-card-error').textContent = err.message || 'Payment failed. Please try again.';
+        document.getElementById('rp-square-card-error').style.display = 'block';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }
+      return;
+    }
 
-    closeRecordPaymentModal();
-    refreshAfterPaymentChange(job.id);
+    // Cash / Zelle / Check / Other — unchanged manual recording path
+    applyLocalPayment(job, amount, method, label, reference, notes);
 
     attemptSupabaseWrite(async () => {
       if (!job.supabaseId) throw new Error('This job does not have a database record to attach the payment to.');
@@ -4014,6 +4177,54 @@
       }]);
       if (error) throw error;
     }, `Payment of ${formatCurrency(amount)} synced to database.`, `Payment for Job #${job.jobNumber} database sync`);
+  });
+
+  document.getElementById('rp-square-link-generate').addEventListener('click', async () => {
+    const job = findJob(currentRecordPaymentJobId);
+    if (!job) return;
+    const amount = parseFloat(rpAmountInput.value);
+    if (!amount || amount <= 0){
+      alert('Please enter a valid payment amount.');
+      return;
+    }
+    const email = document.getElementById('rp-square-link-email').value.trim();
+    const btn = document.getElementById('rp-square-link-generate');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Generating...';
+    try {
+      const result = await callSquareFunction('create_link', {
+        amount: Math.round(amount * 100),
+        jobId: job.jobNumber,
+        customerEmail: email,
+        description: `Job #${job.jobNumber} — ${job.service}`
+      });
+      if (!result.url) throw new Error('Could not create a Square payment link.');
+      document.getElementById('rp-square-link-url').value = result.url;
+      document.getElementById('rp-square-link-result').hidden = false;
+      document.getElementById('rp-square-link-actions').hidden = false;
+    } catch (err){
+      console.error('[Square] Link creation failed:', err);
+      showToast('Could not generate a Square payment link. Please try again.', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  });
+
+  document.getElementById('rp-square-link-copy').addEventListener('click', async () => {
+    const input = document.getElementById('rp-square-link-url');
+    input.select();
+    try {
+      await navigator.clipboard.writeText(input.value);
+      showToast('Link copied to clipboard.', 'success');
+    } catch (err){
+      document.execCommand('copy');
+    }
+  });
+  document.getElementById('rp-square-link-open').addEventListener('click', () => {
+    const url = document.getElementById('rp-square-link-url').value;
+    if (url) window.open(url, '_blank');
   });
 
   // ================= INVOICE MODAL =================
