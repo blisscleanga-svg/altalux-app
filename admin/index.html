@@ -1045,6 +1045,38 @@
   .bottom-nav-link .icon{ font-size:19px; }
   .bottom-nav-link.active{ color:var(--gold); }
 
+  /* ================= ACTIVITY LOG ================= */
+  .activity-log{ display:flex; flex-direction:column; gap:10px; max-height:220px; overflow-y:auto; }
+  .activity-entry{ font-size:12.5px; line-height:1.5; padding-left:14px; position:relative; color:var(--ink-muted); }
+  .activity-entry::before{ content:''; position:absolute; left:0; top:6px; width:6px; height:6px; border-radius:50%; background:var(--gold); }
+  .activity-entry strong{ color:var(--white); font-weight:600; }
+  .activity-entry .activity-meta{ display:block; font-size:11px; color:var(--ink-faint); margin-top:1px; }
+  .override-note-icon{ cursor:help; margin-left:4px; }
+
+  /* ================= EDIT JOB MODAL ================= */
+  .edit-job-section-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:560px){ .edit-job-section-grid{ grid-template-columns:1fr; } }
+  .addon-checkbox-item{
+    display:flex; align-items:center; gap:10px; padding:9px 12px; border:1.5px solid rgba(255,255,255,.1);
+    border-radius:var(--radius-sm); cursor:pointer; margin-bottom:6px; font-size:13px;
+  }
+  .addon-checkbox-item input{ accent-color:var(--orange); width:16px; height:16px; cursor:pointer; }
+  .addon-checkbox-item .addon-price{ margin-left:auto; color:var(--ink-faint); }
+
+  /* ================= CUSTOMER PROFILE (addresses/vehicles) ================= */
+  .cp-record-card{
+    border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.02); border-radius:var(--radius-sm);
+    padding:14px; margin-bottom:10px; display:flex; flex-direction:column; gap:6px;
+  }
+  .cp-record-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .cp-record-title{ font-size:14px; font-weight:700; }
+  .cp-record-meta{ font-size:12.5px; color:var(--ink-muted); }
+  .cp-record-actions{ display:flex; gap:8px; margin-top:4px; }
+  .badge-default{ background:var(--gold); color:var(--dark); }
+  .cp-inline-form{
+    border:1px dashed rgba(255,255,255,.2); border-radius:var(--radius-sm); padding:14px; margin-bottom:14px;
+  }
+
   /* ================= TECHNICIAN MOBILE VIEW ================= */
   .tech-view{ min-height:100vh; padding:16px 16px 32px; }
   .tech-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
@@ -1591,7 +1623,12 @@
       <div class="assign-to-list" id="modal-assign-list"></div>
     </div>
 
+    <hr class="summary-divider">
+    <p class="modal-section-title">Activity</p>
+    <div id="modal-activity-log" class="activity-log"></div>
+
     <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="modal-edit-job-btn">Edit Job</button>
       <button type="button" class="btn btn-ghost" id="modal-mark-completed">Mark as Completed</button>
       <button type="button" class="btn btn-ghost" id="modal-send-invoice">Send Invoice</button>
       <button type="button" class="btn btn-primary" id="modal-collect-payment">Collect Payment</button>
@@ -1738,7 +1775,7 @@
 
 <!-- ================= CUSTOMER PROFILE MODAL ================= -->
 <div class="modal-overlay" id="profile-modal-overlay" hidden>
-  <div class="modal-box" id="profile-modal-box">
+  <div class="modal-box modal-box-wide" id="profile-modal-box">
     <button type="button" class="modal-close" id="profile-modal-close" aria-label="Close">✕</button>
     <h2 class="modal-title" id="profile-customer-name">Customer</h2>
 
@@ -1749,20 +1786,103 @@
 
     <div class="profile-tabs">
       <button type="button" class="profile-tab active" data-tab="overview">Overview</button>
+      <button type="button" class="profile-tab" data-tab="addresses">Addresses</button>
+      <button type="button" class="profile-tab" data-tab="vehicles">Vehicles</button>
       <button type="button" class="profile-tab" data-tab="history">Job History</button>
+      <button type="button" class="profile-tab" data-tab="notes">Notes</button>
     </div>
 
     <div class="profile-panel active" id="profile-panel-overview">
-      <div class="summary-line"><span>Phone</span><span id="profile-phone"></span></div>
-      <div class="summary-line"><span>Email</span><span id="profile-email"></span></div>
-      <div class="summary-line"><span>Address</span><span id="profile-address"></span></div>
+      <div class="field"><label for="profile-name-input">Name</label><input type="text" id="profile-name-input"></div>
+      <div class="field" style="margin-top:14px;"><label for="profile-phone-input">Phone</label><input type="tel" id="profile-phone-input"></div>
+      <div class="summary-line" style="margin-top:14px;"><span>Email</span><span id="profile-email"></span></div>
+      <hr class="summary-divider">
+      <div class="summary-line"><span>Default Address</span><span id="profile-default-address">—</span></div>
+      <div class="summary-line"><span>Default Vehicle</span><span id="profile-default-vehicle">—</span></div>
       <hr class="summary-divider">
       <div class="summary-line"><span>Total Jobs</span><span id="profile-jobs-count"></span></div>
+      <div class="summary-line"><span>Avg Ticket</span><span id="profile-avg-ticket"></span></div>
       <div class="summary-line"><span>Last Service</span><span id="profile-last-service"></span></div>
+      <div class="summary-line"><span>Favorite Service</span><span id="profile-favorite-service"></span></div>
+    </div>
+
+    <div class="profile-panel" id="profile-panel-addresses">
+      <div id="profile-address-list"></div>
+      <button type="button" class="btn btn-ghost" id="profile-add-address-btn">+ Add Address</button>
+      <div class="cp-inline-form" id="profile-address-form" hidden>
+        <input type="hidden" id="pa-edit-id">
+        <div class="field"><label for="pa-label">Label</label><input type="text" id="pa-label" placeholder="Home / Work / Other"></div>
+        <div class="field" style="margin-top:14px;"><label for="pa-street">Street</label><input type="text" id="pa-street"></div>
+        <div class="edit-job-section-grid" style="margin-top:14px;">
+          <div class="field"><label for="pa-city">City</label><input type="text" id="pa-city"></div>
+          <div class="field"><label for="pa-state">State</label><input type="text" id="pa-state"></div>
+        </div>
+        <div class="field" style="margin-top:14px;"><label for="pa-zip">Zip</label><input type="text" id="pa-zip"></div>
+        <div class="field" style="margin-top:14px;"><label for="pa-notes">Notes <span style="color:var(--ink-faint); text-transform:none; font-weight:400;">e.g. "gate code #1234"</span></label><input type="text" id="pa-notes"></div>
+        <label class="role-radio-option" style="margin-top:14px;">
+          <input type="checkbox" id="pa-default">
+          <span><span class="role-radio-label">Set as Default</span></span>
+        </label>
+        <div class="modal-actions"><button type="button" class="btn btn-ghost" id="pa-cancel">Cancel</button><button type="button" class="btn btn-primary" id="pa-save">Save Address</button></div>
+      </div>
+    </div>
+
+    <div class="profile-panel" id="profile-panel-vehicles">
+      <div id="profile-vehicle-list"></div>
+      <button type="button" class="btn btn-ghost" id="profile-add-vehicle-btn">+ Add Vehicle</button>
+      <div class="cp-inline-form" id="profile-vehicle-form" hidden>
+        <input type="hidden" id="pv-edit-id">
+        <div class="edit-job-section-grid">
+          <div class="field"><label for="pv-year">Year</label><input type="text" id="pv-year"></div>
+          <div class="field"><label for="pv-make">Make</label><input type="text" id="pv-make"></div>
+        </div>
+        <div class="field" style="margin-top:14px;"><label for="pv-model">Model</label><input type="text" id="pv-model"></div>
+        <div class="edit-job-section-grid" style="margin-top:14px;">
+          <div class="field"><label for="pv-color">Color</label><input type="text" id="pv-color"></div>
+          <div class="field"><label for="pv-plate">License Plate <span style="color:var(--ink-faint); text-transform:none; font-weight:400;">(optional)</span></label><input type="text" id="pv-plate"></div>
+        </div>
+        <div class="field" style="margin-top:14px;"><label for="pv-vehicletype">Vehicle Type</label>
+          <select id="pv-vehicletype">
+            <option value="Cars/Sedans">Cars/Sedans</option>
+            <option value="Mid-Size/Compact SUVs">Mid-Size/Compact SUVs</option>
+            <option value="Small Trucks">Small Trucks</option>
+            <option value="Minivans">Minivans</option>
+            <option value="Large SUVs/Trucks">Large SUVs/Trucks</option>
+          </select>
+        </div>
+        <div class="field" style="margin-top:14px;"><label for="pv-notes">Notes <span style="color:var(--ink-faint); text-transform:none; font-weight:400;">e.g. "lifted truck", "dog hair"</span></label><input type="text" id="pv-notes"></div>
+        <label class="role-radio-option" style="margin-top:14px;">
+          <input type="checkbox" id="pv-default">
+          <span><span class="role-radio-label">Set as Default</span></span>
+        </label>
+        <div class="modal-actions"><button type="button" class="btn btn-ghost" id="pv-cancel">Cancel</button><button type="button" class="btn btn-primary" id="pv-save">Save Vehicle</button></div>
+      </div>
     </div>
 
     <div class="profile-panel" id="profile-panel-history">
+      <div class="filters-bar" style="margin-bottom:14px;">
+        <div class="filter-field"><label>Status</label>
+          <select id="ph-filter-status"><option value="">All</option></select>
+        </div>
+        <div class="filter-field"><label>Vehicle</label>
+          <select id="ph-filter-vehicle"><option value="">All</option></select>
+        </div>
+        <div class="filter-field"><label>Address</label>
+          <select id="ph-filter-address"><option value="">All</option></select>
+        </div>
+        <div class="filter-field"><label>Service Type</label>
+          <select id="ph-filter-service"><option value="">All</option></select>
+        </div>
+      </div>
       <div id="profile-job-history"></div>
+    </div>
+
+    <div class="profile-panel" id="profile-panel-notes">
+      <div class="field">
+        <label for="profile-notes-input">Internal Notes</label>
+        <textarea id="profile-notes-input" placeholder="Add internal notes about this customer..." style="min-height:180px;"></textarea>
+      </div>
+      <p style="font-size:11.5px; color:var(--ink-faint); margin-top:6px;">Auto-saves as you type.</p>
     </div>
   </div>
 </div>
@@ -1814,6 +1934,104 @@
     <div class="modal-actions">
       <button type="button" class="btn btn-ghost" id="cj-cancel">Cancel</button>
       <button type="button" class="btn btn-primary" id="cj-submit">Create Job</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= EDIT JOB MODAL ================= -->
+<div class="modal-overlay" id="edit-job-overlay" hidden>
+  <div class="modal-box modal-box-wide" id="edit-job-box">
+    <button type="button" class="modal-close" id="edit-job-close" aria-label="Close">✕</button>
+    <h2 class="modal-title">Edit <span>Job #<span id="ej-job-number"></span></span></h2>
+    <form id="edit-job-form">
+
+      <p class="modal-section-title">Service</p>
+      <div class="edit-job-section-grid">
+        <div class="field"><label for="ej-category">Category</label>
+          <select id="ej-category">
+            <option value="full">Full Detail</option>
+            <option value="interior">Interior Only</option>
+            <option value="exterior">Exterior Only</option>
+          </select>
+        </div>
+        <div class="field" id="ej-package-field"><label for="ej-package">Package</label>
+          <select id="ej-package">
+            <option value="essential">Essential Detail</option>
+            <option value="premium">Premium Detail</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" style="margin-top:14px;"><label for="ej-vehicletype">Vehicle Type</label>
+        <select id="ej-vehicletype"></select>
+      </div>
+      <div class="field" style="margin-top:14px;">
+        <label>Add-Ons</label>
+        <div id="ej-addons-list"></div>
+      </div>
+
+      <hr class="summary-divider">
+      <p class="modal-section-title">Schedule</p>
+      <div class="edit-job-section-grid">
+        <div class="field"><label for="ej-date">Date</label><input type="date" id="ej-date"></div>
+        <div class="field"><label for="ej-time">Time</label><select id="ej-time"></select></div>
+      </div>
+
+      <hr class="summary-divider">
+      <p class="modal-section-title">Customer</p>
+      <div class="edit-job-section-grid">
+        <div class="field"><label for="ej-name">Name</label><input type="text" id="ej-name"></div>
+        <div class="field"><label for="ej-phone">Phone</label><input type="tel" id="ej-phone"></div>
+      </div>
+      <div class="field" style="margin-top:14px;"><label for="ej-email">Email</label><input type="email" id="ej-email"></div>
+      <div class="field" style="margin-top:14px;"><label for="ej-address">Service Address</label><input type="text" id="ej-address"></div>
+      <div class="field" style="margin-top:14px;"><label for="ej-vehicle">Vehicle (Year Make Model)</label><input type="text" id="ej-vehicle"></div>
+
+      <hr class="summary-divider">
+      <p class="modal-section-title">Pricing</p>
+      <div class="summary-line"><span>Computed Price</span><span id="ej-computed-price"></span></div>
+      <label class="role-radio-option" style="margin-top:10px;">
+        <input type="checkbox" id="ej-override-toggle">
+        <span><span class="role-radio-label">Override Price</span><span class="role-radio-desc">Manually set the final price with a reason</span></span>
+      </label>
+      <div id="ej-override-fields" hidden style="margin-top:12px;">
+        <div class="edit-job-section-grid">
+          <div class="field"><label for="ej-override-price">Override Price</label><input type="number" id="ej-override-price" min="0" step="0.01"></div>
+          <div class="field"><label for="ej-override-reason">Reason</label>
+            <select id="ej-override-reason">
+              <option value="Loyalty discount">Loyalty discount</option>
+              <option value="Promotional offer">Promotional offer</option>
+              <option value="Vehicle condition adjustment">Vehicle condition adjustment</option>
+              <option value="Management approval">Management approval</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="field" id="ej-override-other-field" hidden style="margin-top:14px;">
+          <label for="ej-override-other">Please specify</label>
+          <input type="text" id="ej-override-other">
+        </div>
+      </div>
+      <div class="field" style="margin-top:14px;"><label for="ej-deposit-override">Deposit Amount <span style="color:var(--ink-faint); text-transform:none; font-weight:400;">(default 25%)</span></label><input type="number" id="ej-deposit-override" min="0" step="0.01"></div>
+
+      <hr class="summary-divider">
+      <p class="modal-section-title">Status &amp; Assignment</p>
+      <div class="field"><label for="ej-status">Status</label>
+        <select id="ej-status">
+          <option value="Pending">Pending</option>
+          <option value="Confirmed">Confirmed</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Completed">Completed</option>
+        </select>
+      </div>
+      <div class="field" style="margin-top:14px;"><label for="ej-notes">Notes</label><textarea id="ej-notes"></textarea></div>
+      <div class="field" style="margin-top:14px;">
+        <label>Assign To</label>
+        <div class="assign-to-list" id="ej-assign-list"></div>
+      </div>
+    </form>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="ej-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="ej-save">Save Changes</button>
     </div>
   </div>
 </div>
@@ -2171,6 +2389,8 @@
       status: 'Confirmed', notes: '',
       paymentStatusOverride: null,
       assignedEmployeeIds: [],
+      priceOverride: null, auditLog: [],
+      depositOverride: null,
       payments: [
         { id:1, label:'Deposit', amount:52.25, method:'Stripe', date:new Date(TODAY), reference:'Online Booking', notes:'', recordedBy:'Online Booking' }
       ],
@@ -2186,6 +2406,8 @@
       status: 'In Progress', notes: '',
       paymentStatusOverride: null,
       assignedEmployeeIds: [],
+      priceOverride: null, auditLog: [],
+      depositOverride: null,
       payments: [
         { id:2, label:'Deposit', amount:71.25, method:'Stripe', date:new Date(TODAY), reference:'Online Booking', notes:'', recordedBy:'Online Booking' },
         { id:3, label:'Balance', amount:213.74, method:'Cash', date:new Date(TODAY), reference:'', notes:'', recordedBy:'Admin' }
@@ -2202,6 +2424,8 @@
       status: 'Pending', notes: '',
       paymentStatusOverride: null,
       assignedEmployeeIds: [],
+      priceOverride: null, auditLog: [],
+      depositOverride: null,
       payments: [
         { id:4, label:'Deposit', amount:94.75, method:'Stripe', date:new Date(TODAY), reference:'Online Booking', notes:'', recordedBy:'Online Booking' }
       ],
@@ -2230,6 +2454,16 @@
 
   const PROPOSAL_STATUS_OPTIONS = ['Draft','Sent','Accepted','Declined'];
   const PROPOSAL_STATUS_SLUG = { 'Draft':'draft', 'Sent':'sent', 'Accepted':'accepted', 'Declined':'declined' };
+
+  const ADDONS_CATALOG = [
+    { key: 'pet_hair',      name: 'Pet Hair Removal',                          price: 50.00 },
+    { key: 'leather_cond',  name: 'Leather Seat Conditioning',                 price: 50.00 },
+    { key: 'new_car_smell', name: 'New Car Smell Air Cabin Treatment',         price: 50.00 },
+    { key: 'uv_interior',   name: 'UV Protective Dressing – Interior Plastics', price: 50.00 },
+    { key: 'ozone',         name: 'Ozone Treatment',                          price: 125.00 },
+    { key: 'sap_tar',       name: 'Sap/Tar Removal',                          price: 75.00 },
+    { key: 'black_trim',    name: 'Black Trim Restoration',                   price: 125.00 }
+  ];
 
   const JOB_CATALOG = {
     full: {
@@ -2281,17 +2515,22 @@
     const job = {
       id, jobNumber: num, paymentNumber: 'PAY-' + num,
       customer: data.customer,
+      category: data.category || null, packageKey: data.packageKey !== undefined ? data.packageKey : null,
       service: data.service, vehicleType: data.vehicleType || '', vehicle: data.vehicle,
       address: data.address || '',
       date: data.date, time: data.time,
-      addons: [], subtotal: data.subtotal, addonsTotal: data.addonsTotal || 0, total: data.total,
+      addons: data.addons || [], subtotal: data.subtotal, addonsTotal: data.addonsTotal || 0, total: data.total,
       status: data.status || 'Pending', notes: data.notes || '',
       paymentStatusOverride: null,
       assignedEmployeeIds: data.assignedEmployeeIds || [],
+      priceOverride: null, auditLog: [],
+      depositOverride: null,
       payments: [],
-      invoice: { number: invNum, status: 'Draft', issueDate: new Date(TODAY), dueDate: data.date, taxEnabled: false }
+      invoice: { number: invNum, status: 'Draft', issueDate: new Date(TODAY), dueDate: data.date, taxEnabled: false },
+      bookingSource: data.bookingSource || null
     };
     JOBS.push(job);
+    logJobActivity(job, `Job created${data.fromBooking ? ' from online booking' : ''}`);
     return job;
   }
 
@@ -2303,6 +2542,24 @@
   function balanceDue(job){ return Math.max(0, job.total - totalPaid(job)); }
   function getDepositAmount(job){
     return job.payments.filter(p => p.label === 'Deposit').reduce((s,p) => s + p.amount, 0);
+  }
+  function expectedDepositAmount(job){
+    return job.depositOverride != null ? job.depositOverride : round2(job.total * 0.25);
+  }
+  function round2(n){ return Math.round(n * 100) / 100; }
+
+  function inferCategoryAndPackage(serviceLabel){
+    if (serviceLabel === JOB_CATALOG.interior.label) return { category: 'interior', packageKey: null };
+    if (serviceLabel === JOB_CATALOG.exterior.label) return { category: 'exterior', packageKey: null };
+    for (const pkgKey of Object.keys(JOB_CATALOG.full.packages)){
+      if (JOB_CATALOG.full.packages[pkgKey].label === serviceLabel) return { category: 'full', packageKey: pkgKey };
+    }
+    return { category: 'full', packageKey: 'essential' };
+  }
+  function getJobCategory(job){ return job.category || inferCategoryAndPackage(job.service).category; }
+  function getJobPackageKey(job){
+    if (job.packageKey !== undefined && job.packageKey !== null) return job.packageKey;
+    return inferCategoryAndPackage(job.service).packageKey;
   }
   function getPaymentStatus(job){
     if (job.paymentStatusOverride) return job.paymentStatusOverride;
@@ -2352,10 +2609,10 @@
   const ROLE_COLOR = { Owner: '#FFAA00', Manager: '#104872', Technician: '#1D9E75', Contractor: 'rgba(255,255,255,.4)' };
 
   const ROLE_PERMISSIONS = {
-    Owner:      { views: ['calendar','jobs','proposals','customers','payments','employees','schedule'], canManageEmployees: true,  canCollectPayment: true,  mobileLayout: 'full' },
-    Manager:    { views: ['calendar','jobs','proposals','customers','payments','employees','schedule'], canManageEmployees: false, canCollectPayment: true,  mobileLayout: 'full' },
-    Technician: { views: ['calendar'], canManageEmployees: false, canCollectPayment: true,  mobileLayout: 'technician' },
-    Contractor: { views: ['calendar'], canManageEmployees: false, canCollectPayment: false, mobileLayout: 'technician' }
+    Owner:      { views: ['calendar','jobs','proposals','customers','payments','employees','schedule'], canManageEmployees: true,  canCollectPayment: true,  canEditJobs: true,  canEditCustomers: true,  canOverridePrice: true,  canDelete: true,  mobileLayout: 'full' },
+    Manager:    { views: ['calendar','jobs','proposals','customers','payments'], canManageEmployees: false, canCollectPayment: true,  canEditJobs: true,  canEditCustomers: true,  canOverridePrice: true,  canDelete: false, mobileLayout: 'full' },
+    Technician: { views: ['calendar'], canManageEmployees: false, canCollectPayment: true,  canEditJobs: false, canEditCustomers: false, canOverridePrice: false, canDelete: false, mobileLayout: 'technician' },
+    Contractor: { views: ['calendar'], canManageEmployees: false, canCollectPayment: false, canEditJobs: false, canEditCustomers: false, canOverridePrice: false, canDelete: false, mobileLayout: 'technician' }
   };
 
   let currentRole = null;
@@ -2407,6 +2664,125 @@
   function canAccessView(viewName){
     if (!currentRole) return true;
     return ROLE_PERMISSIONS[currentRole].views.includes(viewName);
+  }
+
+  function currentUserLabel(){
+    return currentRole || 'Admin';
+  }
+
+  // ================= CUSTOMER PROFILES (addresses / vehicles) =================
+  const CUSTOMER_PROFILES = new Map();
+  let nextAddressIdCounter = 1;
+  let nextVehicleIdCounter = 1;
+
+  function getCustomerProfile(email){ return CUSTOMER_PROFILES.get(email) || null; }
+
+  function getOrCreateCustomerProfile(email, name, phone){
+    if (!email) return null;
+    let profile = CUSTOMER_PROFILES.get(email);
+    if (!profile){
+      profile = { email, name: name || '', phone: phone || '', addresses: [], vehicles: [], notes: '' };
+      CUSTOMER_PROFILES.set(email, profile);
+    } else {
+      if (name) profile.name = name;
+      if (phone) profile.phone = phone;
+    }
+    return profile;
+  }
+
+  function formatAddressLine(a){
+    return [a.street, a.city, a.state, a.zip].filter(Boolean).join(', ');
+  }
+  function formatVehicleLine(v){
+    const base = [v.year, v.make, v.model].filter(Boolean).join(' ');
+    return v.color ? `${base} (${v.color})` : base;
+  }
+
+  function addAddressToProfile(email, data){
+    const profile = getOrCreateCustomerProfile(email);
+    if (!profile) return null;
+    if (data.isDefault) profile.addresses.forEach(a => { a.isDefault = false; });
+    const addr = {
+      id: nextAddressIdCounter++,
+      label: data.label || 'Other',
+      street: data.street || '', city: data.city || '', state: data.state || '', zip: data.zip || '',
+      notes: data.notes || '',
+      isDefault: !!data.isDefault || profile.addresses.length === 0,
+      matchString: data.matchString || formatAddressLine(data)
+    };
+    profile.addresses.push(addr);
+    return addr;
+  }
+
+  function addVehicleToProfile(email, data){
+    const profile = getOrCreateCustomerProfile(email);
+    if (!profile) return null;
+    if (data.isDefault) profile.vehicles.forEach(v => { v.isDefault = false; });
+    const veh = {
+      id: nextVehicleIdCounter++,
+      year: data.year || '', make: data.make || '', model: data.model || '', color: data.color || '',
+      plate: data.plate || '', vehicleType: data.vehicleType || '', notes: data.notes || '',
+      isDefault: !!data.isDefault || profile.vehicles.length === 0,
+      matchString: data.matchString || formatVehicleLine(data)
+    };
+    profile.vehicles.push(veh);
+    return veh;
+  }
+
+  function setDefaultAddress(email, addressId){
+    const profile = getCustomerProfile(email);
+    if (!profile) return;
+    profile.addresses.forEach(a => { a.isDefault = (a.id === addressId); });
+  }
+  function setDefaultVehicle(email, vehicleId){
+    const profile = getCustomerProfile(email);
+    if (!profile) return;
+    profile.vehicles.forEach(v => { v.isDefault = (v.id === vehicleId); });
+  }
+  function deleteAddress(email, addressId){
+    const profile = getCustomerProfile(email);
+    if (!profile) return;
+    profile.addresses = profile.addresses.filter(a => a.id !== addressId);
+    if (profile.addresses.length && !profile.addresses.some(a => a.isDefault)) profile.addresses[0].isDefault = true;
+  }
+  function deleteVehicle(email, vehicleId){
+    const profile = getCustomerProfile(email);
+    if (!profile) return;
+    profile.vehicles = profile.vehicles.filter(v => v.id !== vehicleId);
+    if (profile.vehicles.length && !profile.vehicles.some(v => v.isDefault)) profile.vehicles[0].isDefault = true;
+  }
+
+  function parseVehicleString(str){
+    const parts = (str || '').trim().split(/\s+/);
+    const year = /^\d{4}$/.test(parts[0]) ? parts.shift() : '';
+    const make = parts.shift() || '';
+    const model = parts.join(' ');
+    return { year, make, model };
+  }
+
+  function seedCustomerProfilesFromJobs(){
+    const allCustomerRefs = JOBS.map(j => j.customer).concat(STANDALONE_CUSTOMERS);
+    allCustomerRefs.forEach(c => {
+      if (c && c.email) getOrCreateCustomerProfile(c.email, c.name, c.phone);
+    });
+    JOBS.forEach(j => {
+      if (!j.customer || !j.customer.email) return;
+      const profile = getOrCreateCustomerProfile(j.customer.email, j.customer.name, j.customer.phone);
+      if (j.address && !profile.addresses.some(a => a.matchString === j.address)){
+        const label = profile.addresses.length === 0 ? 'Home' : 'Other';
+        addAddressToProfile(j.customer.email, { label, matchString: j.address, street: j.address, isDefault: profile.addresses.length === 0 });
+      }
+      if (j.vehicle && !profile.vehicles.some(v => v.matchString === j.vehicle)){
+        const parsed = parseVehicleString(j.vehicle);
+        addVehicleToProfile(j.customer.email, { ...parsed, vehicleType: j.vehicleType || '', matchString: j.vehicle, isDefault: profile.vehicles.length === 0 });
+      }
+    });
+  }
+
+  // ================= JOB AUDIT LOG =================
+  function logJobActivity(job, message){
+    if (!job.auditLog) job.auditLog = [];
+    job.auditLog.push({ message, user: currentUserLabel(), date: new Date() });
   }
 
   // ================= SUPABASE DATA SYNC =================
@@ -2461,6 +2837,8 @@
       notes: row.notes || '',
       paymentStatusOverride: null,
       assignedEmployeeIds: [],
+      priceOverride: null, auditLog: [],
+      depositOverride: null,
       payments: [],
       invoice: {
         number: '', status: 'Draft',
@@ -2631,9 +3009,17 @@
       subtotal: b.subtotal,
       addonsTotal: b.addonsTotal,
       total: b.total,
+      addons: b.addons || [],
       status: 'Confirmed',
-      notes: ''
+      notes: '',
+      fromBooking: true,
+      bookingSource: {
+        fullName: b.fullName, phone: b.phone, email: b.email, address: b.address,
+        vehicle: b.vehicle, service: b.package || b.category, total: b.total, deposit: b.deposit,
+        serviceDate: b.serviceDate, serviceTime: b.serviceTime
+      }
     });
+    logJobActivity(job, `Original booking preserved — ${b.fullName}, ${formatCurrency(b.total)}, requested ${formatShortDate(b.serviceDate)} ${b.serviceTime}`);
     if (b.deposit > 0){
       job.payments.push({
         id: nextPaymentId++, label: 'Deposit', amount: b.deposit, method: 'Stripe',
@@ -2998,9 +3384,14 @@
         <div class="job-card-actions">
           <button type="button" class="btn-mini job-view-btn" data-job-id="${j.id}">View</button>
           <button type="button" class="btn-mini job-editstatus-btn" data-job-id="${j.id}">Edit Status</button>
+          ${canEditJobs() ? `<button type="button" class="btn-mini job-edit-btn" data-job-id="${j.id}">Edit</button>` : ''}
         </div>
       </div>
     `;
+  }
+
+  function canEditJobs(){
+    return currentRole ? ROLE_PERMISSIONS[currentRole].canEditJobs : true;
   }
 
   function renderJobsListForDay(){
@@ -3073,6 +3464,7 @@
         <td class="actions-cell">
           <button type="button" class="btn-mini job-view-btn" data-job-id="${j.id}">View</button>
           <button type="button" class="btn-mini job-editstatus-btn" data-job-id="${j.id}">Edit Status</button>
+          ${canEditJobs() ? `<button type="button" class="btn-mini job-edit-btn" data-job-id="${j.id}">Edit</button>` : ''}
         </td>
       </tr>
     `).join('');
@@ -3265,11 +3657,28 @@
     `;
   }
 
+  function addonDisplayName(a){ return typeof a === 'string' ? a : a.name; }
+
+  function renderJobActivityLog(job){
+    const container = document.getElementById('modal-activity-log');
+    const entries = (job.auditLog || []).slice().reverse();
+    if (!entries.length){
+      container.innerHTML = `<p class="empty-state" style="margin:0;">No activity yet.</p>`;
+      return;
+    }
+    container.innerHTML = entries.map(e => `
+      <div class="activity-entry">
+        <strong>${e.message}</strong>
+        <span class="activity-meta">by ${e.user} on ${formatLongDate(e.date)}</span>
+      </div>
+    `).join('');
+  }
+
   function populateModal(job){
     document.getElementById('modal-job-number').textContent = '#' + job.jobNumber;
     document.getElementById('modal-service').textContent = `${job.service} — ${job.vehicleType}`;
     document.getElementById('modal-vehicle').textContent = job.vehicle;
-    document.getElementById('modal-addons').textContent = job.addons.length ? job.addons.join(', ') : 'None';
+    document.getElementById('modal-addons').textContent = job.addons.length ? job.addons.map(addonDisplayName).join(', ') : 'None';
     document.getElementById('modal-date').textContent = formatLongDate(job.date);
     document.getElementById('modal-time').textContent = job.time;
     document.getElementById('modal-address').textContent = job.address;
@@ -3278,13 +3687,17 @@
     document.getElementById('modal-customer-email').textContent = job.customer.email;
     document.getElementById('modal-subtotal').textContent = formatCurrency(job.subtotal);
     document.getElementById('modal-addons-total').textContent = formatCurrency(job.addonsTotal);
-    document.getElementById('modal-total').textContent = formatCurrency(job.total);
+    document.getElementById('modal-total').innerHTML = formatCurrency(job.total) +
+      (job.priceOverride ? ` <span class="override-note-icon" title="Price overridden — ${job.priceOverride.reason}. Original: ${formatCurrency(job.priceOverride.originalTotal)}">📝</span>` : '');
     document.getElementById('modal-deposit').textContent = formatCurrency(getDepositAmount(job));
     document.getElementById('modal-balance').textContent = formatCurrency(balanceDue(job));
     document.getElementById('modal-status-select').value = job.status;
     document.getElementById('modal-notes').value = job.notes || '';
     renderPaymentHistorySection(job);
     renderAssignToList('modal-assign-list', job.assignedEmployeeIds || []);
+    renderJobActivityLog(job);
+    const editBtn = document.getElementById('modal-edit-job-btn');
+    editBtn.hidden = !(currentRole ? ROLE_PERMISSIONS[currentRole].canEditJobs : true);
   }
 
   function openJobModal(jobId){
@@ -3312,7 +3725,11 @@
   });
   document.getElementById('modal-send-invoice').addEventListener('click', () => {
     const job = findJob(currentModalJobId);
-    if (job) alert(`Invoice sent to ${job.customer.email}. (Email integration coming soon)`);
+    if (job){
+      logJobActivity(job, `Invoice sent — to ${job.customer.email}`);
+      alert(`Invoice sent to ${job.customer.email}. (Email integration coming soon)`);
+      renderJobActivityLog(job);
+    }
   });
   document.getElementById('modal-collect-payment').addEventListener('click', () => {
     const job = findJob(currentModalJobId);
@@ -3329,6 +3746,7 @@
   function updateJobStatus(jobId, newStatus){
     const job = findJob(jobId);
     if (!job) return;
+    if (job.status !== newStatus) logJobActivity(job, `Status changed — ${job.status} → ${newStatus}`);
     job.status = newStatus;
     renderJobsListForDay();
     renderWeekView();
@@ -3357,6 +3775,11 @@
     const viewBtn = e.target.closest('.job-view-btn');
     if (viewBtn){
       openJobModal(Number(viewBtn.dataset.jobId));
+      return;
+    }
+    const fullEditBtn = e.target.closest('.job-edit-btn');
+    if (fullEditBtn){
+      openEditJobModal(Number(fullEditBtn.dataset.jobId));
       return;
     }
     const editBtn = e.target.closest('.job-editstatus-btn');
@@ -3396,6 +3819,7 @@
     if (sendInvoiceBtn){
       const job = findJob(Number(sendInvoiceBtn.dataset.jobId));
       if (job.invoice.status === 'Draft') job.invoice.status = 'Sent';
+      logJobActivity(job, `Invoice sent — to ${job.customer.email}`);
       alert(`Invoice ${job.invoice.number} sent to ${job.customer.email}. (Resend integration coming soon)`);
       renderPaymentsView();
       return;
@@ -3510,7 +3934,7 @@
     document.getElementById('rp-job-number').textContent = '#' + job.jobNumber;
     document.getElementById('rp-customer-name').textContent = job.customer.name;
 
-    const depositPreset = job.total * 0.25;
+    const depositPreset = expectedDepositAmount(job);
     const balancePreset = balanceDue(job);
     const fullPreset = job.total;
     document.getElementById('rp-preset-deposit').textContent = formatCurrency(depositPreset);
@@ -3542,7 +3966,7 @@
       const job = findJob(currentRecordPaymentJobId);
       if (!job) return;
       const option = opt.dataset.option;
-      if (option === 'deposit') rpAmountInput.value = (job.total * 0.25).toFixed(2);
+      if (option === 'deposit') rpAmountInput.value = expectedDepositAmount(job).toFixed(2);
       else if (option === 'balance') rpAmountInput.value = balanceDue(job).toFixed(2);
       else if (option === 'full') rpAmountInput.value = job.total.toFixed(2);
       else if (option === 'custom') rpAmountInput.focus();
@@ -3577,6 +4001,7 @@
       id: nextPaymentId++,
       label, amount, method, date, reference, notes, recordedBy: 'Admin'
     });
+    logJobActivity(job, `Payment recorded — ${formatCurrency(amount)} via ${method}`);
 
     closeRecordPaymentModal();
     refreshAfterPaymentChange(job.id);
@@ -3710,8 +4135,105 @@
           ${payLines}
           ${outstandingLine}
         </div>
+        ${canEditJobs() ? `<div class="job-card-actions" style="margin-top:8px;"><button type="button" class="btn-mini profile-history-edit-btn" data-job-id="${job.id}">Edit Job</button></div>` : ''}
       </div>
     `;
+  }
+
+  function renderProfileHistoryFilterOptions(customerJobs){
+    const statusSelect = document.getElementById('ph-filter-status');
+    const vehicleSelect = document.getElementById('ph-filter-vehicle');
+    const addressSelect = document.getElementById('ph-filter-address');
+    const serviceSelect = document.getElementById('ph-filter-service');
+    const uniq = (arr) => [...new Set(arr)].filter(Boolean);
+
+    statusSelect.innerHTML = '<option value="">All</option>' + uniq(customerJobs.map(j => j.status)).map(s => `<option value="${s}">${s}</option>`).join('');
+    vehicleSelect.innerHTML = '<option value="">All</option>' + uniq(customerJobs.map(j => j.vehicle)).map(v => `<option value="${v}">${v}</option>`).join('');
+    addressSelect.innerHTML = '<option value="">All</option>' + uniq(customerJobs.map(j => j.address)).map(a => `<option value="${a}">${a}</option>`).join('');
+    serviceSelect.innerHTML = '<option value="">All</option>' + uniq(customerJobs.map(j => j.service)).map(s => `<option value="${s}">${s}</option>`).join('');
+  }
+
+  function renderProfileJobHistory(){
+    if (!currentProfileEmail) return;
+    const allJobs = JOBS.filter(j => j.customer.email === currentProfileEmail).sort((a,b) => b.date - a.date);
+    const statusF = document.getElementById('ph-filter-status').value;
+    const vehicleF = document.getElementById('ph-filter-vehicle').value;
+    const addressF = document.getElementById('ph-filter-address').value;
+    const serviceF = document.getElementById('ph-filter-service').value;
+    const filtered = allJobs.filter(j =>
+      (!statusF || j.status === statusF) &&
+      (!vehicleF || j.vehicle === vehicleF) &&
+      (!addressF || j.address === addressF) &&
+      (!serviceF || j.service === serviceF)
+    );
+    document.getElementById('profile-job-history').innerHTML = filtered.length
+      ? filtered.map(buildJobHistoryEntryHtml).join('')
+      : (allJobs.length
+        ? `<p class="empty-state">No jobs match these filters.</p>`
+        : `<p class="empty-state">No jobs yet for this customer.</p>`);
+  }
+  ['ph-filter-status','ph-filter-vehicle','ph-filter-address','ph-filter-service'].forEach(id => {
+    document.getElementById(id).addEventListener('change', renderProfileJobHistory);
+  });
+
+  function buildAddressCardHtml(a){
+    const jobsHere = JOBS.filter(j => j.customer.email === currentProfileEmail && j.address === a.matchString).length;
+    return `
+      <div class="cp-record-card">
+        <div class="cp-record-top">
+          <div>
+            <div class="cp-record-title">${a.label} ${a.isDefault ? '<span class="badge badge-default">Default</span>' : ''}</div>
+            <div class="cp-record-meta">${formatAddressLine(a) || a.matchString}</div>
+            ${a.notes ? `<div class="cp-record-meta">${a.notes}</div>` : ''}
+            <div class="cp-record-meta">${jobsHere} job(s) performed here</div>
+          </div>
+        </div>
+        <div class="cp-record-actions">
+          <button type="button" class="btn-mini address-edit-btn" data-address-id="${a.id}">Edit</button>
+          ${!a.isDefault ? `<button type="button" class="btn-mini address-setdefault-btn" data-address-id="${a.id}">Set Default</button>` : ''}
+          <button type="button" class="btn-mini danger address-delete-btn" data-address-id="${a.id}">Delete</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function buildVehicleCardHtml(v){
+    const jobsWith = JOBS.filter(j => j.customer.email === currentProfileEmail && j.vehicle === v.matchString).length;
+    return `
+      <div class="cp-record-card">
+        <div class="cp-record-top">
+          <div>
+            <div class="cp-record-title">${formatVehicleLine(v) || v.matchString} ${v.isDefault ? '<span class="badge badge-default">Default</span>' : ''}</div>
+            <div class="cp-record-meta">${[v.vehicleType, v.plate ? 'Plate: ' + v.plate : ''].filter(Boolean).join(' · ')}</div>
+            ${v.notes ? `<div class="cp-record-meta">${v.notes}</div>` : ''}
+            <div class="cp-record-meta">${jobsWith} service(s) on this vehicle</div>
+          </div>
+        </div>
+        <div class="cp-record-actions">
+          <button type="button" class="btn-mini vehicle-edit-btn" data-vehicle-id="${v.id}">Edit</button>
+          ${!v.isDefault ? `<button type="button" class="btn-mini vehicle-setdefault-btn" data-vehicle-id="${v.id}">Set Default</button>` : ''}
+          <button type="button" class="btn-mini danger vehicle-delete-btn" data-vehicle-id="${v.id}">Delete</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderProfileAddresses(){
+    const profile = getCustomerProfile(currentProfileEmail);
+    const list = profile ? profile.addresses : [];
+    document.getElementById('profile-address-list').innerHTML = list.length
+      ? list.map(buildAddressCardHtml).join('')
+      : `<p class="empty-state">No saved addresses yet.</p>`;
+    document.getElementById('profile-default-address').textContent = list.find(a => a.isDefault) ? (formatAddressLine(list.find(a => a.isDefault)) || list.find(a => a.isDefault).matchString) : '—';
+  }
+
+  function renderProfileVehicles(){
+    const profile = getCustomerProfile(currentProfileEmail);
+    const list = profile ? profile.vehicles : [];
+    document.getElementById('profile-vehicle-list').innerHTML = list.length
+      ? list.map(buildVehicleCardHtml).join('')
+      : `<p class="empty-state">No saved vehicles yet.</p>`;
+    document.getElementById('profile-default-vehicle').textContent = list.find(v => v.isDefault) ? (formatVehicleLine(list.find(v => v.isDefault)) || list.find(v => v.isDefault).matchString) : '—';
   }
 
   function populateProfileModal(email){
@@ -3722,22 +4244,58 @@
 
     document.getElementById('profile-customer-name').textContent = record.name;
     document.getElementById('profile-lifetime-value').textContent = formatCurrency(record.totalSpent);
-    document.getElementById('profile-phone').textContent = record.phone;
+    document.getElementById('profile-name-input').value = record.name;
+    document.getElementById('profile-phone-input').value = record.phone;
     document.getElementById('profile-email').textContent = record.email;
-    document.getElementById('profile-address').textContent = record.address;
     document.getElementById('profile-jobs-count').textContent = record.jobsCount;
+    document.getElementById('profile-avg-ticket').textContent = record.jobsCount ? formatCurrency(record.totalSpent / record.jobsCount) : '$0.00';
     document.getElementById('profile-last-service').textContent = record.lastService ? formatShortDate(record.lastService) : '—';
 
-    document.getElementById('profile-job-history').innerHTML = customerJobs.length
-      ? customerJobs.map(buildJobHistoryEntryHtml).join('')
-      : `<p class="empty-state">No jobs yet for this customer.</p>`;
+    const serviceCounts = {};
+    customerJobs.forEach(j => { serviceCounts[j.service] = (serviceCounts[j.service] || 0) + 1; });
+    const favorite = Object.keys(serviceCounts).sort((a,b) => serviceCounts[b] - serviceCounts[a])[0];
+    document.getElementById('profile-favorite-service').textContent = favorite || '—';
+
+    const editableFieldsDisabled = currentRole && !ROLE_PERMISSIONS[currentRole].canEditCustomers;
+    document.getElementById('profile-name-input').disabled = !!editableFieldsDisabled;
+    document.getElementById('profile-phone-input').disabled = !!editableFieldsDisabled;
+
+    document.getElementById('profile-notes-input').value = (getCustomerProfile(email) || {}).notes || '';
+
+    renderProfileAddresses();
+    renderProfileVehicles();
+    renderProfileHistoryFilterOptions(customerJobs);
+    renderProfileJobHistory();
   }
+
+  document.getElementById('profile-name-input').addEventListener('change', (e) => {
+    if (!currentProfileEmail) return;
+    const val = e.target.value.trim();
+    const profile = getOrCreateCustomerProfile(currentProfileEmail);
+    profile.name = val;
+    JOBS.forEach(j => { if (j.customer.email === currentProfileEmail) j.customer.name = val; });
+    STANDALONE_CUSTOMERS.forEach(c => { if (c.email === currentProfileEmail) c.name = val; });
+    document.getElementById('profile-customer-name').textContent = val;
+    renderAll();
+  });
+  document.getElementById('profile-phone-input').addEventListener('change', (e) => {
+    if (!currentProfileEmail) return;
+    const val = e.target.value.trim();
+    const profile = getOrCreateCustomerProfile(currentProfileEmail);
+    profile.phone = val;
+    JOBS.forEach(j => { if (j.customer.email === currentProfileEmail) j.customer.phone = val; });
+    STANDALONE_CUSTOMERS.forEach(c => { if (c.email === currentProfileEmail) c.phone = val; });
+  });
+  document.getElementById('profile-notes-input').addEventListener('input', (e) => {
+    if (!currentProfileEmail) return;
+    getOrCreateCustomerProfile(currentProfileEmail).notes = e.target.value;
+  });
 
   function openProfileModal(email){
     currentProfileEmail = email;
     populateProfileModal(email);
     document.querySelectorAll('.profile-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'overview'));
-    document.querySelectorAll('.profile-panel').forEach(p => p.classList.toggle('active', p.id === 'profile-panel-overview'));
+    document.querySelectorAll('#profile-modal-box .profile-panel').forEach(p => p.classList.toggle('active', p.id === 'profile-panel-overview'));
     profileModalOverlay.hidden = false;
   }
 
@@ -3751,11 +4309,145 @@
     if (e.target === profileModalOverlay) closeProfileModal();
   });
 
-  document.querySelectorAll('.profile-tab').forEach(tab => {
+  document.querySelectorAll('#profile-modal-box .profile-tab').forEach(tab => {
     tab.addEventListener('click', () => {
-      document.querySelectorAll('.profile-tab').forEach(t => t.classList.toggle('active', t === tab));
-      document.querySelectorAll('.profile-panel').forEach(p => p.classList.toggle('active', p.id === `profile-panel-${tab.dataset.tab}`));
+      document.querySelectorAll('#profile-modal-box .profile-tab').forEach(t => t.classList.toggle('active', t === tab));
+      document.querySelectorAll('#profile-modal-box .profile-panel').forEach(p => p.classList.toggle('active', p.id === `profile-panel-${tab.dataset.tab}`));
     });
+  });
+
+  // ---- Address CRUD ----
+  let currentEditAddressId = null;
+  function openAddressForm(addressId){
+    currentEditAddressId = addressId || null;
+    const form = document.getElementById('profile-address-form');
+    if (addressId){
+      const profile = getCustomerProfile(currentProfileEmail);
+      const a = profile.addresses.find(x => x.id === addressId);
+      document.getElementById('pa-label').value = a.label;
+      document.getElementById('pa-street').value = a.street;
+      document.getElementById('pa-city').value = a.city;
+      document.getElementById('pa-state').value = a.state;
+      document.getElementById('pa-zip').value = a.zip;
+      document.getElementById('pa-notes').value = a.notes;
+      document.getElementById('pa-default').checked = a.isDefault;
+    } else {
+      document.getElementById('pa-label').value = '';
+      document.getElementById('pa-street').value = '';
+      document.getElementById('pa-city').value = '';
+      document.getElementById('pa-state').value = '';
+      document.getElementById('pa-zip').value = '';
+      document.getElementById('pa-notes').value = '';
+      document.getElementById('pa-default').checked = false;
+    }
+    form.hidden = false;
+  }
+  document.getElementById('profile-add-address-btn').addEventListener('click', () => openAddressForm(null));
+  document.getElementById('pa-cancel').addEventListener('click', () => { document.getElementById('profile-address-form').hidden = true; });
+  document.getElementById('pa-save').addEventListener('click', () => {
+    const data = {
+      label: document.getElementById('pa-label').value.trim() || 'Other',
+      street: document.getElementById('pa-street').value.trim(),
+      city: document.getElementById('pa-city').value.trim(),
+      state: document.getElementById('pa-state').value.trim(),
+      zip: document.getElementById('pa-zip').value.trim(),
+      notes: document.getElementById('pa-notes').value.trim(),
+      isDefault: document.getElementById('pa-default').checked
+    };
+    if (!data.street){ alert('Please enter a street address.'); return; }
+    data.matchString = formatAddressLine(data);
+    if (currentEditAddressId){
+      const profile = getCustomerProfile(currentProfileEmail);
+      const a = profile.addresses.find(x => x.id === currentEditAddressId);
+      Object.assign(a, data);
+      if (data.isDefault) setDefaultAddress(currentProfileEmail, a.id);
+    } else {
+      addAddressToProfile(currentProfileEmail, data);
+    }
+    document.getElementById('profile-address-form').hidden = true;
+    renderProfileAddresses();
+  });
+
+  // ---- Vehicle CRUD ----
+  let currentEditVehicleId = null;
+  function openVehicleForm(vehicleId){
+    currentEditVehicleId = vehicleId || null;
+    const form = document.getElementById('profile-vehicle-form');
+    if (vehicleId){
+      const profile = getCustomerProfile(currentProfileEmail);
+      const v = profile.vehicles.find(x => x.id === vehicleId);
+      document.getElementById('pv-year').value = v.year;
+      document.getElementById('pv-make').value = v.make;
+      document.getElementById('pv-model').value = v.model;
+      document.getElementById('pv-color').value = v.color;
+      document.getElementById('pv-plate').value = v.plate;
+      document.getElementById('pv-vehicletype').value = v.vehicleType || 'Cars/Sedans';
+      document.getElementById('pv-notes').value = v.notes;
+      document.getElementById('pv-default').checked = v.isDefault;
+    } else {
+      document.getElementById('pv-year').value = '';
+      document.getElementById('pv-make').value = '';
+      document.getElementById('pv-model').value = '';
+      document.getElementById('pv-color').value = '';
+      document.getElementById('pv-plate').value = '';
+      document.getElementById('pv-vehicletype').value = 'Cars/Sedans';
+      document.getElementById('pv-notes').value = '';
+      document.getElementById('pv-default').checked = false;
+    }
+    form.hidden = false;
+  }
+  document.getElementById('profile-add-vehicle-btn').addEventListener('click', () => openVehicleForm(null));
+  document.getElementById('pv-cancel').addEventListener('click', () => { document.getElementById('profile-vehicle-form').hidden = true; });
+  document.getElementById('pv-save').addEventListener('click', () => {
+    const data = {
+      year: document.getElementById('pv-year').value.trim(),
+      make: document.getElementById('pv-make').value.trim(),
+      model: document.getElementById('pv-model').value.trim(),
+      color: document.getElementById('pv-color').value.trim(),
+      plate: document.getElementById('pv-plate').value.trim(),
+      vehicleType: document.getElementById('pv-vehicletype').value,
+      notes: document.getElementById('pv-notes').value.trim(),
+      isDefault: document.getElementById('pv-default').checked
+    };
+    if (!data.make || !data.model){ alert('Please enter at least a make and model.'); return; }
+    data.matchString = formatVehicleLine(data);
+    if (currentEditVehicleId){
+      const profile = getCustomerProfile(currentProfileEmail);
+      const v = profile.vehicles.find(x => x.id === currentEditVehicleId);
+      Object.assign(v, data);
+      if (data.isDefault) setDefaultVehicle(currentProfileEmail, v.id);
+    } else {
+      addVehicleToProfile(currentProfileEmail, data);
+    }
+    document.getElementById('profile-vehicle-form').hidden = true;
+    renderProfileVehicles();
+  });
+
+  document.addEventListener('click', (e) => {
+    const addrEdit = e.target.closest('.address-edit-btn');
+    if (addrEdit){ openAddressForm(Number(addrEdit.dataset.addressId)); return; }
+    const addrDefault = e.target.closest('.address-setdefault-btn');
+    if (addrDefault){ setDefaultAddress(currentProfileEmail, Number(addrDefault.dataset.addressId)); renderProfileAddresses(); return; }
+    const addrDelete = e.target.closest('.address-delete-btn');
+    if (addrDelete){
+      if (confirm('Delete this address?')){ deleteAddress(currentProfileEmail, Number(addrDelete.dataset.addressId)); renderProfileAddresses(); }
+      return;
+    }
+    const vehEdit = e.target.closest('.vehicle-edit-btn');
+    if (vehEdit){ openVehicleForm(Number(vehEdit.dataset.vehicleId)); return; }
+    const vehDefault = e.target.closest('.vehicle-setdefault-btn');
+    if (vehDefault){ setDefaultVehicle(currentProfileEmail, Number(vehDefault.dataset.vehicleId)); renderProfileVehicles(); return; }
+    const vehDelete = e.target.closest('.vehicle-delete-btn');
+    if (vehDelete){
+      if (confirm('Delete this vehicle?')){ deleteVehicle(currentProfileEmail, Number(vehDelete.dataset.vehicleId)); renderProfileVehicles(); }
+      return;
+    }
+    const historyEditBtn = e.target.closest('.profile-history-edit-btn');
+    if (historyEditBtn){
+      closeProfileModal();
+      openEditJobModal(Number(historyEditBtn.dataset.jobId));
+      return;
+    }
   });
 
   // ================= PROPOSALS =================
@@ -3994,6 +4686,229 @@
       if (jobErr) throw jobErr;
       job.supabaseId = jobData.id;
     }, `Job #${job.jobNumber} synced to database.`, `Job #${job.jobNumber} database sync`);
+  });
+
+  // ================= EDIT JOB MODAL =================
+  const editJobOverlay = document.getElementById('edit-job-overlay');
+  let currentEditJobId = null;
+
+  function populateEjVehicleTypeSelect(){
+    const cat = document.getElementById('ej-category').value;
+    const pkgField = document.getElementById('ej-package-field');
+    const vtSelect = document.getElementById('ej-vehicletype');
+    let vehicles;
+    if (cat === 'full'){
+      pkgField.hidden = false;
+      const pkgKey = document.getElementById('ej-package').value;
+      vehicles = JOB_CATALOG.full.packages[pkgKey].vehicles;
+    } else {
+      pkgField.hidden = true;
+      vehicles = JOB_CATALOG[cat].vehicles;
+    }
+    vtSelect.innerHTML = vehicles.map(v => `<option value="${v.label}" data-price="${v.price}">${v.label} — ${formatCurrency(v.price)}</option>`).join('');
+    recalcEjComputedPrice();
+  }
+  document.getElementById('ej-category').addEventListener('change', populateEjVehicleTypeSelect);
+  document.getElementById('ej-package').addEventListener('change', populateEjVehicleTypeSelect);
+  document.getElementById('ej-vehicletype').addEventListener('change', recalcEjComputedPrice);
+
+  function getEjSelectedAddons(){
+    return Array.from(document.querySelectorAll('#ej-addons-list input[type="checkbox"]:checked'))
+      .map(cb => ADDONS_CATALOG.find(a => a.key === cb.value))
+      .filter(Boolean);
+  }
+
+  function renderEjAddonsList(selectedKeys){
+    const container = document.getElementById('ej-addons-list');
+    container.innerHTML = ADDONS_CATALOG.map(a => `
+      <label class="addon-checkbox-item">
+        <input type="checkbox" value="${a.key}" ${selectedKeys.includes(a.key) ? 'checked' : ''}>
+        <span>${a.name}</span>
+        <span class="addon-price">${formatCurrency(a.price)}</span>
+      </label>
+    `).join('');
+    container.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.addEventListener('change', recalcEjComputedPrice));
+  }
+
+  function recalcEjComputedPrice(){
+    const vtOpt = document.getElementById('ej-vehicletype').selectedOptions[0];
+    const basePrice = vtOpt ? parseFloat(vtOpt.dataset.price) : 0;
+    const addonsTotal = getEjSelectedAddons().reduce((s,a) => s + a.price, 0);
+    const computed = basePrice + addonsTotal;
+    document.getElementById('ej-computed-price').textContent = formatCurrency(computed);
+    return { basePrice, addonsTotal, computed };
+  }
+
+  document.getElementById('ej-override-toggle').addEventListener('change', (e) => {
+    document.getElementById('ej-override-fields').hidden = !e.target.checked;
+  });
+  document.getElementById('ej-override-reason').addEventListener('change', (e) => {
+    document.getElementById('ej-override-other-field').hidden = e.target.value !== 'Other';
+  });
+
+  function openEditJobModal(jobId){
+    const job = findJob(jobId);
+    if (!job) return;
+    if (currentRole && !ROLE_PERMISSIONS[currentRole].canEditJobs){
+      alert('You do not have permission to edit jobs.');
+      return;
+    }
+    currentEditJobId = jobId;
+    document.getElementById('ej-job-number').textContent = job.jobNumber;
+
+    const cat = getJobCategory(job);
+    document.getElementById('ej-category').value = cat;
+    const pkgKey = getJobPackageKey(job);
+    if (pkgKey) document.getElementById('ej-package').value = pkgKey;
+    populateEjVehicleTypeSelect();
+    const vtSelect = document.getElementById('ej-vehicletype');
+    if ([...vtSelect.options].some(o => o.value === job.vehicleType)) vtSelect.value = job.vehicleType;
+
+    const selectedAddonKeys = (job.addons || []).map(a => {
+      const nm = addonDisplayName(a);
+      const found = ADDONS_CATALOG.find(c => c.name === nm);
+      return found ? found.key : null;
+    }).filter(Boolean);
+    renderEjAddonsList(selectedAddonKeys);
+
+    document.getElementById('ej-date').value = toInputDate(job.date);
+    const timeSelect = document.getElementById('ej-time');
+    timeSelect.innerHTML = ADMIN_TIME_SLOTS.map(t => `<option value="${t}">${t}</option>`).join('');
+    timeSelect.value = job.time;
+
+    document.getElementById('ej-name').value = job.customer.name || '';
+    document.getElementById('ej-phone').value = job.customer.phone || '';
+    document.getElementById('ej-email').value = job.customer.email || '';
+    document.getElementById('ej-address').value = job.address || '';
+    document.getElementById('ej-vehicle').value = job.vehicle || '';
+
+    recalcEjComputedPrice();
+    const isOverridden = !!job.priceOverride;
+    document.getElementById('ej-override-toggle').checked = isOverridden;
+    document.getElementById('ej-override-fields').hidden = !isOverridden;
+    const knownReasons = ['Loyalty discount','Promotional offer','Vehicle condition adjustment','Management approval'];
+    if (isOverridden){
+      document.getElementById('ej-override-price').value = job.priceOverride.overridePrice;
+      if (knownReasons.includes(job.priceOverride.reason)){
+        document.getElementById('ej-override-reason').value = job.priceOverride.reason;
+        document.getElementById('ej-override-other-field').hidden = true;
+        document.getElementById('ej-override-other').value = '';
+      } else {
+        document.getElementById('ej-override-reason').value = 'Other';
+        document.getElementById('ej-override-other-field').hidden = false;
+        document.getElementById('ej-override-other').value = job.priceOverride.reason;
+      }
+    } else {
+      document.getElementById('ej-override-price').value = '';
+      document.getElementById('ej-override-reason').value = 'Loyalty discount';
+      document.getElementById('ej-override-other').value = '';
+      document.getElementById('ej-override-other-field').hidden = true;
+    }
+    document.getElementById('ej-deposit-override').value = job.depositOverride != null ? job.depositOverride : '';
+
+    document.getElementById('ej-status').value = job.status;
+    document.getElementById('ej-notes').value = job.notes || '';
+    renderAssignToList('ej-assign-list', job.assignedEmployeeIds || []);
+
+    editJobOverlay.hidden = false;
+  }
+
+  function closeEditJobModal(){ editJobOverlay.hidden = true; currentEditJobId = null; }
+  document.getElementById('edit-job-close').addEventListener('click', closeEditJobModal);
+  document.getElementById('ej-cancel').addEventListener('click', closeEditJobModal);
+  editJobOverlay.addEventListener('click', (e) => { if (e.target === editJobOverlay) closeEditJobModal(); });
+
+  document.getElementById('modal-edit-job-btn').addEventListener('click', () => {
+    if (currentModalJobId !== null) openEditJobModal(currentModalJobId);
+  });
+
+  document.getElementById('ej-save').addEventListener('click', () => {
+    const job = findJob(currentEditJobId);
+    if (!job) return;
+
+    const name = document.getElementById('ej-name').value.trim();
+    const phone = document.getElementById('ej-phone').value.trim();
+    const email = document.getElementById('ej-email').value.trim();
+    const address = document.getElementById('ej-address').value.trim();
+    const vehicle = document.getElementById('ej-vehicle').value.trim();
+    const dateVal = document.getElementById('ej-date').value;
+    const time = document.getElementById('ej-time').value;
+    const status = document.getElementById('ej-status').value;
+    const notes = document.getElementById('ej-notes').value.trim();
+
+    if (!name || !phone || !email || !address || !vehicle || !dateVal){
+      alert('Please complete all required fields.');
+      return;
+    }
+
+    const cat = document.getElementById('ej-category').value;
+    const pkgKey = document.getElementById('ej-package').value;
+    const vehicleTypeLabel = document.getElementById('ej-vehicletype').value;
+    const serviceLabel = cat === 'full' ? JOB_CATALOG.full.packages[pkgKey].label : JOB_CATALOG[cat].label;
+    const selectedAddons = getEjSelectedAddons();
+    const { basePrice, addonsTotal } = recalcEjComputedPrice();
+
+    const overrideEnabled = document.getElementById('ej-override-toggle').checked;
+    let overridePrice = null, overrideReason = null;
+    if (overrideEnabled){
+      overridePrice = parseFloat(document.getElementById('ej-override-price').value);
+      const reasonSel = document.getElementById('ej-override-reason').value;
+      overrideReason = reasonSel === 'Other' ? (document.getElementById('ej-override-other').value.trim() || 'Other') : reasonSel;
+      if (!overridePrice || overridePrice <= 0){
+        alert('Please enter a valid override price.');
+        return;
+      }
+    }
+
+    const depositOverrideVal = document.getElementById('ej-deposit-override').value;
+    const depositOverride = depositOverrideVal ? parseFloat(depositOverrideVal) : null;
+
+    const changes = [];
+    if (job.customer.name !== name) changes.push(`Customer name: "${job.customer.name}" → "${name}"`);
+    if (job.customer.phone !== phone) changes.push(`Phone: "${job.customer.phone}" → "${phone}"`);
+    if (job.customer.email !== email) changes.push(`Email: "${job.customer.email}" → "${email}"`);
+    if (job.address !== address) changes.push(`Address: "${job.address}" → "${address}"`);
+    if (job.vehicle !== vehicle) changes.push(`Vehicle: "${job.vehicle}" → "${vehicle}"`);
+    if (job.service !== serviceLabel) changes.push(`Service: "${job.service}" → "${serviceLabel}"`);
+    if (job.vehicleType !== vehicleTypeLabel) changes.push(`Vehicle type: "${job.vehicleType}" → "${vehicleTypeLabel}"`);
+    if (toInputDate(job.date) !== dateVal) changes.push(`Date: ${formatShortDate(job.date)} → ${formatShortDate(fromInputDate(dateVal))}`);
+    if (job.time !== time) changes.push(`Time: ${job.time} → ${time}`);
+    if (job.status !== status) changes.push(`Status: ${job.status} → ${status}`);
+
+    const newTotal = round2(overrideEnabled ? overridePrice : (basePrice + addonsTotal));
+    const originalTotal = round2(basePrice + addonsTotal);
+    if (round2(job.total) !== newTotal){
+      changes.push(`Total: ${formatCurrency(job.total)} → ${formatCurrency(newTotal)}${overrideEnabled ? ' (override: ' + overrideReason + ')' : ''}`);
+    }
+
+    job.customer = { name, phone, email };
+    job.category = cat;
+    job.packageKey = cat === 'full' ? pkgKey : null;
+    job.service = serviceLabel;
+    job.vehicleType = vehicleTypeLabel;
+    job.vehicle = vehicle;
+    job.address = address;
+    job.date = fromInputDate(dateVal);
+    job.time = time;
+    job.addons = selectedAddons.map(a => ({ name: a.name, price: a.price }));
+    job.subtotal = basePrice;
+    job.addonsTotal = addonsTotal;
+    job.priceOverride = overrideEnabled ? { overridePrice, reason: overrideReason, originalTotal } : null;
+    job.total = newTotal;
+    job.depositOverride = depositOverride;
+    job.status = status;
+    job.notes = notes;
+    job.assignedEmployeeIds = getSelectedAssignIds('ej-assign-list');
+
+    changes.forEach(c => logJobActivity(job, `Field changed — ${c}`));
+    if (!changes.length) logJobActivity(job, 'Job reviewed — no changes made');
+
+    getOrCreateCustomerProfile(email, name, phone);
+
+    closeEditJobModal();
+    renderAll();
+    if (currentModalJobId === job.id) populateModal(job);
+    showToast(`Job #${job.jobNumber} updated.`, 'success');
   });
 
   // ================= CREATE CUSTOMER MODAL =================
@@ -4707,6 +5622,7 @@
 
   // ================= INIT =================
   function renderAll(){
+    seedCustomerProfilesFromJobs();
     renderCalendarEmployeeFilterOptions();
     renderMiniCalendar();
     renderWeekView();
