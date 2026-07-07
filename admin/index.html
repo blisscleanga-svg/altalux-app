@@ -133,6 +133,7 @@
   }
   .field textarea{ resize:vertical; min-height:70px; font-family:'Inter',sans-serif; }
   .field select{ cursor:pointer; }
+  .field input:disabled{ opacity:.6; cursor:not-allowed; }
 
   /* ================= BUTTONS ================= */
   .btn{
@@ -157,6 +158,12 @@
     color:var(--white);
   }
   .btn-ghost:hover{ border-color:var(--white); background:rgba(255,255,255,.06); }
+  .btn-danger{
+    background:transparent;
+    border:1.5px solid rgba(255,103,103,.4);
+    color:var(--danger);
+  }
+  .btn-danger:hover{ background:rgba(255,103,103,.12); border-color:var(--danger); }
   .btn-mini{
     border:1.5px solid rgba(255,255,255,.16);
     background:rgba(255,255,255,.03);
@@ -170,6 +177,7 @@
     white-space:nowrap;
   }
   .btn-mini:hover{ border-color:var(--gold); background:rgba(255,170,0,.1); }
+  .btn-mini.danger:hover{ border-color:var(--danger); background:rgba(255,103,103,.12); color:var(--danger); }
   .link-btn{
     background:none;
     border:none;
@@ -311,6 +319,13 @@
   @media (min-width:700px){
     .stats-bar{ grid-template-columns:repeat(4,1fr); }
   }
+  .stats-bar.stats-bar-5{ margin-bottom:22px; }
+  @media (min-width:700px){
+    .stats-bar.stats-bar-5{ grid-template-columns:repeat(3,1fr); }
+  }
+  @media (min-width:1100px){
+    .stats-bar.stats-bar-5{ grid-template-columns:repeat(5,1fr); }
+  }
   .stat-card{
     background:linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.02));
     border:1px solid var(--line);
@@ -332,6 +347,7 @@
     font-weight:700;
     color:var(--white);
   }
+  .stat-value.danger{ color:var(--danger); }
 
   .view{ display:none; animation:fadeUp .35s ease; }
   .view.active{ display:block; }
@@ -537,11 +553,22 @@
     font-size:12px;
     font-weight:700;
     letter-spacing:.3px;
+    white-space:nowrap;
   }
   .badge-pending{ background:rgba(255,255,255,.14); color:var(--ink-muted); border:1px solid rgba(255,255,255,.22); }
   .badge-confirmed{ background:var(--blue); color:#fff; }
   .badge-inprogress{ background:var(--orange); color:var(--dark); }
   .badge-completed{ background:var(--green); color:#06240f; }
+
+  .badge-paymentstatus-depositpaid{ background:var(--orange); color:var(--dark); }
+  .badge-paymentstatus-paidfull{ background:var(--green); color:#06240f; }
+  .badge-paymentstatus-unpaid{ background:var(--danger); color:#fff; }
+  .badge-paymentstatus-refunded{ background:rgba(255,255,255,.14); color:var(--ink-muted); border:1px solid rgba(255,255,255,.22); }
+
+  .badge-invoice-draft{ background:rgba(255,255,255,.14); color:var(--ink-muted); border:1px solid rgba(255,255,255,.22); }
+  .badge-invoice-sent{ background:var(--blue); color:#fff; }
+  .badge-invoice-paid{ background:var(--green); color:#06240f; }
+  .badge-invoice-overdue{ background:var(--danger); color:#fff; }
 
   .status-select{
     font-family:'Inter',sans-serif;
@@ -576,6 +603,7 @@
     border-collapse:collapse;
     font-size:13.5px;
   }
+  .data-table.wide{ min-width:1280px; }
   .data-table th{
     text-align:left;
     padding:10px 12px;
@@ -597,6 +625,38 @@
   .data-table tbody tr:hover{ background:rgba(255,255,255,.02); }
   .data-table td:first-child, .data-table td:nth-child(3){ color:var(--white); font-weight:600; }
   .actions-cell{ display:flex; gap:6px; }
+
+  /* ================= FILTERS BAR ================= */
+  .filters-bar{
+    display:flex;
+    flex-wrap:wrap;
+    gap:14px;
+    align-items:flex-end;
+    margin-bottom:20px;
+    padding-bottom:18px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .filter-field{ display:flex; flex-direction:column; gap:5px; }
+  .filter-field label{
+    font-size:10.5px;
+    font-weight:700;
+    letter-spacing:.8px;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+  }
+  .filter-field input, .filter-field select{
+    font-family:'Inter',sans-serif;
+    background:rgba(255,255,255,.04);
+    border:1.5px solid rgba(255,255,255,.12);
+    border-radius:var(--radius-sm);
+    padding:8px 10px;
+    color:var(--white);
+    font-size:13px;
+    outline:none;
+  }
+  .filter-field input:focus, .filter-field select:focus{ border-color:var(--gold); }
+  .filter-date-range{ display:flex; align-items:center; gap:6px; }
+  .filter-date-range span{ color:var(--ink-faint); font-size:12px; }
 
   /* ================= MODAL ================= */
   .modal-overlay{
@@ -624,6 +684,7 @@
     box-shadow:0 30px 80px rgba(0,0,0,.6);
     animation:fadeUp .3s ease;
   }
+  .modal-box.modal-box-wide{ max-width:640px; }
   @keyframes fadeUp{ from{ opacity:0; transform:translateY(12px); } to{ opacity:1; transform:translateY(0); } }
   .modal-close{
     position:absolute;
@@ -665,6 +726,204 @@
     margin-top:20px;
   }
   .modal-actions .btn{ flex:1; min-width:140px; }
+
+  /* ================= RADIO OPTIONS (Record Payment) ================= */
+  .radio-option{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:11px 14px;
+    border:1.5px solid rgba(255,255,255,.12);
+    border-radius:var(--radius-sm);
+    cursor:pointer;
+    margin-bottom:8px;
+    transition:all .2s ease;
+  }
+  .radio-option:last-child{ margin-bottom:0; }
+  .radio-option:hover{ border-color:rgba(255,170,0,.4); }
+  .radio-option.selected{ border-color:var(--gold); background:rgba(255,170,0,.08); }
+  .radio-option input[type="radio"]{ accent-color:var(--orange); width:16px; height:16px; flex-shrink:0; cursor:pointer; }
+  .radio-option .radio-label{ flex:1; font-size:13.5px; font-weight:600; }
+  .radio-option .radio-amount{ font-weight:700; color:var(--gold); font-family:'Rajdhani',sans-serif; font-size:14.5px; }
+
+  /* ================= PAYMENT HISTORY (Job modal) ================= */
+  .payment-history-table{ width:100%; border-collapse:collapse; font-size:12.5px; margin:8px 0 4px; }
+  .payment-history-table th{
+    text-align:left; padding:6px 8px; font-size:10px; letter-spacing:.6px; text-transform:uppercase;
+    color:var(--gold); border-bottom:1px solid rgba(255,255,255,.1);
+  }
+  .payment-history-table td{ padding:7px 8px; border-bottom:1px solid rgba(255,255,255,.06); color:var(--ink-muted); }
+  .payment-history-empty{ font-size:12.5px; color:var(--ink-faint); padding:8px 0; }
+  .running-balance-row{
+    display:flex; justify-content:space-between; font-size:13.5px; font-weight:700;
+    padding:10px 0 4px; border-top:1px dashed rgba(255,170,0,.25); margin-top:6px;
+  }
+  .running-balance-row .amount-due{ color:var(--danger); }
+  .running-balance-row .amount-clear{ color:var(--green); }
+
+  /* ================= CUSTOMER PROFILE MODAL ================= */
+  .lifetime-value-box{
+    text-align:center;
+    padding:16px;
+    margin-bottom:18px;
+    border:1.5px solid rgba(255,170,0,.3);
+    border-radius:var(--radius-md);
+    background:linear-gradient(160deg, rgba(255,170,0,.1), rgba(255,140,0,.02));
+  }
+  .lifetime-value-box span{
+    display:block; font-size:11px; letter-spacing:1.2px; text-transform:uppercase; color:var(--ink-muted); margin-bottom:4px;
+  }
+  .lifetime-value-box strong{
+    display:block; font-family:'Rajdhani',sans-serif; font-size:30px; font-weight:700; color:var(--gold);
+  }
+  .profile-tabs{
+    display:flex; gap:6px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08);
+    border-radius:999px; padding:4px; margin-bottom:18px;
+  }
+  .profile-tab{
+    flex:1; border:none; background:transparent; color:var(--ink-muted); font-size:13px; font-weight:700;
+    padding:9px 10px; border-radius:999px; cursor:pointer; transition:all .2s ease;
+  }
+  .profile-tab.active{ background:linear-gradient(135deg,var(--gold),var(--orange)); color:var(--dark); }
+  .profile-panel{ display:none; }
+  .profile-panel.active{ display:block; }
+  .job-history-entry{
+    border:1px solid rgba(255,255,255,.1); border-radius:var(--radius-sm); padding:14px; margin-bottom:12px;
+  }
+  .job-history-entry:last-child{ margin-bottom:0; }
+  .job-history-title{
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    font-weight:700; font-size:14px; margin-bottom:10px;
+  }
+  .payment-timeline{ display:flex; flex-direction:column; gap:6px; }
+  .payment-timeline-item{
+    display:flex; justify-content:space-between; gap:10px; font-size:12.5px;
+    padding:8px 10px; border-radius:8px; background:rgba(255,255,255,.03); color:var(--ink-muted);
+  }
+  .payment-timeline-item.outstanding{ color:var(--danger); background:rgba(255,103,103,.08); }
+  .payment-timeline-item span:last-child{ color:var(--white); font-weight:600; }
+  .payment-timeline-item.outstanding span:last-child{ color:var(--danger); }
+
+  /* ================= INVOICE MODAL ================= */
+  .invoice-header{
+    display:flex; justify-content:space-between; align-items:flex-start;
+    margin-bottom:22px; flex-wrap:wrap; gap:14px;
+  }
+  .invoice-brand{ font-size:20px; font-weight:700; letter-spacing:2px; text-transform:uppercase; }
+  .invoice-brand .lux{
+    background:linear-gradient(120deg,var(--gold),var(--orange));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .invoice-title-block{ text-align:right; }
+  .invoice-title{ font-size:24px; font-weight:700; letter-spacing:3px; color:var(--gold); margin:0; }
+  .invoice-meta{ font-size:12px; color:var(--ink-muted); margin-top:6px; line-height:1.6; }
+  .invoice-meta strong{ color:var(--white); }
+  .invoice-billto{ margin-bottom:20px; font-size:13px; color:var(--ink-muted); line-height:1.6; }
+  .invoice-billto strong{ display:block; color:var(--white); font-size:15px; margin-bottom:2px; }
+  .invoice-table{ width:100%; border-collapse:collapse; font-size:13px; margin-bottom:14px; }
+  .invoice-table th{
+    text-align:left; padding:8px; font-size:10.5px; text-transform:uppercase; letter-spacing:.6px;
+    color:var(--gold); border-bottom:1px solid rgba(255,255,255,.14);
+  }
+  .invoice-table td{ padding:8px; border-bottom:1px solid rgba(255,255,255,.06); color:var(--ink-muted); }
+  .invoice-table td:last-child, .invoice-table th:last-child{ text-align:right; }
+  .invoice-summary-line{ display:flex; justify-content:space-between; font-size:13.5px; padding:5px 0; color:var(--ink-muted); }
+  .invoice-summary-line.total{ font-weight:700; font-size:17px; color:var(--gold); font-family:'Rajdhani',sans-serif; padding-top:10px; border-top:1px solid rgba(255,255,255,.1); margin-top:4px; }
+  .invoice-tax-toggle{ display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--ink-muted); margin:8px 0; cursor:pointer; }
+  .invoice-tax-toggle input{ accent-color:var(--orange); width:16px; height:16px; cursor:pointer; }
+  .invoice-payment-summary{ margin-top:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,.08); }
+  .invoice-balance-highlight{ color:var(--orange) !important; font-weight:700 !important; }
+  .invoice-footer{
+    margin-top:22px; padding-top:16px; border-top:1px solid rgba(255,255,255,.08);
+    font-size:11px; color:var(--ink-faint); line-height:1.6; text-align:center;
+  }
+  .invoice-footer .thanks{ color:var(--ink-muted); font-weight:600; margin:8px 0 2px; font-size:12.5px; }
+
+  /* ================= EVENTS (Calendar) ================= */
+  .chip-event{ background:rgba(120,140,200,.35); color:#e8ecff; }
+  .event-card{
+    border:1px dashed rgba(120,140,200,.4);
+    background:rgba(120,140,200,.06);
+    border-radius:var(--radius-md);
+    padding:14px 16px;
+    margin-bottom:10px;
+  }
+  .event-card:last-child{ margin-bottom:0; }
+  .event-card-top{ display:flex; justify-content:space-between; align-items:center; }
+  .event-card-top strong{ font-size:14.5px; }
+  .event-time{ font-size:12px; color:#b8c4e8; font-weight:700; }
+  .event-notes{ font-size:12.5px; color:var(--ink-muted); margin:6px 0 0; }
+
+  /* ================= PROPOSAL BADGES ================= */
+  .badge-proposalstatus-draft{ background:rgba(255,255,255,.14); color:var(--ink-muted); border:1px solid rgba(255,255,255,.22); }
+  .badge-proposalstatus-sent{ background:var(--blue); color:#fff; }
+  .badge-proposalstatus-accepted{ background:var(--green); color:#06240f; }
+  .badge-proposalstatus-declined{ background:var(--danger); color:#fff; }
+
+  /* ================= FLOATING ACTION BUTTON ================= */
+  .fab-backdrop{ position:fixed; inset:0; background:rgba(4,10,20,.5); backdrop-filter:blur(2px); z-index:140; }
+  .fab-container{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    z-index:150; display:flex; flex-direction:column; align-items:center; gap:12px;
+  }
+  .fab-main{
+    width:60px; height:60px; border-radius:50%; border:none;
+    background:linear-gradient(135deg,var(--gold),var(--orange)); color:var(--dark);
+    font-size:28px; font-weight:700; cursor:pointer;
+    box-shadow:0 10px 30px rgba(255,140,0,.45), 0 0 0 6px rgba(255,170,0,.08);
+    transition:transform .3s cubic-bezier(.34,1.56,.64,1), box-shadow .3s ease;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .fab-main:hover{ transform:scale(1.08); box-shadow:0 14px 38px rgba(255,140,0,.55), 0 0 0 8px rgba(255,170,0,.12); }
+  #fab-main-icon{ display:inline-block; transition:transform .3s ease; line-height:1; }
+  .fab-main.open #fab-main-icon{ transform:rotate(45deg); }
+  .fab-menu{ display:flex; flex-direction:column-reverse; gap:10px; align-items:center; pointer-events:none; }
+  .fab-option{
+    display:flex; align-items:center; gap:8px;
+    border:1px solid rgba(255,170,0,.3); background:rgba(15,31,56,.96); backdrop-filter:blur(10px);
+    color:var(--white); font-size:13.5px; font-weight:700; padding:10px 18px; border-radius:999px;
+    cursor:pointer; white-space:nowrap; box-shadow:0 8px 20px rgba(0,0,0,.4);
+    opacity:0; transform:translateY(12px) scale(.9); pointer-events:none;
+    transition:opacity .22s ease, transform .22s cubic-bezier(.34,1.56,.64,1);
+  }
+  .fab-menu.open .fab-option{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+  .fab-menu.open .fab-option:nth-child(1){ transition-delay:.1s; }
+  .fab-menu.open .fab-option:nth-child(2){ transition-delay:.08s; }
+  .fab-menu.open .fab-option:nth-child(3){ transition-delay:.06s; }
+  .fab-menu.open .fab-option:nth-child(4){ transition-delay:.04s; }
+  .fab-menu.open .fab-option:nth-child(5){ transition-delay:.02s; }
+  .fab-option:hover{ border-color:var(--gold); background:rgba(255,170,0,.16); transform:translateY(-2px) scale(1.03); }
+  .fab-option .fab-icon{ font-size:16px; }
+  @media (max-width:480px){
+    .fab-main{ width:54px; height:54px; font-size:24px; }
+    .fab-option{ font-size:12.5px; padding:9px 14px; }
+  }
+
+  /* ================= PRINT ================= */
+  .no-print{}
+  @media print{
+    body *{ visibility:hidden; }
+    #invoice-modal-overlay, #invoice-modal-overlay *{ visibility:visible; }
+    #invoice-modal-overlay{
+      position:absolute; inset:0; padding:0; background:#fff; display:block; overflow:visible;
+    }
+    #invoice-modal-overlay .modal-box{
+      max-width:100%; width:100%; box-shadow:none; border:none; background:#fff; color:#000;
+      border-radius:0; padding:24px;
+    }
+    #invoice-modal-overlay .no-print{ display:none !important; }
+    #invoice-modal-overlay .invoice-brand,
+    #invoice-modal-overlay .invoice-title,
+    #invoice-modal-overlay .invoice-billto strong,
+    #invoice-modal-overlay .invoice-meta strong{ color:#0a1628 !important; }
+    #invoice-modal-overlay .invoice-meta,
+    #invoice-modal-overlay .invoice-billto,
+    #invoice-modal-overlay .invoice-table td,
+    #invoice-modal-overlay .invoice-summary-line,
+    #invoice-modal-overlay .invoice-footer{ color:#333 !important; }
+    #invoice-modal-overlay .invoice-table th{ color:#104872 !important; }
+    #invoice-modal-overlay .invoice-summary-line.total{ color:#c46a00 !important; }
+  }
 </style>
 </head>
 <body>
@@ -693,6 +952,7 @@
     <div class="navbar-nav">
       <button type="button" class="nav-link active" data-view="calendar">Calendar</button>
       <button type="button" class="nav-link" data-view="jobs">Jobs</button>
+      <button type="button" class="nav-link" data-view="proposals">Proposals</button>
       <button type="button" class="nav-link" data-view="customers">Customers</button>
       <button type="button" class="nav-link" data-view="payments">Payments</button>
     </div>
@@ -703,6 +963,7 @@
     <aside class="sidebar">
       <button type="button" class="sidebar-link active" data-view="calendar"><span class="icon">📅</span> Calendar</button>
       <button type="button" class="sidebar-link" data-view="jobs"><span class="icon">🧾</span> Jobs</button>
+      <button type="button" class="sidebar-link" data-view="proposals"><span class="icon">📋</span> Proposals</button>
       <button type="button" class="sidebar-link" data-view="customers"><span class="icon">👥</span> Customers</button>
       <button type="button" class="sidebar-link" data-view="payments"><span class="icon">💳</span> Payments</button>
     </aside>
@@ -755,6 +1016,11 @@
           <h3 class="section-title">Jobs for <span id="selected-day-label"></span></h3>
           <div id="jobs-list"></div>
         </div>
+
+        <div class="panel">
+          <h3 class="section-title">Events for <span id="selected-day-label-events"></span></h3>
+          <div id="events-list"></div>
+        </div>
       </section>
 
       <!-- ===== JOBS VIEW ===== -->
@@ -779,6 +1045,24 @@
         </div>
       </section>
 
+      <!-- ===== PROPOSALS VIEW ===== -->
+      <section class="view" id="view-proposals">
+        <div class="panel">
+          <h3 class="section-title">Proposals</h3>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Proposal #</th><th>Date</th><th>Customer</th><th>Service</th><th>Price</th>
+                  <th>Valid Until</th><th>Status</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="proposals-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
       <!-- ===== CUSTOMERS VIEW ===== -->
       <section class="view" id="view-customers">
         <div class="panel">
@@ -797,16 +1081,81 @@
         </div>
       </section>
 
-      <!-- ===== PAYMENTS VIEW ===== -->
+      <!-- ===== PAYMENTS VIEW (Enhanced) ===== -->
       <section class="view" id="view-payments">
+
+        <div class="stats-bar stats-bar-5">
+          <div class="stat-card">
+            <span class="stat-label">Total Collected</span>
+            <span class="stat-value" id="pstat-total-collected">$0.00</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Collected This Month</span>
+            <span class="stat-value" id="pstat-month">$0.00</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Collected This Week</span>
+            <span class="stat-value" id="pstat-week">$0.00</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Outstanding Balance</span>
+            <span class="stat-value danger" id="pstat-outstanding">$0.00</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Pending Deposits</span>
+            <span class="stat-value" id="pstat-pending-deposits">0</span>
+          </div>
+        </div>
+
         <div class="panel">
           <h3 class="section-title">Payments</h3>
+
+          <div class="filters-bar">
+            <div class="filter-field">
+              <label>From</label>
+              <input type="date" id="pf-date-from">
+            </div>
+            <div class="filter-field">
+              <label>To</label>
+              <input type="date" id="pf-date-to">
+            </div>
+            <div class="filter-field">
+              <label>Status</label>
+              <select id="pf-status">
+                <option value="">All Statuses</option>
+                <option value="Deposit Paid">Deposit Paid</option>
+                <option value="Paid in Full">Paid in Full</option>
+                <option value="Unpaid">Unpaid</option>
+                <option value="Refunded">Refunded</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label>Customer</label>
+              <input type="text" id="pf-customer" placeholder="Search by name...">
+            </div>
+            <div class="filter-field">
+              <label>Method</label>
+              <select id="pf-method">
+                <option value="">All Methods</option>
+                <option value="Stripe">Stripe</option>
+                <option value="Cash">Cash</option>
+                <option value="Check">Check</option>
+                <option value="Zelle">Zelle</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <button type="button" class="link-btn" id="pf-clear">Clear filters</button>
+            </div>
+          </div>
+
           <div class="table-wrap">
-            <table class="data-table">
+            <table class="data-table wide">
               <thead>
                 <tr>
-                  <th>Date</th><th>Job #</th><th>Customer</th><th>Service</th><th>Total</th>
-                  <th>Deposit Paid</th><th>Balance Due</th><th>Method</th><th>Status</th>
+                  <th>Payment #</th><th>Date</th><th>Job #</th><th>Customer</th><th>Service</th><th>Vehicle</th>
+                  <th>Subtotal</th><th>Add-ons</th><th>Total</th><th>Deposit Paid</th><th>Balance Due</th>
+                  <th>Method</th><th>Status</th><th>Actions</th>
                 </tr>
               </thead>
               <tbody id="payments-table-body"></tbody>
@@ -848,6 +1197,14 @@
     <div class="summary-line"><span>Balance Due</span><span id="modal-balance"></span></div>
 
     <hr class="summary-divider">
+    <p class="modal-section-title">Payment History</p>
+    <div id="modal-payment-history"></div>
+    <div class="modal-actions" style="margin-top:10px;">
+      <button type="button" class="btn btn-ghost" id="modal-record-payment-btn">+ Record Payment</button>
+      <button type="button" class="btn btn-ghost" id="modal-view-invoice-btn">View Invoice</button>
+    </div>
+
+    <hr class="summary-divider">
     <div class="field">
       <label for="modal-status-select">Status</label>
       <select id="modal-status-select">
@@ -870,12 +1227,366 @@
   </div>
 </div>
 
+<!-- ================= RECORD PAYMENT MODAL ================= -->
+<div class="modal-overlay" id="record-payment-overlay" hidden>
+  <div class="modal-box" id="record-payment-box">
+    <button type="button" class="modal-close" id="record-payment-close" aria-label="Close">✕</button>
+    <h2 class="modal-title">Record <span>Payment</span></h2>
+
+    <div class="summary-line"><span>Job #</span><span id="rp-job-number"></span></div>
+    <div class="summary-line"><span>Customer</span><span id="rp-customer-name"></span></div>
+
+    <hr class="summary-divider">
+    <p class="modal-section-title">Payment Amount</p>
+    <form id="record-payment-form">
+      <label class="radio-option" data-option="deposit">
+        <input type="radio" name="rp-amount-option" value="deposit">
+        <span class="radio-label">Deposit Only (25%)</span>
+        <span class="radio-amount" id="rp-preset-deposit">$0.00</span>
+      </label>
+      <label class="radio-option" data-option="balance">
+        <input type="radio" name="rp-amount-option" value="balance">
+        <span class="radio-label">Balance Due (75%)</span>
+        <span class="radio-amount" id="rp-preset-balance">$0.00</span>
+      </label>
+      <label class="radio-option" data-option="full">
+        <input type="radio" name="rp-amount-option" value="full">
+        <span class="radio-label">Full Amount (100%)</span>
+        <span class="radio-amount" id="rp-preset-full">$0.00</span>
+      </label>
+      <label class="radio-option" data-option="custom">
+        <input type="radio" name="rp-amount-option" value="custom">
+        <span class="radio-label">Custom Amount</span>
+      </label>
+
+      <div class="field" style="margin-top:14px;">
+        <label for="rp-amount">Amount</label>
+        <input type="number" id="rp-amount" min="0" step="0.01" placeholder="0.00">
+      </div>
+
+      <div class="field" style="margin-top:14px;">
+        <label for="rp-method">Payment Method</label>
+        <select id="rp-method">
+          <option value="Stripe">Stripe</option>
+          <option value="Cash">Cash</option>
+          <option value="Check">Check</option>
+          <option value="Zelle">Zelle</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <div class="field" style="margin-top:14px;">
+        <label for="rp-date">Payment Date</label>
+        <input type="date" id="rp-date">
+      </div>
+
+      <div class="field" style="margin-top:14px;">
+        <label for="rp-reference">Reference # <span style="color:var(--ink-faint); text-transform:none; font-weight:400;">(optional)</span></label>
+        <input type="text" id="rp-reference" placeholder="Check # or Zelle confirmation">
+      </div>
+
+      <div class="field" style="margin-top:14px;">
+        <label for="rp-notes">Notes <span style="color:var(--ink-faint); text-transform:none; font-weight:400;">(optional)</span></label>
+        <textarea id="rp-notes" placeholder="Add notes about this payment..."></textarea>
+      </div>
+    </form>
+
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="rp-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="rp-submit">Record Payment</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= INVOICE MODAL ================= -->
+<div class="modal-overlay" id="invoice-modal-overlay" hidden>
+  <div class="modal-box modal-box-wide" id="invoice-modal-box">
+    <button type="button" class="modal-close no-print" id="invoice-modal-close" aria-label="Close">✕</button>
+
+    <div class="invoice-header">
+      <div>
+        <div class="invoice-brand">ALTA<span class="lux">LUX</span></div>
+        <div style="font-size:11px; letter-spacing:2px; color:var(--ink-faint); margin-top:2px;">MOBILE DETAIL</div>
+      </div>
+      <div class="invoice-title-block">
+        <p class="invoice-title">INVOICE</p>
+        <div class="invoice-meta">
+          <div>Invoice #: <strong id="inv-number"></strong> <span class="badge" id="inv-status-badge"></span></div>
+          <div>Invoice Date: <strong id="inv-issue-date"></strong></div>
+          <div>Due Date: <strong id="inv-due-date"></strong></div>
+        </div>
+      </div>
+    </div>
+
+    <p class="modal-section-title">Bill To</p>
+    <div class="invoice-billto">
+      <strong id="inv-customer-name"></strong>
+      <div id="inv-customer-phone"></div>
+      <div id="inv-customer-email"></div>
+      <div id="inv-customer-address"></div>
+    </div>
+
+    <table class="invoice-table">
+      <thead>
+        <tr><th>Description</th><th>Vehicle</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr>
+      </thead>
+      <tbody id="inv-line-items"></tbody>
+    </table>
+
+    <div style="max-width:280px; margin-left:auto;">
+      <div class="invoice-summary-line"><span>Subtotal</span><span id="inv-subtotal"></span></div>
+      <label class="invoice-tax-toggle no-print">
+        <input type="checkbox" id="inv-tax-toggle">
+        Apply Tax (6%)
+      </label>
+      <div class="invoice-summary-line" id="inv-tax-row" hidden><span>Tax (6%)</span><span id="inv-tax-amount"></span></div>
+      <div class="invoice-summary-line total"><span>Total</span><span id="inv-total"></span></div>
+    </div>
+
+    <div class="invoice-payment-summary">
+      <p class="modal-section-title">Payment Summary</p>
+      <div class="invoice-summary-line"><span>Amount Paid</span><span id="inv-amount-paid"></span></div>
+      <div class="invoice-summary-line"><span>Balance Due</span><span id="inv-balance-due"></span></div>
+    </div>
+
+    <div class="invoice-footer">
+      <p>A 25% non-refundable deposit is required to confirm your booking. Cancellations or rescheduling with less than 72 hours notice will forfeit the deposit. Our technicians rely on scheduled appointments for their income. Please be aware of your arrival window — if your vehicle is not available within 15 minutes of technician arrival, a $50 late fee will apply.</p>
+      <p class="thanks">Thank you for choosing AltaLux Mobile Detail</p>
+      <p>altaluxdetail.com</p>
+    </div>
+
+    <div class="modal-actions no-print">
+      <button type="button" class="btn btn-ghost" id="inv-print">Print Invoice</button>
+      <button type="button" class="btn btn-ghost" id="inv-download">Download as PDF</button>
+      <button type="button" class="btn btn-ghost" id="inv-send">Send Invoice</button>
+      <button type="button" class="btn btn-primary" id="inv-mark-sent">Mark as Sent</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= CUSTOMER PROFILE MODAL ================= -->
+<div class="modal-overlay" id="profile-modal-overlay" hidden>
+  <div class="modal-box" id="profile-modal-box">
+    <button type="button" class="modal-close" id="profile-modal-close" aria-label="Close">✕</button>
+    <h2 class="modal-title" id="profile-customer-name">Customer</h2>
+
+    <div class="lifetime-value-box">
+      <span>Lifetime Value</span>
+      <strong id="profile-lifetime-value">$0.00</strong>
+    </div>
+
+    <div class="profile-tabs">
+      <button type="button" class="profile-tab active" data-tab="overview">Overview</button>
+      <button type="button" class="profile-tab" data-tab="history">Job History</button>
+    </div>
+
+    <div class="profile-panel active" id="profile-panel-overview">
+      <div class="summary-line"><span>Phone</span><span id="profile-phone"></span></div>
+      <div class="summary-line"><span>Email</span><span id="profile-email"></span></div>
+      <div class="summary-line"><span>Address</span><span id="profile-address"></span></div>
+      <hr class="summary-divider">
+      <div class="summary-line"><span>Total Jobs</span><span id="profile-jobs-count"></span></div>
+      <div class="summary-line"><span>Last Service</span><span id="profile-last-service"></span></div>
+    </div>
+
+    <div class="profile-panel" id="profile-panel-history">
+      <div id="profile-job-history"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= CREATE JOB (Quote/Job) MODAL ================= -->
+<div class="modal-overlay" id="create-job-overlay" hidden>
+  <div class="modal-box" id="create-job-box">
+    <button type="button" class="modal-close" id="create-job-close" aria-label="Close">✕</button>
+    <h2 class="modal-title">New <span>Quote / Job</span></h2>
+    <form id="create-job-form">
+      <div class="field"><label for="cj-name">Customer Name</label><input type="text" id="cj-name" required></div>
+      <div class="field" style="margin-top:14px;"><label for="cj-phone">Phone</label><input type="tel" id="cj-phone" required></div>
+      <div class="field" style="margin-top:14px;"><label for="cj-email">Email</label><input type="email" id="cj-email" required></div>
+      <div class="field" style="margin-top:14px;"><label for="cj-address">Service Address</label><input type="text" id="cj-address" required></div>
+      <div class="field" style="margin-top:14px;"><label for="cj-category">Category</label>
+        <select id="cj-category">
+          <option value="full">Full Detail</option>
+          <option value="interior">Interior Only</option>
+          <option value="exterior">Exterior Only</option>
+        </select>
+      </div>
+      <div class="field" id="cj-package-field" style="margin-top:14px;"><label for="cj-package">Package</label>
+        <select id="cj-package">
+          <option value="essential">Essential Detail</option>
+          <option value="premium">Premium Detail</option>
+        </select>
+      </div>
+      <div class="field" style="margin-top:14px;"><label for="cj-vehicletype">Vehicle Type</label>
+        <select id="cj-vehicletype"></select>
+      </div>
+      <div class="field" style="margin-top:14px;"><label for="cj-vehicle">Vehicle (Year Make Model)</label><input type="text" id="cj-vehicle" placeholder="e.g. 2022 Toyota Camry" required></div>
+      <div class="field" style="margin-top:14px;"><label for="cj-price">Total Price</label><input type="number" id="cj-price" min="0" step="0.01"></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px;">
+        <div class="field"><label for="cj-date">Date</label><input type="date" id="cj-date"></div>
+        <div class="field"><label for="cj-time">Time</label><select id="cj-time"></select></div>
+      </div>
+      <div class="field" style="margin-top:14px;"><label for="cj-status">Status</label>
+        <select id="cj-status">
+          <option value="Pending">Pending</option>
+          <option value="Confirmed">Confirmed</option>
+        </select>
+      </div>
+      <div class="field" style="margin-top:14px;"><label for="cj-notes">Notes <span style="color:var(--ink-faint); text-transform:none; font-weight:400;">(optional)</span></label><textarea id="cj-notes"></textarea></div>
+    </form>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="cj-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="cj-submit">Create Job</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= CREATE CUSTOMER MODAL ================= -->
+<div class="modal-overlay" id="create-customer-overlay" hidden>
+  <div class="modal-box" id="create-customer-box">
+    <button type="button" class="modal-close" id="create-customer-close" aria-label="Close">✕</button>
+    <h2 class="modal-title">New <span>Customer</span></h2>
+    <form id="create-customer-form">
+      <div class="field"><label for="cc-name">Full Name</label><input type="text" id="cc-name" required></div>
+      <div class="field" style="margin-top:14px;"><label for="cc-phone">Phone</label><input type="tel" id="cc-phone" required></div>
+      <div class="field" style="margin-top:14px;"><label for="cc-email">Email</label><input type="email" id="cc-email" required></div>
+      <div class="field" style="margin-top:14px;"><label for="cc-address">Address <span style="color:var(--ink-faint); text-transform:none; font-weight:400;">(optional)</span></label><input type="text" id="cc-address"></div>
+    </form>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="cc-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="cc-submit">Create Customer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= CREATE PROPOSAL MODAL ================= -->
+<div class="modal-overlay" id="create-proposal-overlay" hidden>
+  <div class="modal-box" id="create-proposal-box">
+    <button type="button" class="modal-close" id="create-proposal-close" aria-label="Close">✕</button>
+    <h2 class="modal-title">New <span>Proposal</span></h2>
+    <form id="create-proposal-form">
+      <div class="field"><label for="cp-name">Customer Name</label><input type="text" id="cp-name" required></div>
+      <div class="field" style="margin-top:14px;"><label for="cp-phone">Phone</label><input type="tel" id="cp-phone" required></div>
+      <div class="field" style="margin-top:14px;"><label for="cp-email">Email</label><input type="email" id="cp-email" required></div>
+      <div class="field" style="margin-top:14px;"><label for="cp-service">Service Description</label><input type="text" id="cp-service" placeholder="e.g. Premium Detail for 2 vehicles" required></div>
+      <div class="field" style="margin-top:14px;"><label for="cp-vehicle">Vehicle <span style="color:var(--ink-faint); text-transform:none; font-weight:400;">(optional)</span></label><input type="text" id="cp-vehicle"></div>
+      <div class="field" style="margin-top:14px;"><label for="cp-price">Proposed Price</label><input type="number" id="cp-price" min="0" step="0.01" required></div>
+      <div class="field" style="margin-top:14px;"><label for="cp-validuntil">Valid Until</label><input type="date" id="cp-validuntil"></div>
+      <div class="field" style="margin-top:14px;"><label for="cp-notes">Notes <span style="color:var(--ink-faint); text-transform:none; font-weight:400;">(optional)</span></label><textarea id="cp-notes"></textarea></div>
+    </form>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="cp-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="cp-submit">Create Proposal</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= VIEW PROPOSAL MODAL ================= -->
+<div class="modal-overlay" id="proposal-modal-overlay" hidden>
+  <div class="modal-box" id="proposal-modal-box">
+    <button type="button" class="modal-close" id="proposal-modal-close" aria-label="Close">✕</button>
+    <h2 class="modal-title">Proposal <span id="pm-number"></span></h2>
+    <p class="modal-section-title">Customer</p>
+    <div class="summary-line"><span>Name</span><span id="pm-customer-name"></span></div>
+    <div class="summary-line"><span>Phone</span><span id="pm-customer-phone"></span></div>
+    <div class="summary-line"><span>Email</span><span id="pm-customer-email"></span></div>
+    <hr class="summary-divider">
+    <p class="modal-section-title">Proposal Details</p>
+    <div class="summary-line"><span>Service</span><span id="pm-service"></span></div>
+    <div class="summary-line"><span>Vehicle</span><span id="pm-vehicle"></span></div>
+    <div class="summary-line grand-total"><span>Proposed Price</span><span id="pm-price"></span></div>
+    <div class="summary-line"><span>Valid Until</span><span id="pm-validuntil"></span></div>
+    <hr class="summary-divider">
+    <div class="field">
+      <label for="pm-status-select">Status</label>
+      <select id="pm-status-select">
+        <option value="Draft">Draft</option>
+        <option value="Sent">Sent</option>
+        <option value="Accepted">Accepted</option>
+        <option value="Declined">Declined</option>
+      </select>
+    </div>
+    <div class="field" style="margin-top:14px;">
+      <label for="pm-notes">Notes</label>
+      <textarea id="pm-notes" readonly></textarea>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-primary" id="pm-convert-btn">Convert to Job</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= CREATE EVENT MODAL ================= -->
+<div class="modal-overlay" id="create-event-overlay" hidden>
+  <div class="modal-box" id="create-event-box">
+    <button type="button" class="modal-close" id="create-event-close" aria-label="Close">✕</button>
+    <h2 class="modal-title">New <span>Event</span></h2>
+    <form id="create-event-form">
+      <div class="field"><label for="ce-title">Title</label><input type="text" id="ce-title" placeholder="e.g. Equipment maintenance" required></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px;">
+        <div class="field"><label for="ce-date">Date</label><input type="date" id="ce-date"></div>
+        <div class="field"><label for="ce-time">Time</label><select id="ce-time"></select></div>
+      </div>
+      <div class="field" style="margin-top:14px;"><label for="ce-notes">Notes <span style="color:var(--ink-faint); text-transform:none; font-weight:400;">(optional)</span></label><textarea id="ce-notes"></textarea></div>
+    </form>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="ce-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="ce-submit">Create Event</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= VIEW/DELETE EVENT MODAL ================= -->
+<div class="modal-overlay" id="event-modal-overlay" hidden>
+  <div class="modal-box" id="event-modal-box">
+    <button type="button" class="modal-close" id="event-modal-close" aria-label="Close">✕</button>
+    <h2 class="modal-title" id="em-title">Event</h2>
+    <div class="summary-line"><span>Date</span><span id="em-date"></span></div>
+    <div class="summary-line"><span>Time</span><span id="em-time"></span></div>
+    <div class="summary-line"><span>Notes</span><span id="em-notes"></span></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-danger" id="em-delete">Delete Event</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= PAYMENT JOB PICKER MODAL ================= -->
+<div class="modal-overlay" id="payment-picker-overlay" hidden>
+  <div class="modal-box" id="payment-picker-box">
+    <button type="button" class="modal-close" id="payment-picker-close" aria-label="Close">✕</button>
+    <h2 class="modal-title">Record <span>Payment</span></h2>
+    <div class="field">
+      <label for="pp-job-select">Select Job</label>
+      <select id="pp-job-select"></select>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="pp-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="pp-continue">Continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= FLOATING ACTION BUTTON ================= -->
+<div class="fab-backdrop" id="fab-backdrop" hidden></div>
+<div class="fab-container" id="fab-container" hidden>
+  <div class="fab-menu" id="fab-menu">
+    <button type="button" class="fab-option" data-action="quote-job"><span class="fab-icon">🧾</span> Quote / Job</button>
+    <button type="button" class="fab-option" data-action="proposal"><span class="fab-icon">📋</span> Proposal</button>
+    <button type="button" class="fab-option" data-action="event"><span class="fab-icon">📅</span> Event</button>
+    <button type="button" class="fab-option" data-action="customer"><span class="fab-icon">👤</span> Customer</button>
+    <button type="button" class="fab-option" data-action="payment"><span class="fab-icon">💳</span> Payment</button>
+  </div>
+  <button type="button" class="fab-main" id="fab-main" aria-label="Create new"><span id="fab-main-icon">+</span></button>
+</div>
+
 <script>
 (function(){
   "use strict";
 
   const ADMIN_PASSWORD = 'altalux2026';
   const AUTH_KEY = 'altalux_admin_auth';
+  const TAX_RATE = 0.06;
 
   const ADMIN_TIME_SLOTS = ['8:00 AM','10:00 AM','12:00 PM','2:00 PM','3:00 PM','4:00 PM'];
   const WEEKDAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -884,6 +1595,10 @@
 
   const STATUS_OPTIONS = ['Pending','Confirmed','In Progress','Completed'];
   const STATUS_SLUG = { 'Pending':'pending', 'Confirmed':'confirmed', 'In Progress':'inprogress', 'Completed':'completed' };
+
+  const PAYMENT_STATUS_SLUG = { 'Deposit Paid':'depositpaid', 'Paid in Full':'paidfull', 'Unpaid':'unpaid', 'Refunded':'refunded' };
+  const INVOICE_STATUS_SLUG = { 'Draft':'draft', 'Sent':'sent', 'Paid':'paid', 'Overdue':'overdue' };
+  const PAYMENT_METHODS = ['Stripe','Cash','Check','Zelle','Other'];
 
   function todayDate(){
     const d = new Date();
@@ -897,6 +1612,14 @@
   }
   function formatShortDate(d){ return `${MONTH_LABELS[d.getMonth()].slice(0,3)} ${d.getDate()}`; }
   function formatLongDate(d){ return `${WEEKDAY_LONG[d.getDay()]}, ${MONTH_LABELS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`; }
+  function toInputDate(d){
+    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+  function fromInputDate(str){
+    const [y,m,d] = str.split('-').map(Number);
+    return new Date(y, m-1, d);
+  }
   function startOfWeekMonday(d){
     const day = d.getDay();
     const diff = (day === 0 ? -6 : 1 - day);
@@ -908,34 +1631,51 @@
 
   // ---------- Sample Data ----------
   const TODAY = todayDate();
+  let nextPaymentId = 5;
 
   const JOBS = [
     {
-      id: 1, jobNumber: '001',
+      id: 1, jobNumber: '001', paymentNumber: 'PAY-001',
       customer: { name:'John Smith', email:'john@email.com', phone:'(470) 555-1234' },
       service: 'Essential Detail', vehicleType: 'Cars/Sedans', vehicle: '2022 Honda Accord',
       address: '123 Main St, Roswell, GA 30076',
       date: new Date(TODAY), time: '8:00 AM',
-      addons: [], subtotal: 208.99, addonsTotal: 0, total: 208.99, deposit: 52.25, balance: 156.74,
-      status: 'Confirmed', method: 'Card', notes: ''
+      addons: [], subtotal: 208.99, addonsTotal: 0, total: 208.99,
+      status: 'Confirmed', notes: '',
+      paymentStatusOverride: null,
+      payments: [
+        { id:1, label:'Deposit', amount:52.25, method:'Stripe', date:new Date(TODAY), reference:'Online Booking', notes:'', recordedBy:'Online Booking' }
+      ],
+      invoice: { number:'INV-001', status:'Sent', issueDate:new Date(TODAY), dueDate:new Date(TODAY), taxEnabled:false }
     },
     {
-      id: 2, jobNumber: '002',
+      id: 2, jobNumber: '002', paymentNumber: 'PAY-002',
       customer: { name:'Maria Garcia', email:'maria@email.com', phone:'(678) 555-5678' },
       service: 'Interior Only', vehicleType: 'Large SUV', vehicle: '2021 Chevrolet Suburban',
       address: '456 Oak Ave, Alpharetta, GA 30022',
       date: new Date(TODAY), time: '12:00 PM',
-      addons: [], subtotal: 284.99, addonsTotal: 0, total: 284.99, deposit: 71.25, balance: 213.74,
-      status: 'In Progress', method: 'Card', notes: ''
+      addons: [], subtotal: 284.99, addonsTotal: 0, total: 284.99,
+      status: 'In Progress', notes: '',
+      paymentStatusOverride: null,
+      payments: [
+        { id:2, label:'Deposit', amount:71.25, method:'Stripe', date:new Date(TODAY), reference:'Online Booking', notes:'', recordedBy:'Online Booking' },
+        { id:3, label:'Balance', amount:213.74, method:'Cash', date:new Date(TODAY), reference:'', notes:'', recordedBy:'Admin' }
+      ],
+      invoice: { number:'INV-002', status:'Sent', issueDate:new Date(TODAY), dueDate:new Date(TODAY), taxEnabled:false }
     },
     {
-      id: 3, jobNumber: '003',
+      id: 3, jobNumber: '003', paymentNumber: 'PAY-003',
       customer: { name:'David Johnson', email:'david@email.com', phone:'(404) 555-9012' },
       service: 'Premium Detail', vehicleType: 'Large SUVs/Trucks', vehicle: '2023 Ford F-150',
       address: '789 Pine Rd, Sandy Springs, GA 30328',
       date: new Date(TODAY), time: '3:00 PM',
-      addons: [], subtotal: 378.99, addonsTotal: 0, total: 378.99, deposit: 94.75, balance: 284.24,
-      status: 'Pending', method: 'Card', notes: ''
+      addons: [], subtotal: 378.99, addonsTotal: 0, total: 378.99,
+      status: 'Pending', notes: '',
+      paymentStatusOverride: null,
+      payments: [
+        { id:4, label:'Deposit', amount:94.75, method:'Stripe', date:new Date(TODAY), reference:'Online Booking', notes:'', recordedBy:'Online Booking' }
+      ],
+      invoice: { number:'INV-003', status:'Draft', issueDate:new Date(TODAY), dueDate:new Date(TODAY), taxEnabled:false }
     }
   ];
 
@@ -944,13 +1684,129 @@
     return `<span class="badge badge-${STATUS_SLUG[job.status]}">${job.status}</span>`;
   }
 
+  // ---------- New-entity data (Proposals / Events / standalone Customers) ----------
+  const PROPOSALS = [];
+  const EVENTS = [];
+  const STANDALONE_CUSTOMERS = [];
+
+  let nextJobIdCounter = 4;
+  let nextJobNumCounter = 4;
+  let nextInvoiceNumCounter = 4;
+  let nextProposalIdCounter = 1;
+  let nextProposalNumCounter = 1;
+  let nextEventIdCounter = 1;
+
+  function padNum(n){ return String(n).padStart(3,'0'); }
+
+  const PROPOSAL_STATUS_OPTIONS = ['Draft','Sent','Accepted','Declined'];
+  const PROPOSAL_STATUS_SLUG = { 'Draft':'draft', 'Sent':'sent', 'Accepted':'accepted', 'Declined':'declined' };
+
+  const JOB_CATALOG = {
+    full: {
+      label: 'Full Detail',
+      packages: {
+        essential: { label: 'Essential Detail', vehicles: [
+          { label:'Cars/Sedans', price:208.99 },
+          { label:'Mid-Size/Compact SUVs', price:238.99 },
+          { label:'Small Trucks', price:268.99 },
+          { label:'Minivans', price:268.99 },
+          { label:'Large SUVs/Trucks', price:268.99 }
+        ]},
+        premium: { label: 'Premium Detail', vehicles: [
+          { label:'Cars/Sedans', price:288.99 },
+          { label:'Mid-Size/Compact SUVs', price:308.99 },
+          { label:'Small Trucks', price:308.99 },
+          { label:'Minivans', price:378.99 },
+          { label:'Large SUVs/Trucks', price:378.99 }
+        ]}
+      }
+    },
+    interior: {
+      label: 'Interior Only',
+      vehicles: [
+        { label:'Cars/Sedans', price:239.99 },
+        { label:'Compact/Mid-Size SUV', price:264.99 },
+        { label:'Small Truck', price:264.99 },
+        { label:'Large SUV/3rd Row SUVs', price:284.99 },
+        { label:'Large Truck', price:284.99 }
+      ]
+    },
+    exterior: {
+      label: 'Exterior Only',
+      vehicles: [
+        { label:'Car', price:159.99 },
+        { label:'Compact/Midsize SUV', price:189.99 },
+        { label:'Truck', price:189.99 },
+        { label:'Minivan', price:189.99 },
+        { label:'Large/XL SUV', price:219.99 },
+        { label:'XL SUV, Truck or Van', price:244.99 }
+      ]
+    }
+  };
+
+  function createJobFromData(data){
+    const id = nextJobIdCounter++;
+    const num = padNum(nextJobNumCounter++);
+    const invNum = 'INV-' + padNum(nextInvoiceNumCounter++);
+    const job = {
+      id, jobNumber: num, paymentNumber: 'PAY-' + num,
+      customer: data.customer,
+      service: data.service, vehicleType: data.vehicleType || '', vehicle: data.vehicle,
+      address: data.address || '',
+      date: data.date, time: data.time,
+      addons: [], subtotal: data.subtotal, addonsTotal: data.addonsTotal || 0, total: data.total,
+      status: data.status || 'Pending', notes: data.notes || '',
+      paymentStatusOverride: null,
+      payments: [],
+      invoice: { number: invNum, status: 'Draft', issueDate: new Date(TODAY), dueDate: data.date, taxEnabled: false }
+    };
+    JOBS.push(job);
+    return job;
+  }
+
+  function findProposal(id){ return PROPOSALS.find(p => p.id === id); }
+  function findEvent(id){ return EVENTS.find(e => e.id === id); }
+
+  // ---------- Payment helpers ----------
+  function totalPaid(job){ return job.payments.reduce((s,p) => s + p.amount, 0); }
+  function balanceDue(job){ return Math.max(0, job.total - totalPaid(job)); }
+  function getDepositAmount(job){
+    return job.payments.filter(p => p.label === 'Deposit').reduce((s,p) => s + p.amount, 0);
+  }
+  function getPaymentStatus(job){
+    if (job.paymentStatusOverride) return job.paymentStatusOverride;
+    const paid = totalPaid(job);
+    if (paid <= 0) return 'Unpaid';
+    if (paid >= job.total - 0.005) return 'Paid in Full';
+    return 'Deposit Paid';
+  }
+  function paymentMethodsSummary(job){
+    if (!job.payments.length) return '—';
+    const methods = [...new Set(job.payments.map(p => p.method))];
+    return methods.join(', ');
+  }
+  function latestPaymentDate(job){
+    if (!job.payments.length) return job.date;
+    return job.payments.reduce((max,p) => p.date > max ? p.date : max, job.payments[0].date);
+  }
+  function getInvoiceStatus(job){
+    if (getPaymentStatus(job) === 'Paid in Full') return 'Paid';
+    if (job.invoice.status === 'Draft') return 'Draft';
+    if (job.invoice.dueDate < TODAY) return 'Overdue';
+    return 'Sent';
+  }
+
   const state = {
     selectedDate: new Date(TODAY),
     calendarViewDate: new Date(TODAY.getFullYear(), TODAY.getMonth(), 1),
-    customerFilterEmail: null
+    customerFilterEmail: null,
+    paymentsFilters: { dateFrom:null, dateTo:null, status:'', customer:'', method:'' }
   };
 
   let currentModalJobId = null;
+  let currentRecordPaymentJobId = null;
+  let currentInvoiceJobId = null;
+  let currentProfileEmail = null;
 
   // ================= LOGIN =================
   const loginScreen = document.getElementById('login-screen');
@@ -963,6 +1819,12 @@
   function showDashboard(){
     loginScreen.hidden = true;
     dashboard.hidden = false;
+    updateFabVisibility();
+  }
+
+  function updateFabVisibility(){
+    const anyModalOpen = Array.from(document.querySelectorAll('.modal-overlay')).some(el => !el.hidden);
+    document.getElementById('fab-container').hidden = anyModalOpen || dashboard.hidden;
   }
 
   function triggerShake(){
@@ -991,6 +1853,8 @@
     loginError.hidden = true;
     dashboard.hidden = true;
     loginScreen.hidden = false;
+    document.getElementById('fab-backdrop').hidden = true;
+    updateFabVisibility();
     switchView('calendar');
   });
 
@@ -1036,6 +1900,7 @@
         renderMiniCalendar();
         renderWeekView();
         renderJobsListForDay();
+        renderEventsListForDay();
       });
       calGrid.appendChild(btn);
     }
@@ -1082,6 +1947,7 @@
         renderMiniCalendar();
         renderWeekView();
         renderJobsListForDay();
+        renderEventsListForDay();
       });
       weekGrid.appendChild(cell);
     });
@@ -1107,6 +1973,18 @@
           });
           cell.appendChild(chip);
         });
+        const eventMatches = EVENTS.filter(ev => isSameDay(ev.date, d) && ev.time === slot);
+        eventMatches.forEach(ev => {
+          const chip = document.createElement('button');
+          chip.type = 'button';
+          chip.className = 'week-chip chip-event';
+          chip.textContent = `📌 ${ev.title}`;
+          chip.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openEventModal(ev.id);
+          });
+          cell.appendChild(chip);
+        });
         weekGrid.appendChild(cell);
       });
     });
@@ -1129,8 +2007,8 @@
           <div>Time<strong>${j.time}</strong></div>
           <div>Address<strong>${j.address}</strong></div>
           <div>Total<strong>${formatCurrency(j.total)}</strong></div>
-          <div>Deposit Paid<strong>${formatCurrency(j.deposit)}</strong></div>
-          <div>Balance Due<strong>${formatCurrency(j.balance)}</strong></div>
+          <div>Deposit Paid<strong>${formatCurrency(getDepositAmount(j))}</strong></div>
+          <div>Balance Due<strong>${formatCurrency(balanceDue(j))}</strong></div>
         </div>
         <div class="job-card-actions">
           <button type="button" class="btn-mini job-view-btn" data-job-id="${j.id}">View</button>
@@ -1152,6 +2030,32 @@
       return;
     }
     container.innerHTML = dayJobs.map(buildJobCardHtml).join('');
+  }
+
+  // ================= EVENTS LIST FOR SELECTED DAY =================
+  function renderEventsListForDay(){
+    document.getElementById('selected-day-label-events').textContent = formatLongDate(state.selectedDate);
+    const container = document.getElementById('events-list');
+    const dayEvents = EVENTS
+      .filter(ev => isSameDay(ev.date, state.selectedDate))
+      .sort((a,b) => ADMIN_TIME_SLOTS.indexOf(a.time) - ADMIN_TIME_SLOTS.indexOf(b.time));
+
+    if (!dayEvents.length){
+      container.innerHTML = `<p class="empty-state">No events scheduled for this day.</p>`;
+      return;
+    }
+    container.innerHTML = dayEvents.map(ev => `
+      <div class="event-card">
+        <div class="event-card-top">
+          <strong>${ev.title}</strong>
+          <span class="event-time">${ev.time}</span>
+        </div>
+        ${ev.notes ? `<p class="event-notes">${ev.notes}</p>` : ''}
+        <div class="job-card-actions">
+          <button type="button" class="btn-mini event-view-btn" data-event-id="${ev.id}">View</button>
+        </div>
+      </div>
+    `).join('');
   }
 
   // ================= JOBS TABLE =================
@@ -1178,8 +2082,8 @@
         <td>${j.service}</td>
         <td>${j.vehicle}</td>
         <td>${formatCurrency(j.total)}</td>
-        <td>${formatCurrency(j.deposit)}</td>
-        <td>${formatCurrency(j.balance)}</td>
+        <td>${formatCurrency(getDepositAmount(j))}</td>
+        <td>${formatCurrency(balanceDue(j))}</td>
         <td><span class="status-display" data-job-id="${j.id}">${renderStatusBadge(j)}</span></td>
         <td class="actions-cell">
           <button type="button" class="btn-mini job-view-btn" data-job-id="${j.id}">View</button>
@@ -1197,6 +2101,12 @@
   // ================= CUSTOMERS TABLE =================
   function getCustomers(){
     const map = new Map();
+    STANDALONE_CUSTOMERS.forEach(c => {
+      map.set(c.email, {
+        name: c.name, phone: c.phone, email: c.email,
+        address: c.address || '—', totalSpent: 0, jobsCount: 0, lastService: null
+      });
+    });
     JOBS.forEach(j => {
       const key = j.customer.email;
       if (!map.has(key)){
@@ -1206,9 +2116,11 @@
         });
       }
       const c = map.get(key);
+      c.name = j.customer.name;
+      c.phone = j.customer.phone;
       c.totalSpent += j.total;
       c.jobsCount += 1;
-      if (j.date > c.lastService) c.lastService = j.date;
+      if (!c.lastService || j.date > c.lastService) c.lastService = j.date;
       c.address = j.address;
     });
     return Array.from(map.values());
@@ -1225,35 +2137,148 @@
         <td>${c.address}</td>
         <td>${formatCurrency(c.totalSpent)}</td>
         <td>${c.jobsCount}</td>
-        <td>${formatShortDate(c.lastService)}</td>
+        <td>${c.lastService ? formatShortDate(c.lastService) : '—'}</td>
         <td class="actions-cell">
           <button type="button" class="btn-mini customer-viewjobs-btn" data-email="${c.email}">View Jobs</button>
+          <button type="button" class="btn-mini customer-viewprofile-btn" data-email="${c.email}">View Profile</button>
         </td>
       </tr>
     `).join('');
   }
 
-  // ================= PAYMENTS TABLE =================
+  // ================= PAYMENTS VIEW: STATS =================
+  function renderPaymentsStats(){
+    const weekStart = startOfWeekMonday(TODAY);
+    const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6);
+
+    let totalCollected = 0, collectedMonth = 0, collectedWeek = 0, outstanding = 0, pendingDeposits = 0;
+
+    JOBS.forEach(j => {
+      j.payments.forEach(p => {
+        totalCollected += p.amount;
+        if (p.date.getFullYear() === TODAY.getFullYear() && p.date.getMonth() === TODAY.getMonth()) collectedMonth += p.amount;
+        if (p.date >= weekStart && p.date <= weekEnd) collectedWeek += p.amount;
+      });
+      outstanding += balanceDue(j);
+      if (totalPaid(j) <= 0) pendingDeposits += 1;
+    });
+
+    document.getElementById('pstat-total-collected').textContent = formatCurrency(totalCollected);
+    document.getElementById('pstat-month').textContent = formatCurrency(collectedMonth);
+    document.getElementById('pstat-week').textContent = formatCurrency(collectedWeek);
+    document.getElementById('pstat-outstanding').textContent = formatCurrency(outstanding);
+    document.getElementById('pstat-pending-deposits').textContent = pendingDeposits;
+  }
+
+  // ================= PAYMENTS TABLE (Enhanced) =================
   function renderPaymentsTable(){
     const tbody = document.getElementById('payments-table-body');
-    const list = [...JOBS].sort((a,b) => a.date - b.date);
+    const f = state.paymentsFilters;
+
+    let list = [...JOBS].sort((a,b) => latestPaymentDate(a) - latestPaymentDate(b));
+
+    if (f.dateFrom) list = list.filter(j => latestPaymentDate(j) >= f.dateFrom);
+    if (f.dateTo) list = list.filter(j => latestPaymentDate(j) <= f.dateTo);
+    if (f.status) list = list.filter(j => getPaymentStatus(j) === f.status);
+    if (f.customer) list = list.filter(j => j.customer.name.toLowerCase().includes(f.customer.toLowerCase()));
+    if (f.method) list = list.filter(j => j.payments.some(p => p.method === f.method));
+
     tbody.innerHTML = list.map(j => `
       <tr>
-        <td>${formatShortDate(j.date)}</td>
+        <td>${j.paymentNumber}</td>
+        <td>${formatShortDate(latestPaymentDate(j))}</td>
         <td>#${j.jobNumber}</td>
         <td>${j.customer.name}</td>
         <td>${j.service}</td>
+        <td>${j.vehicle}</td>
+        <td>${formatCurrency(j.subtotal)}</td>
+        <td>${formatCurrency(j.addonsTotal)}</td>
         <td>${formatCurrency(j.total)}</td>
-        <td>${formatCurrency(j.deposit)}</td>
-        <td>${formatCurrency(j.balance)}</td>
-        <td>${j.method}</td>
-        <td>${j.balance > 0 ? 'Deposit Paid' : 'Paid in Full'}</td>
+        <td>${formatCurrency(getDepositAmount(j))}</td>
+        <td>${formatCurrency(balanceDue(j))}</td>
+        <td>${paymentMethodsSummary(j)}</td>
+        <td><span class="badge badge-paymentstatus-${PAYMENT_STATUS_SLUG[getPaymentStatus(j)]}">${getPaymentStatus(j)}</span></td>
+        <td class="actions-cell">
+          <button type="button" class="btn-mini payment-viewinvoice-btn" data-job-id="${j.id}">View Invoice</button>
+          <button type="button" class="btn-mini payment-recordpayment-btn" data-job-id="${j.id}">Record Payment</button>
+          <button type="button" class="btn-mini payment-sendinvoice-btn" data-job-id="${j.id}">Send Invoice</button>
+          <button type="button" class="btn-mini danger payment-refund-btn" data-job-id="${j.id}">Refund</button>
+        </td>
       </tr>
     `).join('');
+
+    if (!list.length){
+      tbody.innerHTML = `<tr><td colspan="14" class="empty-state">No payments match these filters.</td></tr>`;
+    }
   }
+
+  function renderPaymentsView(){
+    renderPaymentsStats();
+    renderPaymentsTable();
+  }
+
+  // Filters wiring
+  const pfDateFrom = document.getElementById('pf-date-from');
+  const pfDateTo = document.getElementById('pf-date-to');
+  const pfStatus = document.getElementById('pf-status');
+  const pfCustomer = document.getElementById('pf-customer');
+  const pfMethod = document.getElementById('pf-method');
+
+  pfDateFrom.addEventListener('change', () => {
+    state.paymentsFilters.dateFrom = pfDateFrom.value ? fromInputDate(pfDateFrom.value) : null;
+    renderPaymentsTable();
+  });
+  pfDateTo.addEventListener('change', () => {
+    state.paymentsFilters.dateTo = pfDateTo.value ? fromInputDate(pfDateTo.value) : null;
+    renderPaymentsTable();
+  });
+  pfStatus.addEventListener('change', () => {
+    state.paymentsFilters.status = pfStatus.value;
+    renderPaymentsTable();
+  });
+  pfCustomer.addEventListener('input', () => {
+    state.paymentsFilters.customer = pfCustomer.value.trim();
+    renderPaymentsTable();
+  });
+  pfMethod.addEventListener('change', () => {
+    state.paymentsFilters.method = pfMethod.value;
+    renderPaymentsTable();
+  });
+  document.getElementById('pf-clear').addEventListener('click', () => {
+    state.paymentsFilters = { dateFrom:null, dateTo:null, status:'', customer:'', method:'' };
+    pfDateFrom.value = ''; pfDateTo.value = ''; pfStatus.value = ''; pfCustomer.value = ''; pfMethod.value = '';
+    renderPaymentsTable();
+  });
 
   // ================= JOB DETAIL MODAL =================
   const modalOverlay = document.getElementById('modal-overlay');
+
+  function renderPaymentHistorySection(job){
+    const container = document.getElementById('modal-payment-history');
+    if (!job.payments.length){
+      container.innerHTML = `<p class="payment-history-empty">No payments recorded yet.</p>`;
+      return;
+    }
+    const rows = job.payments.map(p => `
+      <tr>
+        <td>${formatShortDate(p.date)}</td>
+        <td>${formatCurrency(p.amount)}</td>
+        <td>${p.method}</td>
+        <td>${p.recordedBy}</td>
+      </tr>
+    `).join('');
+    const bal = balanceDue(job);
+    container.innerHTML = `
+      <table class="payment-history-table">
+        <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Recorded By</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="running-balance-row">
+        <span>Remaining Balance</span>
+        <span class="${bal > 0 ? 'amount-due' : 'amount-clear'}">${formatCurrency(bal)}</span>
+      </div>
+    `;
+  }
 
   function populateModal(job){
     document.getElementById('modal-job-number').textContent = '#' + job.jobNumber;
@@ -1269,10 +2294,11 @@
     document.getElementById('modal-subtotal').textContent = formatCurrency(job.subtotal);
     document.getElementById('modal-addons-total').textContent = formatCurrency(job.addonsTotal);
     document.getElementById('modal-total').textContent = formatCurrency(job.total);
-    document.getElementById('modal-deposit').textContent = formatCurrency(job.deposit);
-    document.getElementById('modal-balance').textContent = formatCurrency(job.balance);
+    document.getElementById('modal-deposit').textContent = formatCurrency(getDepositAmount(job));
+    document.getElementById('modal-balance').textContent = formatCurrency(balanceDue(job));
     document.getElementById('modal-status-select').value = job.status;
     document.getElementById('modal-notes').value = job.notes || '';
+    renderPaymentHistorySection(job);
   }
 
   function openJobModal(jobId){
@@ -1304,7 +2330,13 @@
   });
   document.getElementById('modal-collect-payment').addEventListener('click', () => {
     const job = findJob(currentModalJobId);
-    if (job) alert(`Collecting balance of ${formatCurrency(job.balance)} from ${job.customer.name}. (Stripe integration coming soon)`);
+    if (job) alert(`Collecting balance of ${formatCurrency(balanceDue(job))} from ${job.customer.name}. (Stripe integration coming soon)`);
+  });
+  document.getElementById('modal-record-payment-btn').addEventListener('click', () => {
+    if (currentModalJobId !== null) openRecordPaymentModal(currentModalJobId);
+  });
+  document.getElementById('modal-view-invoice-btn').addEventListener('click', () => {
+    if (currentModalJobId !== null) openInvoiceModal(currentModalJobId);
   });
 
   // ================= STATUS UPDATES (shared) =================
@@ -1315,9 +2347,22 @@
     renderJobsListForDay();
     renderWeekView();
     renderJobsTable();
-    renderPaymentsTable();
+    renderPaymentsView();
     if (currentModalJobId === jobId){
       document.getElementById('modal-status-select').value = newStatus;
+    }
+  }
+
+  function refreshAfterPaymentChange(jobId){
+    renderJobsListForDay();
+    renderWeekView();
+    renderJobsTable();
+    renderCustomersTable();
+    renderPaymentsView();
+    if (currentModalJobId === jobId) populateModal(findJob(jobId));
+    if (currentProfileEmail){
+      const job = findJob(jobId);
+      if (job && job.customer.email === currentProfileEmail) populateProfileModal(currentProfileEmail);
     }
   }
 
@@ -1346,6 +2391,70 @@
       renderJobsTable();
       return;
     }
+    const viewProfileBtn = e.target.closest('.customer-viewprofile-btn');
+    if (viewProfileBtn){
+      openProfileModal(viewProfileBtn.dataset.email);
+      return;
+    }
+    const viewInvoiceBtn = e.target.closest('.payment-viewinvoice-btn');
+    if (viewInvoiceBtn){
+      openInvoiceModal(Number(viewInvoiceBtn.dataset.jobId));
+      return;
+    }
+    const recordPaymentBtn = e.target.closest('.payment-recordpayment-btn');
+    if (recordPaymentBtn){
+      openRecordPaymentModal(Number(recordPaymentBtn.dataset.jobId));
+      return;
+    }
+    const sendInvoiceBtn = e.target.closest('.payment-sendinvoice-btn');
+    if (sendInvoiceBtn){
+      const job = findJob(Number(sendInvoiceBtn.dataset.jobId));
+      if (job.invoice.status === 'Draft') job.invoice.status = 'Sent';
+      alert(`Invoice ${job.invoice.number} sent to ${job.customer.email}. (Resend integration coming soon)`);
+      renderPaymentsView();
+      return;
+    }
+    const refundBtn = e.target.closest('.payment-refund-btn');
+    if (refundBtn){
+      const job = findJob(Number(refundBtn.dataset.jobId));
+      const paid = totalPaid(job);
+      if (paid <= 0){
+        alert('There is nothing to refund for this job yet.');
+        return;
+      }
+      if (confirm(`Refund ${formatCurrency(paid)} to ${job.customer.name}? This cannot be undone.`)){
+        job.paymentStatusOverride = 'Refunded';
+        refreshAfterPaymentChange(job.id);
+        alert('Refund processed. (Stripe refund integration coming soon)');
+      }
+      return;
+    }
+    const proposalViewBtn = e.target.closest('.proposal-view-btn');
+    if (proposalViewBtn){
+      openProposalModal(Number(proposalViewBtn.dataset.proposalId));
+      return;
+    }
+    const proposalEditBtn = e.target.closest('.proposal-editstatus-btn');
+    if (proposalEditBtn){
+      const pid = Number(proposalEditBtn.dataset.proposalId);
+      const p = findProposal(pid);
+      document.querySelectorAll(`.proposal-status-display[data-proposal-id="${pid}"]`).forEach(el => {
+        el.innerHTML = `<select class="proposal-status-select" data-proposal-id="${pid}">
+          ${PROPOSAL_STATUS_OPTIONS.map(s => `<option value="${s}" ${s === p.status ? 'selected' : ''}>${s}</option>`).join('')}
+        </select>`;
+      });
+      return;
+    }
+    const proposalConvertBtn = e.target.closest('.proposal-convert-btn');
+    if (proposalConvertBtn){
+      convertProposalToJob(Number(proposalConvertBtn.dataset.proposalId));
+      return;
+    }
+    const eventViewBtn = e.target.closest('.event-view-btn');
+    if (eventViewBtn){
+      openEventModal(Number(eventViewBtn.dataset.eventId));
+      return;
+    }
   });
 
   document.addEventListener('change', (e) => {
@@ -1355,6 +2464,652 @@
     if (e.target.id === 'modal-status-select' && currentModalJobId !== null){
       updateJobStatus(currentModalJobId, e.target.value);
     }
+    if (e.target.matches('.proposal-status-select')){
+      const pid = Number(e.target.dataset.proposalId);
+      findProposal(pid).status = e.target.value;
+      renderProposalsTable();
+    }
+  });
+
+  // ================= RECORD PAYMENT MODAL =================
+  const recordPaymentOverlay = document.getElementById('record-payment-overlay');
+  const rpForm = document.getElementById('record-payment-form');
+  const rpAmountInput = document.getElementById('rp-amount');
+
+  function openRecordPaymentModal(jobId){
+    const job = findJob(jobId);
+    currentRecordPaymentJobId = jobId;
+
+    document.getElementById('rp-job-number').textContent = '#' + job.jobNumber;
+    document.getElementById('rp-customer-name').textContent = job.customer.name;
+
+    const depositPreset = job.total * 0.25;
+    const balancePreset = balanceDue(job);
+    const fullPreset = job.total;
+    document.getElementById('rp-preset-deposit').textContent = formatCurrency(depositPreset);
+    document.getElementById('rp-preset-balance').textContent = formatCurrency(balancePreset);
+    document.getElementById('rp-preset-full').textContent = formatCurrency(fullPreset);
+
+    rpForm.reset();
+    document.querySelectorAll('.radio-option').forEach(el => el.classList.remove('selected'));
+    rpAmountInput.value = '';
+    document.getElementById('rp-method').value = 'Stripe';
+    document.getElementById('rp-date').value = toInputDate(TODAY);
+    document.getElementById('rp-reference').value = '';
+    document.getElementById('rp-notes').value = '';
+
+    recordPaymentOverlay.hidden = false;
+  }
+
+  function closeRecordPaymentModal(){
+    recordPaymentOverlay.hidden = true;
+    currentRecordPaymentJobId = null;
+  }
+
+  document.querySelectorAll('.radio-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+      document.querySelectorAll('.radio-option').forEach(el => el.classList.remove('selected'));
+      opt.classList.add('selected');
+      const radio = opt.querySelector('input[type="radio"]');
+      radio.checked = true;
+      const job = findJob(currentRecordPaymentJobId);
+      if (!job) return;
+      const option = opt.dataset.option;
+      if (option === 'deposit') rpAmountInput.value = (job.total * 0.25).toFixed(2);
+      else if (option === 'balance') rpAmountInput.value = balanceDue(job).toFixed(2);
+      else if (option === 'full') rpAmountInput.value = job.total.toFixed(2);
+      else if (option === 'custom') rpAmountInput.focus();
+    });
+  });
+
+  document.getElementById('record-payment-close').addEventListener('click', closeRecordPaymentModal);
+  document.getElementById('rp-cancel').addEventListener('click', closeRecordPaymentModal);
+  recordPaymentOverlay.addEventListener('click', (e) => {
+    if (e.target === recordPaymentOverlay) closeRecordPaymentModal();
+  });
+
+  document.getElementById('rp-submit').addEventListener('click', () => {
+    const job = findJob(currentRecordPaymentJobId);
+    if (!job) return;
+    const amount = parseFloat(rpAmountInput.value);
+    if (!amount || amount <= 0){
+      alert('Please enter a valid payment amount.');
+      return;
+    }
+    const method = document.getElementById('rp-method').value;
+    const dateVal = document.getElementById('rp-date').value;
+    const date = dateVal ? fromInputDate(dateVal) : new Date(TODAY);
+    const reference = document.getElementById('rp-reference').value.trim();
+    const notes = document.getElementById('rp-notes').value.trim();
+    const selectedOption = rpForm.querySelector('input[name="rp-amount-option"]:checked');
+    const label = selectedOption
+      ? { deposit:'Deposit', balance:'Balance', full:'Full Payment', custom:'Custom Payment' }[selectedOption.value]
+      : 'Custom Payment';
+
+    job.payments.push({
+      id: nextPaymentId++,
+      label, amount, method, date, reference, notes, recordedBy: 'Admin'
+    });
+
+    closeRecordPaymentModal();
+    refreshAfterPaymentChange(job.id);
+  });
+
+  // ================= INVOICE MODAL =================
+  const invoiceModalOverlay = document.getElementById('invoice-modal-overlay');
+
+  function renderInvoiceLineItems(job){
+    const rows = [`<tr><td>${job.service} — ${job.vehicleType}</td><td>${job.vehicle}</td><td>1</td><td>${formatCurrency(job.subtotal)}</td><td>${formatCurrency(job.subtotal)}</td></tr>`];
+    job.addons.forEach(a => {
+      rows.push(`<tr><td>${a.name || a}</td><td>—</td><td>1</td><td>${formatCurrency(a.price || 0)}</td><td>${formatCurrency(a.price || 0)}</td></tr>`);
+    });
+    return rows.join('');
+  }
+
+  function renderInvoiceTotals(job){
+    const taxRow = document.getElementById('inv-tax-row');
+    const taxToggle = document.getElementById('inv-tax-toggle');
+    taxToggle.checked = job.invoice.taxEnabled;
+    taxRow.hidden = !job.invoice.taxEnabled;
+
+    const subtotal = job.subtotal + job.addonsTotal;
+    const tax = job.invoice.taxEnabled ? subtotal * TAX_RATE : 0;
+    const total = subtotal + tax;
+
+    document.getElementById('inv-subtotal').textContent = formatCurrency(subtotal);
+    document.getElementById('inv-tax-amount').textContent = formatCurrency(tax);
+    document.getElementById('inv-total').textContent = formatCurrency(total);
+
+    const paid = totalPaid(job);
+    const balance = balanceDue(job);
+    document.getElementById('inv-amount-paid').textContent = formatCurrency(paid);
+    const balanceEl = document.getElementById('inv-balance-due');
+    balanceEl.textContent = formatCurrency(balance);
+    balanceEl.classList.toggle('invoice-balance-highlight', balance > 0);
+  }
+
+  function populateInvoiceModal(job){
+    const status = getInvoiceStatus(job);
+    document.getElementById('inv-number').textContent = job.invoice.number;
+    document.getElementById('inv-status-badge').outerHTML = `<span class="badge badge-invoice-${INVOICE_STATUS_SLUG[status]}" id="inv-status-badge">${status}</span>`;
+    document.getElementById('inv-issue-date').textContent = formatShortDate(job.invoice.issueDate);
+    document.getElementById('inv-due-date').textContent = formatShortDate(job.invoice.dueDate);
+
+    document.getElementById('inv-customer-name').textContent = job.customer.name;
+    document.getElementById('inv-customer-phone').textContent = job.customer.phone;
+    document.getElementById('inv-customer-email').textContent = job.customer.email;
+    document.getElementById('inv-customer-address').textContent = job.address;
+
+    document.getElementById('inv-line-items').innerHTML = renderInvoiceLineItems(job);
+    renderInvoiceTotals(job);
+  }
+
+  function openInvoiceModal(jobId){
+    currentInvoiceJobId = jobId;
+    populateInvoiceModal(findJob(jobId));
+    invoiceModalOverlay.hidden = false;
+  }
+
+  function closeInvoiceModal(){
+    invoiceModalOverlay.hidden = true;
+    currentInvoiceJobId = null;
+  }
+
+  document.getElementById('invoice-modal-close').addEventListener('click', closeInvoiceModal);
+  invoiceModalOverlay.addEventListener('click', (e) => {
+    if (e.target === invoiceModalOverlay) closeInvoiceModal();
+  });
+
+  document.getElementById('inv-tax-toggle').addEventListener('change', (e) => {
+    const job = findJob(currentInvoiceJobId);
+    if (!job) return;
+    job.invoice.taxEnabled = e.target.checked;
+    renderInvoiceTotals(job);
+  });
+
+  document.getElementById('inv-print').addEventListener('click', () => window.print());
+  document.getElementById('inv-download').addEventListener('click', () => window.print());
+  document.getElementById('inv-send').addEventListener('click', () => {
+    const job = findJob(currentInvoiceJobId);
+    if (!job) return;
+    if (job.invoice.status === 'Draft') job.invoice.status = 'Sent';
+    alert('Email invoice — Resend integration coming soon');
+    populateInvoiceModal(job);
+    renderPaymentsView();
+  });
+  document.getElementById('inv-mark-sent').addEventListener('click', () => {
+    const job = findJob(currentInvoiceJobId);
+    if (!job) return;
+    job.invoice.status = 'Sent';
+    populateInvoiceModal(job);
+    renderPaymentsView();
+  });
+
+  // ================= CUSTOMER PROFILE MODAL =================
+  const profileModalOverlay = document.getElementById('profile-modal-overlay');
+
+  function buildJobHistoryEntryHtml(job){
+    const payLines = job.payments.map(p => `
+      <div class="payment-timeline-item">
+        <span>${p.label} received ${formatShortDate(p.date)} · ${p.method}</span>
+        <span>${formatCurrency(p.amount)}</span>
+      </div>
+    `).join('');
+    const bal = balanceDue(job);
+    const outstandingLine = bal > 0 ? `
+      <div class="payment-timeline-item outstanding">
+        <span>Outstanding Balance</span>
+        <span>${formatCurrency(bal)}</span>
+      </div>
+    ` : '';
+    const invStatus = getInvoiceStatus(job);
+
+    return `
+      <div class="job-history-entry">
+        <div class="job-history-title">
+          <span>${job.service} — ${job.vehicle} (${formatShortDate(job.date)})</span>
+          <span class="badge badge-invoice-${INVOICE_STATUS_SLUG[invStatus]}">${invStatus}</span>
+        </div>
+        <div class="payment-timeline">
+          ${payLines}
+          ${outstandingLine}
+        </div>
+      </div>
+    `;
+  }
+
+  function populateProfileModal(email){
+    const customerJobs = JOBS.filter(j => j.customer.email === email).sort((a,b) => b.date - a.date);
+    const allCustomers = getCustomers();
+    const record = allCustomers.find(c => c.email === email);
+    if (!record) return;
+
+    document.getElementById('profile-customer-name').textContent = record.name;
+    document.getElementById('profile-lifetime-value').textContent = formatCurrency(record.totalSpent);
+    document.getElementById('profile-phone').textContent = record.phone;
+    document.getElementById('profile-email').textContent = record.email;
+    document.getElementById('profile-address').textContent = record.address;
+    document.getElementById('profile-jobs-count').textContent = record.jobsCount;
+    document.getElementById('profile-last-service').textContent = record.lastService ? formatShortDate(record.lastService) : '—';
+
+    document.getElementById('profile-job-history').innerHTML = customerJobs.length
+      ? customerJobs.map(buildJobHistoryEntryHtml).join('')
+      : `<p class="empty-state">No jobs yet for this customer.</p>`;
+  }
+
+  function openProfileModal(email){
+    currentProfileEmail = email;
+    populateProfileModal(email);
+    document.querySelectorAll('.profile-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'overview'));
+    document.querySelectorAll('.profile-panel').forEach(p => p.classList.toggle('active', p.id === 'profile-panel-overview'));
+    profileModalOverlay.hidden = false;
+  }
+
+  function closeProfileModal(){
+    profileModalOverlay.hidden = true;
+    currentProfileEmail = null;
+  }
+
+  document.getElementById('profile-modal-close').addEventListener('click', closeProfileModal);
+  profileModalOverlay.addEventListener('click', (e) => {
+    if (e.target === profileModalOverlay) closeProfileModal();
+  });
+
+  document.querySelectorAll('.profile-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.profile-tab').forEach(t => t.classList.toggle('active', t === tab));
+      document.querySelectorAll('.profile-panel').forEach(p => p.classList.toggle('active', p.id === `profile-panel-${tab.dataset.tab}`));
+    });
+  });
+
+  // ================= PROPOSALS =================
+  function renderProposalsTable(){
+    const tbody = document.getElementById('proposals-table-body');
+    const list = [...PROPOSALS].sort((a,b) => b.createdDate - a.createdDate);
+
+    if (!list.length){
+      tbody.innerHTML = `<tr><td colspan="8" class="empty-state">No proposals yet. Use the + button to create one.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = list.map(p => `
+      <tr>
+        <td>${p.proposalNumber}</td>
+        <td>${formatShortDate(p.createdDate)}</td>
+        <td>${p.customer.name}</td>
+        <td>${p.serviceDescription}</td>
+        <td>${formatCurrency(p.price)}</td>
+        <td>${p.validUntil ? formatShortDate(p.validUntil) : '—'}</td>
+        <td><span class="proposal-status-display" data-proposal-id="${p.id}"><span class="badge badge-proposalstatus-${PROPOSAL_STATUS_SLUG[p.status]}">${p.status}</span></span></td>
+        <td class="actions-cell">
+          <button type="button" class="btn-mini proposal-view-btn" data-proposal-id="${p.id}">View</button>
+          <button type="button" class="btn-mini proposal-editstatus-btn" data-proposal-id="${p.id}">Edit Status</button>
+          ${p.convertedToJobId
+            ? `<span class="btn-mini" style="cursor:default;opacity:.6;">Converted → #${findJob(p.convertedToJobId).jobNumber}</span>`
+            : `<button type="button" class="btn-mini proposal-convert-btn" data-proposal-id="${p.id}">Convert to Job</button>`}
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  const proposalModalOverlay = document.getElementById('proposal-modal-overlay');
+  let currentProposalModalId = null;
+
+  function populateProposalModal(p){
+    document.getElementById('pm-number').textContent = p.proposalNumber;
+    document.getElementById('pm-customer-name').textContent = p.customer.name;
+    document.getElementById('pm-customer-phone').textContent = p.customer.phone;
+    document.getElementById('pm-customer-email').textContent = p.customer.email;
+    document.getElementById('pm-service').textContent = p.serviceDescription;
+    document.getElementById('pm-vehicle').textContent = p.vehicle || '—';
+    document.getElementById('pm-price').textContent = formatCurrency(p.price);
+    document.getElementById('pm-validuntil').textContent = p.validUntil ? formatShortDate(p.validUntil) : '—';
+    document.getElementById('pm-status-select').value = p.status;
+    document.getElementById('pm-notes').value = p.notes || '(no notes)';
+
+    const convertBtn = document.getElementById('pm-convert-btn');
+    if (p.convertedToJobId){
+      convertBtn.textContent = `Already Converted → Job #${findJob(p.convertedToJobId).jobNumber}`;
+      convertBtn.disabled = true;
+    } else {
+      convertBtn.textContent = 'Convert to Job';
+      convertBtn.disabled = false;
+    }
+  }
+
+  function openProposalModal(id){
+    currentProposalModalId = id;
+    populateProposalModal(findProposal(id));
+    proposalModalOverlay.hidden = false;
+  }
+  function closeProposalModal(){
+    proposalModalOverlay.hidden = true;
+    currentProposalModalId = null;
+  }
+  document.getElementById('proposal-modal-close').addEventListener('click', closeProposalModal);
+  proposalModalOverlay.addEventListener('click', (e) => {
+    if (e.target === proposalModalOverlay) closeProposalModal();
+  });
+  document.getElementById('pm-status-select').addEventListener('change', (e) => {
+    if (currentProposalModalId === null) return;
+    findProposal(currentProposalModalId).status = e.target.value;
+    renderProposalsTable();
+  });
+
+  function convertProposalToJob(id){
+    const p = findProposal(id);
+    if (p.convertedToJobId){
+      alert(`This proposal has already been converted to Job #${findJob(p.convertedToJobId).jobNumber}.`);
+      return;
+    }
+    if (!confirm(`Convert this proposal into a new Job for ${p.customer.name}?`)) return;
+    const job = createJobFromData({
+      customer: p.customer,
+      service: p.serviceDescription, vehicleType: '', vehicle: p.vehicle || 'TBD',
+      address: '', date: new Date(TODAY), time: ADMIN_TIME_SLOTS[0],
+      subtotal: p.price, addonsTotal: 0, total: p.price,
+      status: 'Pending', notes: p.notes
+    });
+    p.convertedToJobId = job.id;
+    p.status = 'Accepted';
+    renderProposalsTable();
+    renderAll();
+    if (currentProposalModalId === id) populateProposalModal(p);
+    alert(`Proposal converted to Job #${job.jobNumber}.`);
+  }
+  document.getElementById('pm-convert-btn').addEventListener('click', () => {
+    if (currentProposalModalId !== null) convertProposalToJob(currentProposalModalId);
+  });
+
+  // ================= EVENT VIEW/DELETE MODAL =================
+  const eventModalOverlay = document.getElementById('event-modal-overlay');
+  let currentEventModalId = null;
+
+  function openEventModal(id){
+    const ev = findEvent(id);
+    if (!ev) return;
+    currentEventModalId = id;
+    document.getElementById('em-title').textContent = ev.title;
+    document.getElementById('em-date').textContent = formatLongDate(ev.date);
+    document.getElementById('em-time').textContent = ev.time;
+    document.getElementById('em-notes').textContent = ev.notes || '—';
+    eventModalOverlay.hidden = false;
+  }
+  function closeEventModal(){
+    eventModalOverlay.hidden = true;
+    currentEventModalId = null;
+  }
+  document.getElementById('event-modal-close').addEventListener('click', closeEventModal);
+  eventModalOverlay.addEventListener('click', (e) => {
+    if (e.target === eventModalOverlay) closeEventModal();
+  });
+  document.getElementById('em-delete').addEventListener('click', () => {
+    if (currentEventModalId === null) return;
+    const idx = EVENTS.findIndex(ev => ev.id === currentEventModalId);
+    if (idx > -1 && confirm('Delete this event?')){
+      EVENTS.splice(idx, 1);
+      closeEventModal();
+      renderWeekView();
+      renderEventsListForDay();
+    }
+  });
+
+  // ================= CREATE JOB (Quote/Job) MODAL =================
+  const createJobOverlay = document.getElementById('create-job-overlay');
+
+  function populateVehicleTypeSelect(){
+    const cat = document.getElementById('cj-category').value;
+    const pkgField = document.getElementById('cj-package-field');
+    const vtSelect = document.getElementById('cj-vehicletype');
+    let vehicles;
+
+    if (cat === 'full'){
+      pkgField.hidden = false;
+      const pkgKey = document.getElementById('cj-package').value;
+      vehicles = JOB_CATALOG.full.packages[pkgKey].vehicles;
+    } else {
+      pkgField.hidden = true;
+      vehicles = JOB_CATALOG[cat].vehicles;
+    }
+
+    vtSelect.innerHTML = vehicles.map(v => `<option value="${v.label}" data-price="${v.price}">${v.label} — ${formatCurrency(v.price)}</option>`).join('');
+    document.getElementById('cj-price').value = vehicles[0].price.toFixed(2);
+  }
+  document.getElementById('cj-category').addEventListener('change', populateVehicleTypeSelect);
+  document.getElementById('cj-package').addEventListener('change', populateVehicleTypeSelect);
+  document.getElementById('cj-vehicletype').addEventListener('change', (e) => {
+    const opt = e.target.selectedOptions[0];
+    if (opt) document.getElementById('cj-price').value = parseFloat(opt.dataset.price).toFixed(2);
+  });
+
+  function openCreateJobModal(){
+    document.getElementById('create-job-form').reset();
+    document.getElementById('cj-category').value = 'full';
+    document.getElementById('cj-package').value = 'essential';
+    populateVehicleTypeSelect();
+    document.getElementById('cj-date').value = toInputDate(TODAY);
+    const timeSelect = document.getElementById('cj-time');
+    timeSelect.innerHTML = ADMIN_TIME_SLOTS.map(t => `<option value="${t}">${t}</option>`).join('');
+    document.getElementById('cj-status').value = 'Pending';
+    createJobOverlay.hidden = false;
+  }
+  function closeCreateJobModal(){ createJobOverlay.hidden = true; }
+  document.getElementById('create-job-close').addEventListener('click', closeCreateJobModal);
+  document.getElementById('cj-cancel').addEventListener('click', closeCreateJobModal);
+  createJobOverlay.addEventListener('click', (e) => {
+    if (e.target === createJobOverlay) closeCreateJobModal();
+  });
+
+  document.getElementById('cj-submit').addEventListener('click', () => {
+    const name = document.getElementById('cj-name').value.trim();
+    const phone = document.getElementById('cj-phone').value.trim();
+    const email = document.getElementById('cj-email').value.trim();
+    const address = document.getElementById('cj-address').value.trim();
+    const vehicle = document.getElementById('cj-vehicle').value.trim();
+    const price = parseFloat(document.getElementById('cj-price').value);
+    const dateVal = document.getElementById('cj-date').value;
+    const time = document.getElementById('cj-time').value;
+    const status = document.getElementById('cj-status').value;
+    const notes = document.getElementById('cj-notes').value.trim();
+
+    if (!name || !phone || !email || !address || !vehicle || !dateVal || !price || price <= 0){
+      alert('Please complete all required fields.');
+      return;
+    }
+
+    const cat = document.getElementById('cj-category').value;
+    const vehicleTypeLabel = document.getElementById('cj-vehicletype').value;
+    const serviceLabel = cat === 'full'
+      ? JOB_CATALOG.full.packages[document.getElementById('cj-package').value].label
+      : JOB_CATALOG[cat].label;
+
+    const job = createJobFromData({
+      customer: { name, phone, email },
+      service: serviceLabel, vehicleType: vehicleTypeLabel, vehicle,
+      address, date: fromInputDate(dateVal), time,
+      subtotal: price, addonsTotal: 0, total: price,
+      status, notes
+    });
+
+    closeCreateJobModal();
+    renderAll();
+    alert(`Job #${job.jobNumber} created for ${name}.`);
+  });
+
+  // ================= CREATE CUSTOMER MODAL =================
+  const createCustomerOverlay = document.getElementById('create-customer-overlay');
+
+  function openCreateCustomerModal(){
+    document.getElementById('create-customer-form').reset();
+    createCustomerOverlay.hidden = false;
+  }
+  function closeCreateCustomerModal(){ createCustomerOverlay.hidden = true; }
+  document.getElementById('create-customer-close').addEventListener('click', closeCreateCustomerModal);
+  document.getElementById('cc-cancel').addEventListener('click', closeCreateCustomerModal);
+  createCustomerOverlay.addEventListener('click', (e) => {
+    if (e.target === createCustomerOverlay) closeCreateCustomerModal();
+  });
+
+  document.getElementById('cc-submit').addEventListener('click', () => {
+    const name = document.getElementById('cc-name').value.trim();
+    const phone = document.getElementById('cc-phone').value.trim();
+    const email = document.getElementById('cc-email').value.trim();
+    const address = document.getElementById('cc-address').value.trim();
+
+    if (!name || !phone || !email){
+      alert('Please complete all required fields.');
+      return;
+    }
+    const exists = JOBS.some(j => j.customer.email === email) || STANDALONE_CUSTOMERS.some(c => c.email === email);
+    if (exists){
+      alert('A customer with this email already exists.');
+      return;
+    }
+    STANDALONE_CUSTOMERS.push({ name, phone, email, address });
+    closeCreateCustomerModal();
+    renderCustomersTable();
+    alert(`Customer ${name} created.`);
+  });
+
+  // ================= CREATE PROPOSAL MODAL =================
+  const createProposalOverlay = document.getElementById('create-proposal-overlay');
+
+  function openCreateProposalModal(){
+    document.getElementById('create-proposal-form').reset();
+    const validUntil = new Date(TODAY);
+    validUntil.setDate(validUntil.getDate() + 14);
+    document.getElementById('cp-validuntil').value = toInputDate(validUntil);
+    createProposalOverlay.hidden = false;
+  }
+  function closeCreateProposalModal(){ createProposalOverlay.hidden = true; }
+  document.getElementById('create-proposal-close').addEventListener('click', closeCreateProposalModal);
+  document.getElementById('cp-cancel').addEventListener('click', closeCreateProposalModal);
+  createProposalOverlay.addEventListener('click', (e) => {
+    if (e.target === createProposalOverlay) closeCreateProposalModal();
+  });
+
+  document.getElementById('cp-submit').addEventListener('click', () => {
+    const name = document.getElementById('cp-name').value.trim();
+    const phone = document.getElementById('cp-phone').value.trim();
+    const email = document.getElementById('cp-email').value.trim();
+    const serviceDescription = document.getElementById('cp-service').value.trim();
+    const vehicle = document.getElementById('cp-vehicle').value.trim();
+    const price = parseFloat(document.getElementById('cp-price').value);
+    const validUntilVal = document.getElementById('cp-validuntil').value;
+    const notes = document.getElementById('cp-notes').value.trim();
+
+    if (!name || !phone || !email || !serviceDescription || !price || price <= 0){
+      alert('Please complete all required fields.');
+      return;
+    }
+
+    const id = nextProposalIdCounter++;
+    const proposalNumber = 'PROP-' + padNum(nextProposalNumCounter++);
+    PROPOSALS.push({
+      id, proposalNumber,
+      customer: { name, phone, email },
+      serviceDescription, vehicle, price,
+      validUntil: validUntilVal ? fromInputDate(validUntilVal) : null,
+      status: 'Draft', notes, createdDate: new Date(TODAY),
+      convertedToJobId: null
+    });
+
+    closeCreateProposalModal();
+    renderProposalsTable();
+    alert(`Proposal ${proposalNumber} created for ${name}.`);
+  });
+
+  // ================= CREATE EVENT MODAL =================
+  const createEventOverlay = document.getElementById('create-event-overlay');
+
+  function openCreateEventModal(){
+    document.getElementById('create-event-form').reset();
+    document.getElementById('ce-date').value = toInputDate(state.selectedDate);
+    const timeSelect = document.getElementById('ce-time');
+    timeSelect.innerHTML = ADMIN_TIME_SLOTS.map(t => `<option value="${t}">${t}</option>`).join('');
+    createEventOverlay.hidden = false;
+  }
+  function closeCreateEventModal(){ createEventOverlay.hidden = true; }
+  document.getElementById('create-event-close').addEventListener('click', closeCreateEventModal);
+  document.getElementById('ce-cancel').addEventListener('click', closeCreateEventModal);
+  createEventOverlay.addEventListener('click', (e) => {
+    if (e.target === createEventOverlay) closeCreateEventModal();
+  });
+
+  document.getElementById('ce-submit').addEventListener('click', () => {
+    const title = document.getElementById('ce-title').value.trim();
+    const dateVal = document.getElementById('ce-date').value;
+    const time = document.getElementById('ce-time').value;
+    const notes = document.getElementById('ce-notes').value.trim();
+
+    if (!title || !dateVal){
+      alert('Please enter a title and date.');
+      return;
+    }
+    EVENTS.push({ id: nextEventIdCounter++, title, date: fromInputDate(dateVal), time, notes });
+    closeCreateEventModal();
+    renderWeekView();
+    renderEventsListForDay();
+  });
+
+  // ================= PAYMENT JOB PICKER MODAL =================
+  const paymentPickerOverlay = document.getElementById('payment-picker-overlay');
+
+  function openPaymentPickerModal(){
+    const select = document.getElementById('pp-job-select');
+    const continueBtn = document.getElementById('pp-continue');
+    if (!JOBS.length){
+      select.innerHTML = `<option value="">No jobs available yet</option>`;
+      continueBtn.disabled = true;
+    } else {
+      select.innerHTML = JOBS.map(j => `<option value="${j.id}">#${j.jobNumber} — ${j.customer.name} — ${j.service} (Balance: ${formatCurrency(balanceDue(j))})</option>`).join('');
+      continueBtn.disabled = false;
+    }
+    paymentPickerOverlay.hidden = false;
+  }
+  function closePaymentPickerModal(){ paymentPickerOverlay.hidden = true; }
+  document.getElementById('payment-picker-close').addEventListener('click', closePaymentPickerModal);
+  document.getElementById('pp-cancel').addEventListener('click', closePaymentPickerModal);
+  paymentPickerOverlay.addEventListener('click', (e) => {
+    if (e.target === paymentPickerOverlay) closePaymentPickerModal();
+  });
+  document.getElementById('pp-continue').addEventListener('click', () => {
+    const jobId = Number(document.getElementById('pp-job-select').value);
+    if (!jobId) return;
+    closePaymentPickerModal();
+    openRecordPaymentModal(jobId);
+  });
+
+  // ================= FLOATING ACTION BUTTON =================
+  const fabContainer = document.getElementById('fab-container');
+  const fabMain = document.getElementById('fab-main');
+  const fabMenu = document.getElementById('fab-menu');
+  const fabBackdrop = document.getElementById('fab-backdrop');
+  let fabOpen = false;
+
+  function setFabOpen(open){
+    fabOpen = open;
+    fabMain.classList.toggle('open', open);
+    fabMenu.classList.toggle('open', open);
+    fabBackdrop.hidden = !open;
+  }
+  fabMain.addEventListener('click', () => setFabOpen(!fabOpen));
+  fabBackdrop.addEventListener('click', () => setFabOpen(false));
+  document.querySelectorAll('.fab-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+      setFabOpen(false);
+      const action = opt.dataset.action;
+      if (action === 'quote-job') openCreateJobModal();
+      else if (action === 'proposal') openCreateProposalModal();
+      else if (action === 'event') openCreateEventModal();
+      else if (action === 'customer') openCreateCustomerModal();
+      else if (action === 'payment') openPaymentPickerModal();
+    });
+  });
+
+  const modalVisibilityObserver = new MutationObserver(updateFabVisibility);
+  document.querySelectorAll('.modal-overlay').forEach(el => {
+    modalVisibilityObserver.observe(el, { attributes: true, attributeFilter: ['hidden'] });
   });
 
   // ================= INIT =================
@@ -1362,9 +3117,11 @@
     renderMiniCalendar();
     renderWeekView();
     renderJobsListForDay();
+    renderEventsListForDay();
     renderJobsTable();
     renderCustomersTable();
-    renderPaymentsTable();
+    renderPaymentsView();
+    renderProposalsTable();
   }
 
   renderAll();
