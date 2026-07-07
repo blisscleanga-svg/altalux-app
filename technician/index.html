@@ -1,0 +1,2202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>AltaLux Mobile — Team App</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --dark:#0a1628; --dark-2:#0f1f38; --dark-3:#132849;
+    --blue:#104872; --orange:#FF8C00; --gold:#FFAA00;
+    --white:#fff; --ink-muted:rgba(255,255,255,.65); --ink-faint:rgba(255,255,255,.42);
+    --line:rgba(255,255,255,.12);
+    --green:#22c55e; --red:#ef4444; --gray:#8a93a3;
+    --radius-sm:10px; --radius-md:16px; --radius-lg:22px;
+  }
+  *{ box-sizing:border-box; }
+  [hidden]{ display:none !important; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--dark); color:var(--white);
+    font-family:'Inter',sans-serif;
+    max-width:430px; min-width:320px; margin:0 auto;
+    min-height:100vh; position:relative; overflow-x:hidden;
+    -webkit-tap-highlight-color:transparent;
+  }
+  h1,h2,h3,.rajdhani{ font-family:'Rajdhani',sans-serif; }
+  button, input, select, textarea{ font-family:inherit; }
+  button{ -webkit-tap-highlight-color:transparent; }
+  .hidden{ display:none !important; }
+  a{ color:inherit; }
+
+  /* ---------- Buttons ---------- */
+  .btn{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    min-height:48px; border-radius:999px; border:none; cursor:pointer;
+    font-family:'Rajdhani',sans-serif; font-weight:700; font-size:15.5px; letter-spacing:.3px;
+    padding:0 20px; transition:transform .15s ease, opacity .15s ease;
+  }
+  .btn:active{ transform:scale(.97); }
+  .btn-primary{ background:linear-gradient(135deg,var(--gold),var(--orange)); color:var(--dark); }
+  .btn-ghost{ background:rgba(255,255,255,.06); color:var(--white); border:1px solid var(--line); }
+  .btn-green{ background:var(--green); color:#06240f; }
+  .btn-blue{ background:var(--blue); color:#fff; }
+  .btn-outline{ background:transparent; border:1.5px solid rgba(255,255,255,.25); color:var(--white); }
+  .btn-danger{ background:rgba(239,68,68,.14); color:var(--red); border:1px solid rgba(239,68,68,.35); }
+  .btn-full{ width:100%; }
+  .btn:disabled{ opacity:.4; cursor:not-allowed; }
+  .btn-sm{ min-height:38px; font-size:13px; padding:0 14px; }
+
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field label{ font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--ink-faint); }
+  .field input, .field select, .field textarea{
+    background:rgba(255,255,255,.05); border:1.5px solid var(--line); border-radius:var(--radius-sm);
+    color:var(--white); padding:12px 14px; font-size:15px; min-height:46px;
+  }
+  .field textarea{ min-height:80px; resize:vertical; }
+  .field input:focus, .field select:focus, .field textarea:focus{ outline:none; border-color:var(--gold); }
+
+  .badge{
+    display:inline-flex; align-items:center; font-size:11px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.4px; padding:4px 10px; border-radius:999px; color:#fff;
+  }
+  .badge-pending{ background:var(--gray); }
+  .badge-confirmed{ background:var(--blue); }
+  .badge-inprogress{ background:var(--orange); color:var(--dark); }
+  .badge-completed{ background:var(--green); color:#06240f; }
+  .badge-role-owner{ background:var(--gold); color:var(--dark); }
+  .badge-role-manager{ background:var(--blue); }
+  .badge-role-technician{ background:#1D9E75; }
+  .badge-role-contractor{ background:rgba(255,255,255,.18); }
+
+  .empty-state{ text-align:center; color:var(--ink-faint); font-size:13.5px; padding:36px 12px; }
+
+  /* ================= LOGIN ================= */
+  #login-screen{ min-height:100vh; display:flex; flex-direction:column; justify-content:center; padding:32px 24px; }
+  .login-logo{ text-align:center; font-size:30px; font-weight:700; letter-spacing:1px; margin-bottom:6px; }
+  .login-logo .lux{ color:var(--gold); }
+  .login-tagline{ text-align:center; color:var(--ink-faint); font-size:12.5px; letter-spacing:1.5px; text-transform:uppercase; margin:0 0 34px; }
+  .pin-dots{ display:flex; justify-content:center; gap:14px; margin:22px 0; }
+  .pin-dot{ width:16px; height:16px; border-radius:50%; border:2px solid rgba(255,255,255,.3); transition:all .15s ease; }
+  .pin-dot.filled{ background:var(--gold); border-color:var(--gold); }
+  .login-error{ text-align:center; color:var(--red); font-size:13px; font-weight:600; min-height:18px; margin:0 0 8px; }
+  .keypad{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:10px 0 26px; }
+  .keypad-btn{
+    min-height:58px; border-radius:var(--radius-md); border:1px solid var(--line); background:rgba(255,255,255,.04);
+    color:var(--white); font-size:22px; font-weight:600; cursor:pointer; font-family:'Rajdhani',sans-serif;
+  }
+  .keypad-btn:active{ background:rgba(255,170,0,.16); }
+  .keypad-btn.keypad-clear{ font-size:13px; font-weight:700; color:var(--ink-muted); }
+  @keyframes shake{
+    10%,90%{ transform:translateX(-1px); } 20%,80%{ transform:translateX(2px); }
+    30%,50%,70%{ transform:translateX(-5px); } 40%,60%{ transform:translateX(5px); }
+  }
+  .shake{ animation:shake .5s; }
+
+  /* ================= APP SHELL ================= */
+  #app{ display:none; flex-direction:column; min-height:100vh; }
+  #app.active{ display:flex; }
+  .app-header{
+    position:sticky; top:0; z-index:40; background:rgba(10,22,40,.94); backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line); padding:14px 16px 12px;
+  }
+  .app-header-top{ display:flex; justify-content:space-between; align-items:center; }
+  .app-brand{ font-size:18px; font-weight:700; }
+  .app-brand .lux{ color:var(--gold); }
+  .clock-toggle{
+    display:flex; align-items:center; gap:6px; border:1.5px solid var(--line); background:rgba(255,255,255,.05);
+    color:var(--white); border-radius:999px; padding:8px 14px; font-size:12.5px; font-weight:700; cursor:pointer;
+    font-family:'Rajdhani',sans-serif; min-height:38px;
+  }
+  .clock-toggle.clocked-in{ background:rgba(34,197,94,.16); border-color:var(--green); color:var(--green); }
+  .clock-dot{ width:8px; height:8px; border-radius:50%; background:var(--gray); }
+  .clock-toggle.clocked-in .clock-dot{ background:var(--green); }
+  .app-greeting{ font-size:20px; font-weight:700; margin-top:10px; }
+  .app-time{ color:var(--ink-faint); font-size:12.5px; margin-top:2px; }
+
+  .app-content{ flex:1; padding:16px 16px 100px; }
+  .section-title{ font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--ink-faint); margin:0 0 12px; }
+
+  /* ---------- Summary bar ---------- */
+  .summary-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:22px; }
+  .summary-card{
+    background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+    border:1px solid var(--line); border-radius:var(--radius-md); padding:14px;
+  }
+  .summary-label{ font-size:10.5px; text-transform:uppercase; letter-spacing:.5px; color:var(--ink-faint); font-weight:700; }
+  .summary-value{ font-size:24px; font-weight:700; margin-top:4px; font-family:'Rajdhani',sans-serif; }
+
+  /* ---------- Job cards ---------- */
+  .job-card{
+    background:rgba(255,255,255,.03); border:1px solid var(--line); border-left:4px solid var(--gray);
+    border-radius:var(--radius-md); padding:14px; margin-bottom:12px; cursor:pointer;
+  }
+  .job-card.status-pending{ border-left-color:var(--gray); }
+  .job-card.status-confirmed{ border-left-color:var(--blue); }
+  .job-card.status-inprogress{ border-left-color:var(--orange); }
+  .job-card.status-completed{ border-left-color:var(--green); }
+  .job-card-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .job-time{ font-size:19px; font-weight:700; font-family:'Rajdhani',sans-serif; color:var(--gold); }
+  .job-customer{ font-size:16px; font-weight:700; margin-top:2px; }
+  .job-service{ font-size:12.5px; color:var(--ink-muted); margin-top:1px; }
+  .job-address{ font-size:12px; color:var(--ink-faint); margin-top:8px; }
+  .job-card-bottom{ display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,.07); }
+  .job-total{ font-size:14px; font-weight:700; }
+  .job-balance{ font-size:12px; font-weight:700; color:var(--orange); }
+  .job-balance.paid{ color:var(--green); }
+  .job-assigned-tag{ font-size:11px; color:var(--ink-faint); margin-top:6px; }
+
+  /* ================= BOTTOM NAV ================= */
+  .bottom-nav{
+    position:fixed; left:50%; transform:translateX(-50%); bottom:0; width:100%; max-width:430px; z-index:50;
+    display:flex; background:rgba(10,22,40,.97); backdrop-filter:blur(14px); border-top:1px solid var(--line);
+    padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+  }
+  .bottom-nav-link{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; min-height:52px;
+    border:none; background:transparent; color:var(--ink-faint); font-size:10.5px; font-weight:600;
+    padding:6px 2px; cursor:pointer; border-radius:10px; font-family:'Rajdhani',sans-serif;
+  }
+  .bottom-nav-link .icon{ font-size:20px; }
+  .bottom-nav-link.active{ color:var(--gold); }
+
+  .view{ display:none; }
+  .view.active{ display:block; }
+
+  /* ================= JOB DETAIL SCREEN ================= */
+  #job-detail-screen{
+    position:fixed; inset:0; max-width:430px; margin:0 auto; background:var(--dark); z-index:80;
+    transform:translateX(100%); transition:transform .28s ease; display:flex; flex-direction:column;
+  }
+  #job-detail-screen.active{ transform:translateX(0); }
+  .detail-header{
+    position:sticky; top:0; z-index:10; background:rgba(10,22,40,.96); backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line); padding:14px 16px; display:flex; align-items:center; gap:12px;
+  }
+  .detail-back{ background:none; border:none; color:var(--white); font-size:22px; cursor:pointer; min-height:40px; min-width:40px; }
+  .detail-title{ font-size:17px; font-weight:700; flex:1; }
+  .detail-content{ flex:1; overflow-y:auto; padding:16px 16px 130px; }
+  .detail-section{ margin-bottom:22px; }
+  .detail-section-title{ font-size:12.5px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--ink-faint); margin:0 0 10px; }
+  .info-line{ display:flex; justify-content:space-between; gap:12px; padding:8px 0; font-size:14px; border-bottom:1px solid rgba(255,255,255,.06); }
+  .info-line span:first-child{ color:var(--ink-faint); }
+  .info-line span:last-child{ font-weight:600; text-align:right; }
+  .info-line.tappable{ cursor:pointer; color:var(--gold); }
+  .info-line.tappable span:last-child{ color:var(--gold); }
+  .bullet-list{ margin:0; padding-left:18px; font-size:13.5px; color:var(--ink-muted); }
+  .bullet-list li{ margin-bottom:4px; }
+  .addon-tag{
+    display:inline-flex; align-items:center; gap:6px; background:rgba(255,170,0,.1); border:1px solid rgba(255,170,0,.3);
+    color:var(--gold); font-size:12px; font-weight:600; padding:5px 10px; border-radius:999px; margin:0 6px 6px 0;
+  }
+  .financial-box{
+    background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:var(--radius-md); padding:16px;
+  }
+  .financial-total{ font-size:26px; font-weight:700; font-family:'Rajdhani',sans-serif; }
+  .financial-balance{ color:var(--orange); font-weight:700; }
+  .financial-balance.paid{ color:var(--green); }
+
+  .collapsible-header{
+    display:flex; justify-content:space-between; align-items:center; cursor:pointer;
+    padding:12px 14px; background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:var(--radius-md);
+  }
+  .collapsible-header .chev{ transition:transform .2s ease; }
+  .collapsible-header.open .chev{ transform:rotate(180deg); }
+  .collapsible-body{ display:none; padding:14px 2px 4px; }
+  .collapsible-body.open{ display:block; }
+  .edit-row-btn{
+    display:flex; justify-content:space-between; align-items:center; width:100%; text-align:left;
+    background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:var(--radius-sm);
+    color:var(--white); padding:13px 14px; margin-bottom:8px; font-size:14px; font-weight:600; cursor:pointer;
+  }
+  .edit-row-btn .arrow{ color:var(--ink-faint); }
+
+  .photo-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:10px; }
+  .photo-thumb{
+    aspect-ratio:1; border-radius:var(--radius-sm); overflow:hidden; background:rgba(255,255,255,.04);
+    border:1px solid var(--line); position:relative; cursor:pointer;
+  }
+  .photo-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .photo-add-btn{
+    aspect-ratio:1; border-radius:var(--radius-sm); border:1.5px dashed rgba(255,255,255,.25); background:transparent;
+    color:var(--ink-faint); display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-size:11px; gap:4px; cursor:pointer;
+  }
+  .photo-add-btn .plus{ font-size:22px; }
+  .photo-required-note{ font-size:11.5px; color:var(--ink-faint); margin-top:2px; }
+
+  .actions-bar{
+    position:fixed; left:50%; transform:translateX(-50%); bottom:0; width:100%; max-width:430px; z-index:85;
+    background:rgba(10,22,40,.97); backdrop-filter:blur(14px); border-top:1px solid var(--line);
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom)); display:grid; grid-template-columns:1fr 1fr; gap:8px;
+  }
+  .actions-bar .btn{ font-size:13.5px; padding:0 8px; }
+  .actions-bar .btn-full-row{ grid-column:1 / -1; }
+
+  /* ================= MODALS ================= */
+  .modal-overlay{
+    position:fixed; inset:0; max-width:430px; margin:0 auto; background:rgba(4,10,20,.8);
+    display:flex; align-items:flex-end; justify-content:center; z-index:100; backdrop-filter:blur(3px);
+  }
+  .modal-sheet{
+    width:100%; max-height:92vh; overflow-y:auto; background:linear-gradient(180deg,#101f38,#0a1628);
+    border:1px solid var(--line); border-bottom:none; border-radius:24px 24px 0 0; padding:22px 18px calc(22px + env(safe-area-inset-bottom));
+    animation:slideUp .25s ease;
+  }
+  @keyframes slideUp{ from{ transform:translateY(30px); opacity:0; } to{ transform:translateY(0); opacity:1; } }
+  .modal-handle{ width:40px; height:4px; border-radius:999px; background:rgba(255,255,255,.2); margin:0 auto 16px; }
+  .modal-sheet-title{ font-size:19px; font-weight:700; margin:0 0 16px; }
+  .modal-actions{ display:flex; gap:10px; margin-top:18px; }
+  .modal-actions .btn{ flex:1; }
+
+  .type-toggle{ display:flex; gap:6px; background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:999px; padding:4px; margin-bottom:16px; }
+  .type-toggle-btn{ flex:1; border:none; background:transparent; color:var(--ink-muted); font-size:13.5px; font-weight:700; padding:9px; border-radius:999px; cursor:pointer; font-family:'Rajdhani',sans-serif; }
+  .type-toggle-btn.active{ background:linear-gradient(135deg,var(--gold),var(--orange)); color:var(--dark); }
+
+  .addon-check-item{
+    display:flex; align-items:center; gap:10px; padding:11px 12px; border:1.5px solid var(--line);
+    border-radius:var(--radius-sm); margin-bottom:8px; font-size:13.5px;
+  }
+  .addon-check-item input{ width:18px; height:18px; accent-color:var(--orange); }
+  .addon-check-item .addon-price{ margin-left:auto; color:var(--ink-faint); font-weight:600; }
+  .addon-group-label{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--gold); margin:14px 0 8px; }
+
+  .payment-method-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px; }
+  .payment-method-btn{
+    position:relative; border:1.5px solid var(--line); background:rgba(255,255,255,.03); border-radius:var(--radius-md);
+    padding:16px 10px 12px; text-align:center; cursor:pointer; color:var(--white);
+  }
+  .payment-method-btn.selected{ border-color:var(--gold); background:rgba(255,170,0,.08); }
+  .payment-method-btn .pm-icon{ font-size:22px; display:block; margin-bottom:6px; }
+  .payment-method-btn .pm-name{ font-size:12.5px; font-weight:700; }
+  .pm-star{
+    position:absolute; top:6px; right:8px; font-size:16px; cursor:pointer; color:rgba(255,255,255,.25);
+  }
+  .pm-star.is-default{ color:var(--gold); }
+
+  .success-screen{ text-align:center; padding:20px 4px; }
+  .success-check{
+    width:76px; height:76px; border-radius:50%; background:var(--green); color:#06240f; font-size:38px;
+    display:flex; align-items:center; justify-content:center; margin:0 auto 16px; animation:popIn .35s ease;
+  }
+  @keyframes popIn{ 0%{ transform:scale(0); } 70%{ transform:scale(1.12); } 100%{ transform:scale(1); } }
+  .tip-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:16px 0; }
+  .tip-btn{ min-height:44px; border-radius:var(--radius-sm); border:1.5px solid var(--line); background:rgba(255,255,255,.04); color:var(--white); font-weight:700; cursor:pointer; font-family:'Rajdhani',sans-serif; }
+  .tip-btn.selected{ border-color:var(--gold); background:rgba(255,170,0,.12); color:var(--gold); }
+
+  /* ---------- avatar / profile ---------- */
+  .avatar{
+    width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg,var(--gold),var(--orange));
+    color:var(--dark); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:22px;
+    font-family:'Rajdhani',sans-serif; flex-shrink:0;
+  }
+  .profile-header{ display:flex; align-items:center; gap:14px; margin-bottom:20px; }
+  .profile-name{ font-size:19px; font-weight:700; }
+  .profile-email{ font-size:12.5px; color:var(--ink-faint); margin-top:2px; }
+
+  /* ---------- filters bar / search ---------- */
+  .search-input{
+    width:100%; background:rgba(255,255,255,.05); border:1.5px solid var(--line); border-radius:999px;
+    color:var(--white); padding:11px 16px; font-size:14px; min-height:44px; margin-bottom:14px;
+  }
+  .search-input:focus{ outline:none; border-color:var(--gold); }
+  .subtabs{ display:flex; gap:6px; background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:999px; padding:4px; margin-bottom:16px; }
+  .subtab{ flex:1; border:none; background:transparent; color:var(--ink-muted); font-size:13px; font-weight:700; padding:8px; border-radius:999px; cursor:pointer; font-family:'Rajdhani',sans-serif; }
+  .subtab.active{ background:linear-gradient(135deg,var(--gold),var(--orange)); color:var(--dark); }
+
+  .list-card{
+    background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:var(--radius-md);
+    padding:14px; margin-bottom:10px; cursor:pointer;
+  }
+  .list-card-title{ font-weight:700; font-size:14.5px; }
+  .list-card-meta{ font-size:12px; color:var(--ink-faint); margin-top:3px; }
+  .list-card-actions{ display:flex; gap:8px; margin-top:10px; }
+
+  .fullscreen-photo-viewer{
+    position:fixed; inset:0; max-width:430px; margin:0 auto; background:#000; z-index:200;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .fullscreen-photo-viewer img{ max-width:100%; max-height:100%; object-fit:contain; }
+  .fullscreen-photo-close{
+    position:absolute; top:16px; right:16px; width:40px; height:40px; border-radius:50%;
+    background:rgba(255,255,255,.15); border:none; color:#fff; font-size:20px; cursor:pointer;
+  }
+
+  ::-webkit-scrollbar{ width:0; height:0; }
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN SCREEN ================= -->
+<div id="login-screen">
+  <div class="login-logo">ALTA<span class="lux">LUX</span></div>
+  <p class="login-tagline">Mobile Detail — Team App</p>
+
+  <div class="field">
+    <label for="login-user-select">Select User</label>
+    <select id="login-user-select"></select>
+  </div>
+
+  <div class="pin-dots" id="pin-dots">
+    <span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span>
+  </div>
+  <p class="login-error" id="login-error"></p>
+
+  <div class="keypad" id="keypad">
+    <button type="button" class="keypad-btn" data-key="1">1</button>
+    <button type="button" class="keypad-btn" data-key="2">2</button>
+    <button type="button" class="keypad-btn" data-key="3">3</button>
+    <button type="button" class="keypad-btn" data-key="4">4</button>
+    <button type="button" class="keypad-btn" data-key="5">5</button>
+    <button type="button" class="keypad-btn" data-key="6">6</button>
+    <button type="button" class="keypad-btn" data-key="7">7</button>
+    <button type="button" class="keypad-btn" data-key="8">8</button>
+    <button type="button" class="keypad-btn" data-key="9">9</button>
+    <button type="button" class="keypad-btn keypad-clear" data-key="clear">Clear</button>
+    <button type="button" class="keypad-btn" data-key="0">0</button>
+    <button type="button" class="keypad-btn keypad-clear" data-key="back">⌫</button>
+  </div>
+
+  <button type="button" class="btn btn-primary btn-full" id="login-enter-btn">Clock In &amp; Enter</button>
+</div>
+
+<!-- ================= APP SHELL ================= -->
+<div id="app">
+  <header class="app-header">
+    <div class="app-header-top">
+      <span class="app-brand">ALTA<span class="lux">LUX</span></span>
+      <button type="button" class="clock-toggle" id="clock-toggle-btn"><span class="clock-dot"></span><span id="clock-toggle-label">Clock In</span></button>
+    </div>
+    <div class="app-greeting" id="app-greeting">Good morning</div>
+    <div class="app-time" id="app-time"></div>
+  </header>
+
+  <main class="app-content">
+
+    <!-- ===== TODAY VIEW ===== -->
+    <section class="view active" id="view-today">
+      <div class="summary-grid">
+        <div class="summary-card"><div class="summary-label">Jobs Today</div><div class="summary-value" id="sum-jobs-today">0</div></div>
+        <div class="summary-card"><div class="summary-label">Completed</div><div class="summary-value" id="sum-completed">0</div></div>
+        <div class="summary-card"><div class="summary-label">Remaining</div><div class="summary-value" id="sum-remaining">0</div></div>
+        <div class="summary-card"><div class="summary-label">Est. Earnings</div><div class="summary-value" id="sum-earnings">$0</div></div>
+      </div>
+      <p class="section-title">Today's Jobs</p>
+      <div id="today-jobs-list"></div>
+    </section>
+
+    <!-- ===== ALL JOBS VIEW ===== -->
+    <section class="view" id="view-alljobs">
+      <div class="subtabs" id="alljobs-subtabs">
+        <button type="button" class="subtab active" data-ajtab="upcoming">Upcoming</button>
+        <button type="button" class="subtab" data-ajtab="completed">Completed</button>
+      </div>
+      <div id="alljobs-list"></div>
+    </section>
+
+    <!-- ===== CUSTOMERS VIEW (Owner/Manager only) ===== -->
+    <section class="view" id="view-customers">
+      <input type="text" class="search-input" id="customer-search-input" placeholder="Search customers...">
+      <button type="button" class="btn btn-primary btn-full" id="add-customer-btn" style="margin-bottom:16px;">+ Add Customer</button>
+      <div id="customers-list"></div>
+    </section>
+
+    <!-- ===== PAYMENTS VIEW (Owner/Manager only) ===== -->
+    <section class="view" id="view-payments">
+      <div class="summary-grid">
+        <div class="summary-card"><div class="summary-label">Today's Revenue</div><div class="summary-value" id="pay-today-revenue">$0</div></div>
+        <div class="summary-card"><div class="summary-label">Outstanding</div><div class="summary-value" id="pay-outstanding">$0</div></div>
+      </div>
+      <p class="section-title">Jobs</p>
+      <div id="payments-jobs-list"></div>
+      <p class="section-title" style="margin-top:22px;">Payment History</p>
+      <div id="payments-history-list"></div>
+    </section>
+
+    <!-- ===== PROFILE VIEW ===== -->
+    <section class="view" id="view-profile">
+      <div class="profile-header">
+        <div class="avatar" id="profile-avatar">?</div>
+        <div>
+          <div class="profile-name" id="profile-name"></div>
+          <span class="badge" id="profile-role-badge"></span>
+          <div class="profile-email" id="profile-email"></div>
+        </div>
+      </div>
+
+      <div class="summary-grid">
+        <div class="summary-card"><div class="summary-label">Hourly Rate</div><div class="summary-value" id="profile-hourly-rate">—</div></div>
+        <div class="summary-card"><div class="summary-label">Commission</div><div class="summary-value" id="profile-commission">—</div></div>
+      </div>
+
+      <div class="field" style="margin-bottom:20px;">
+        <label for="profile-default-payment-select">Default Payment Method</label>
+        <select id="profile-default-payment-select">
+          <option value="Stripe Link">Stripe Link</option>
+          <option value="Square Reader">Square Reader</option>
+          <option value="Square Link">Square Link</option>
+          <option value="Cash">Cash</option>
+          <option value="Zelle">Zelle</option>
+          <option value="Check">Check</option>
+          <option value="Other">Other</option>
+        </select>
+        <p style="font-size:11.5px; color:var(--ink-faint); margin:2px 0 0;">Pre-selected when collecting payment. Changeable anytime.</p>
+      </div>
+
+      <p class="section-title">This Week</p>
+      <div class="summary-grid">
+        <div class="summary-card"><div class="summary-label">Jobs</div><div class="summary-value" id="profile-week-jobs">0</div></div>
+        <div class="summary-card"><div class="summary-label">Hours</div><div class="summary-value" id="profile-week-hours">0</div></div>
+        <div class="summary-card"><div class="summary-label">Earnings</div><div class="summary-value" id="profile-week-earnings">$0</div></div>
+      </div>
+
+      <p class="section-title" style="margin-top:18px;">Clock In/Out Today</p>
+      <div id="profile-clock-history"></div>
+
+      <button type="button" class="btn btn-danger btn-full" id="logout-btn" style="margin-top:24px;">Log Out</button>
+    </section>
+
+  </main>
+
+  <nav class="bottom-nav" id="bottom-nav">
+    <button type="button" class="bottom-nav-link active" data-view="today"><span class="icon">📅</span>Today</button>
+    <button type="button" class="bottom-nav-link" data-view="alljobs"><span class="icon">🧾</span>All Jobs</button>
+    <button type="button" class="bottom-nav-link" data-view="customers"><span class="icon">👥</span>Customers</button>
+    <button type="button" class="bottom-nav-link" data-view="payments"><span class="icon">💳</span>Payments</button>
+    <button type="button" class="bottom-nav-link" data-view="profile"><span class="icon">👤</span>Profile</button>
+  </nav>
+</div>
+
+<!-- ================= JOB DETAIL SCREEN ================= -->
+<div id="job-detail-screen">
+  <div class="detail-header">
+    <button type="button" class="detail-back" id="detail-back-btn" aria-label="Back">←</button>
+    <div class="detail-title" id="detail-job-number">Job</div>
+  </div>
+  <div class="detail-content" id="detail-content">
+
+    <div class="detail-section">
+      <p class="detail-section-title">Customer</p>
+      <div class="info-line"><span>Name</span><span id="dj-customer-name"></span></div>
+      <div class="info-line tappable" id="dj-phone-line"><span>Phone</span><span id="dj-customer-phone"></span></div>
+      <div class="info-line tappable" id="dj-address-line"><span>Address</span><span id="dj-customer-address"></span></div>
+      <div class="info-line"><span>Vehicle</span><span id="dj-vehicle-full"></span></div>
+    </div>
+
+    <div class="detail-section">
+      <p class="detail-section-title">Service</p>
+      <div class="info-line"><span>Category / Package</span><span id="dj-category-package"></span></div>
+      <div class="info-line"><span>Vehicle Type</span><span id="dj-vehicletype"></span></div>
+      <div style="margin-top:8px;">
+        <p style="font-size:12px; color:var(--ink-faint); margin:0 0 6px;">What's Included</p>
+        <ul class="bullet-list" id="dj-included-list"></ul>
+      </div>
+      <div id="dj-addons-wrap" style="margin-top:10px;"></div>
+      <div class="info-line" style="margin-top:6px;"><span>Est. Duration</span><span id="dj-duration"></span></div>
+    </div>
+
+    <div class="detail-section">
+      <p class="detail-section-title">Financial Summary</p>
+      <div class="financial-box">
+        <div class="info-line" style="border:none; padding-top:0;"><span>Total</span><span class="financial-total" id="dj-total"></span></div>
+        <div class="info-line"><span>Deposit Paid</span><span style="color:var(--green); font-weight:700;" id="dj-deposit"></span></div>
+        <div class="info-line" style="border:none;"><span>Balance Due</span><span class="financial-balance" id="dj-balance"></span></div>
+        <div style="margin-top:8px;"><span class="badge" id="dj-payment-status-badge"></span></div>
+      </div>
+    </div>
+
+    <div class="detail-section" id="dj-edit-section" hidden>
+      <div class="collapsible-header" id="dj-edit-collapsible-header">
+        <span class="detail-section-title" style="margin:0;">Edit Job</span>
+        <span class="chev">▾</span>
+      </div>
+      <div class="collapsible-body" id="dj-edit-collapsible-body">
+        <button type="button" class="edit-row-btn" id="dj-edit-service-btn"><span>Edit Service</span><span class="arrow">›</span></button>
+        <button type="button" class="edit-row-btn" id="dj-edit-price-btn"><span>Edit Price</span><span class="arrow">›</span></button>
+        <button type="button" class="edit-row-btn" id="dj-edit-customer-btn"><span>Edit Customer</span><span class="arrow">›</span></button>
+        <button type="button" class="edit-row-btn" id="dj-reassign-btn"><span>Reassign Technician</span><span class="arrow">›</span></button>
+        <button type="button" class="edit-row-btn" id="dj-edit-datetime-btn"><span>Edit Date/Time</span><span class="arrow">›</span></button>
+      </div>
+    </div>
+
+    <div class="detail-section" id="dj-request-adjustment-wrap" hidden>
+      <button type="button" class="btn btn-outline btn-full" id="dj-request-adjustment-btn">Request Adjustment</button>
+    </div>
+
+    <div class="detail-section">
+      <p class="detail-section-title">Notes</p>
+      <textarea id="dj-notes-input" placeholder="Add job notes..."></textarea>
+    </div>
+
+    <div class="detail-section">
+      <p class="detail-section-title">Before Photos</p>
+      <div class="photo-grid" id="dj-photos-before"></div>
+      <p class="photo-required-note">Minimum 1 before photo required before completing job.</p>
+    </div>
+
+    <div class="detail-section">
+      <p class="detail-section-title">After Photos</p>
+      <div class="photo-grid" id="dj-photos-after"></div>
+      <p class="photo-required-note">Minimum 1 after photo required to complete job.</p>
+    </div>
+
+  </div>
+
+  <div class="actions-bar" id="detail-actions-bar">
+    <button type="button" class="btn btn-outline" id="dj-navigate-btn">🧭 Navigate</button>
+    <button type="button" class="btn btn-outline" id="dj-call-btn">📞 Call</button>
+    <button type="button" class="btn btn-blue btn-full-row hidden" id="dj-start-btn">Start Job</button>
+    <button type="button" class="btn btn-green btn-full-row hidden" id="dj-complete-btn">Complete Job</button>
+    <button type="button" class="btn btn-primary btn-full-row hidden" id="dj-collect-btn">Collect Payment</button>
+  </div>
+</div>
+
+<!-- hidden file inputs for photo capture -->
+<input type="file" id="photo-input-before" accept="image/*" capture="environment" class="hidden">
+<input type="file" id="photo-input-after" accept="image/*" capture="environment" class="hidden">
+
+<!-- ================= FULLSCREEN PHOTO VIEWER ================= -->
+<div class="fullscreen-photo-viewer hidden" id="photo-viewer">
+  <button type="button" class="fullscreen-photo-close" id="photo-viewer-close">✕</button>
+  <img id="photo-viewer-img" src="" alt="Photo">
+</div>
+
+<!-- ================= EDIT SERVICE MODAL ================= -->
+<div class="modal-overlay hidden" id="edit-service-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h2 class="modal-sheet-title">Edit Service</h2>
+    <div class="type-toggle" id="es-category-tabs">
+      <button type="button" class="type-toggle-btn active" data-cat="full">Full Detail</button>
+      <button type="button" class="type-toggle-btn" data-cat="interior">Interior Only</button>
+      <button type="button" class="type-toggle-btn" data-cat="exterior">Exterior Only</button>
+    </div>
+    <div class="field" id="es-package-field">
+      <label for="es-package">Package</label>
+      <select id="es-package">
+        <option value="essential">Essential Detail</option>
+        <option value="premium">Premium Detail</option>
+      </select>
+    </div>
+    <div class="field" style="margin-top:14px;">
+      <label for="es-vehicletype">Vehicle Type</label>
+      <select id="es-vehicletype"></select>
+    </div>
+
+    <p class="addon-group-label">Interior Add-Ons</p>
+    <div id="es-addons-interior"></div>
+    <p class="addon-group-label">Machine Wax</p>
+    <div id="es-addons-wax"></div>
+    <p class="addon-group-label">Exterior Add-Ons</p>
+    <div id="es-addons-exterior"></div>
+
+    <div class="info-line" style="margin-top:14px;"><span>New Total</span><span id="es-computed-total" style="font-size:18px; font-weight:700;"></span></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="es-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="es-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= EDIT PRICE MODAL ================= -->
+<div class="modal-overlay hidden" id="edit-price-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h2 class="modal-sheet-title">Edit Price</h2>
+    <div class="info-line"><span>Current Price</span><span id="ep-current-price" style="font-weight:700;"></span></div>
+    <div class="field" style="margin-top:14px;">
+      <label for="ep-override-price">Override Price</label>
+      <input type="number" id="ep-override-price" min="0" step="0.01">
+    </div>
+    <div class="field" style="margin-top:14px;">
+      <label for="ep-reason">Reason</label>
+      <select id="ep-reason">
+        <option value="Loyalty discount">Loyalty discount</option>
+        <option value="Promotional offer">Promotional offer</option>
+        <option value="Vehicle condition adjustment">Vehicle condition adjustment</option>
+        <option value="Management approval">Management approval</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="field" id="ep-other-field" hidden style="margin-top:14px;">
+      <label for="ep-other">Please specify</label>
+      <input type="text" id="ep-other">
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="ep-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="ep-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= EDIT CUSTOMER MODAL ================= -->
+<div class="modal-overlay hidden" id="edit-customer-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h2 class="modal-sheet-title">Edit Customer</h2>
+    <div class="field"><label for="ec-name">Full Name</label><input type="text" id="ec-name"></div>
+    <div class="field" style="margin-top:14px;"><label for="ec-phone">Phone</label><input type="tel" id="ec-phone"></div>
+    <div class="field" style="margin-top:14px;"><label for="ec-email">Email</label><input type="email" id="ec-email"></div>
+    <div class="field" style="margin-top:14px;"><label for="ec-address">Service Address</label><input type="text" id="ec-address"></div>
+    <div class="field" style="margin-top:14px;"><label for="ec-year">Vehicle Year</label><input type="text" id="ec-year"></div>
+    <div class="field" style="margin-top:14px;"><label for="ec-make">Vehicle Make</label><input type="text" id="ec-make"></div>
+    <div class="field" style="margin-top:14px;"><label for="ec-model">Vehicle Model</label><input type="text" id="ec-model"></div>
+    <div class="field" style="margin-top:14px;"><label for="ec-color">Vehicle Color</label><input type="text" id="ec-color"></div>
+    <div class="field" style="margin-top:14px;"><label for="ec-notes">Notes</label><textarea id="ec-notes"></textarea></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="ec-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="ec-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= REASSIGN TECHNICIAN MODAL ================= -->
+<div class="modal-overlay hidden" id="reassign-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h2 class="modal-sheet-title">Reassign Technician</h2>
+    <input type="text" class="search-input" id="reassign-search" placeholder="Search employees...">
+    <div id="reassign-list"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost btn-full" id="reassign-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= EDIT DATE/TIME MODAL ================= -->
+<div class="modal-overlay hidden" id="edit-datetime-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h2 class="modal-sheet-title">Edit Date &amp; Time</h2>
+    <div class="field"><label for="edt-date">Date</label><input type="date" id="edt-date"></div>
+    <div class="field" style="margin-top:14px;"><label for="edt-time">Time</label><select id="edt-time"></select></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="edt-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="edt-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= COLLECT PAYMENT MODAL ================= -->
+<div class="modal-overlay hidden" id="collect-payment-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div id="cp-main-panel">
+      <h2 class="modal-sheet-title">Collect Payment</h2>
+      <div class="financial-box" style="margin-bottom:18px; text-align:center;">
+        <div class="summary-label">Balance Due</div>
+        <div class="financial-total financial-balance" id="cp-balance-display" style="font-size:30px;"></div>
+      </div>
+      <p class="addon-group-label" style="margin-top:0;">Payment Method</p>
+      <div class="payment-method-grid" id="cp-method-grid"></div>
+
+      <div id="cp-method-fields"></div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost btn-full" id="cp-cancel">Cancel</button>
+      </div>
+    </div>
+
+    <div id="cp-success-panel" class="success-screen hidden">
+      <div class="success-check">✓</div>
+      <h2 class="modal-sheet-title" style="text-align:center;">Payment Received</h2>
+      <p style="color:var(--ink-muted); font-size:14px;">Balance is now $0.00 — job marked Paid in Full.</p>
+      <p class="addon-group-label" style="text-align:left; margin-top:18px;">Add a Tip?</p>
+      <div class="tip-grid">
+        <button type="button" class="tip-btn" data-tip="5">$5</button>
+        <button type="button" class="tip-btn" data-tip="10">$10</button>
+        <button type="button" class="tip-btn" data-tip="20">$20</button>
+        <button type="button" class="tip-btn" data-tip="custom">Custom</button>
+      </div>
+      <div class="field hidden" id="cp-tip-custom-field" style="margin-bottom:10px;">
+        <input type="number" id="cp-tip-custom-amount" min="0" step="0.01" placeholder="Custom tip amount">
+      </div>
+      <p id="cp-new-total-line" style="font-size:14px; color:var(--ink-muted); display:none;"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="cp-send-receipt">Send Receipt</button>
+        <button type="button" class="btn btn-primary" id="cp-back-to-jobs">Back to Jobs</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= ADD/EDIT CUSTOMER (Customers tab) MODAL ================= -->
+<div class="modal-overlay hidden" id="customer-form-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h2 class="modal-sheet-title" id="customer-form-title">Add Customer</h2>
+    <div class="field"><label for="cf-name">Full Name</label><input type="text" id="cf-name"></div>
+    <div class="field" style="margin-top:14px;"><label for="cf-phone">Phone</label><input type="tel" id="cf-phone"></div>
+    <div class="field" style="margin-top:14px;"><label for="cf-email">Email</label><input type="email" id="cf-email"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="cf-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="cf-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= CUSTOMER PROFILE MODAL ================= -->
+<div class="modal-overlay hidden" id="customer-profile-modal">
+  <div class="modal-sheet" style="max-height:94vh;">
+    <div class="modal-handle"></div>
+    <h2 class="modal-sheet-title" id="cust-profile-name">Customer</h2>
+    <div class="subtabs" id="cust-profile-tabs">
+      <button type="button" class="subtab active" data-cptab="addresses">Addresses</button>
+      <button type="button" class="subtab" data-cptab="vehicles">Vehicles</button>
+      <button type="button" class="subtab" data-cptab="history">Jobs</button>
+    </div>
+
+    <div class="view active" id="cust-panel-addresses">
+      <div id="cust-address-list"></div>
+      <button type="button" class="btn btn-ghost btn-full" id="cust-add-address-btn">+ Add Address</button>
+      <div id="cust-address-form" class="hidden" style="margin-top:14px; border:1px dashed var(--line); border-radius:var(--radius-md); padding:14px;">
+        <input type="hidden" id="cpa-edit-id">
+        <div class="field"><label for="cpa-label">Label</label><input type="text" id="cpa-label" placeholder="Home / Work / Other"></div>
+        <div class="field" style="margin-top:12px;"><label for="cpa-street">Street</label><input type="text" id="cpa-street"></div>
+        <div class="field" style="margin-top:12px;"><label for="cpa-city">City</label><input type="text" id="cpa-city"></div>
+        <div class="field" style="margin-top:12px;"><label for="cpa-state">State</label><input type="text" id="cpa-state"></div>
+        <div class="field" style="margin-top:12px;"><label for="cpa-zip">Zip</label><input type="text" id="cpa-zip"></div>
+        <div class="field" style="margin-top:12px;"><label for="cpa-notes">Notes</label><input type="text" id="cpa-notes"></div>
+        <label style="display:flex; align-items:center; gap:8px; margin-top:12px; font-size:13px;"><input type="checkbox" id="cpa-default" style="width:18px; height:18px;"> Set as Default</label>
+        <div class="modal-actions"><button type="button" class="btn btn-ghost" id="cpa-cancel">Cancel</button><button type="button" class="btn btn-primary" id="cpa-save">Save</button></div>
+      </div>
+    </div>
+
+    <div class="view" id="cust-panel-vehicles">
+      <div id="cust-vehicle-list"></div>
+      <button type="button" class="btn btn-ghost btn-full" id="cust-add-vehicle-btn">+ Add Vehicle</button>
+      <div id="cust-vehicle-form" class="hidden" style="margin-top:14px; border:1px dashed var(--line); border-radius:var(--radius-md); padding:14px;">
+        <input type="hidden" id="cpv-edit-id">
+        <div class="field"><label for="cpv-year">Year</label><input type="text" id="cpv-year"></div>
+        <div class="field" style="margin-top:12px;"><label for="cpv-make">Make</label><input type="text" id="cpv-make"></div>
+        <div class="field" style="margin-top:12px;"><label for="cpv-model">Model</label><input type="text" id="cpv-model"></div>
+        <div class="field" style="margin-top:12px;"><label for="cpv-color">Color</label><input type="text" id="cpv-color"></div>
+        <div class="field" style="margin-top:12px;"><label for="cpv-plate">License Plate</label><input type="text" id="cpv-plate"></div>
+        <label style="display:flex; align-items:center; gap:8px; margin-top:12px; font-size:13px;"><input type="checkbox" id="cpv-default" style="width:18px; height:18px;"> Set as Default</label>
+        <div class="modal-actions"><button type="button" class="btn btn-ghost" id="cpv-cancel">Cancel</button><button type="button" class="btn btn-primary" id="cpv-save">Save</button></div>
+      </div>
+    </div>
+
+    <div class="view" id="cust-panel-history">
+      <div id="cust-job-history-list"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost btn-full" id="cust-profile-close">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ================= HELPERS =================
+  function todayDate(){ const d = new Date(); d.setHours(0,0,0,0); return d; }
+  const TODAY = todayDate();
+  const WEEKDAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const WEEKDAY_LONG = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const MONTH_LABELS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const ADMIN_TIME_SLOTS = ['8:00 AM','10:00 AM','12:00 PM','2:00 PM','3:00 PM','4:00 PM'];
+
+  function formatCurrency(n){ return '$' + (Math.round(n*100)/100).toFixed(2); }
+  function round2(n){ return Math.round(n*100)/100; }
+  function isSameDay(a,b){ return a && b && a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
+  function formatShortDate(d){ return `${MONTH_LABELS[d.getMonth()].slice(0,3)} ${d.getDate()}`; }
+  function formatLongDate(d){ return `${WEEKDAY_LONG[d.getDay()]}, ${MONTH_LABELS[d.getMonth()]} ${d.getDate()}`; }
+  function toInputDate(d){
+    const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+  function fromInputDate(str){ const [y,m,d]=str.split('-').map(Number); return new Date(y,m-1,d); }
+  function formatTime(d){
+    let h = d.getHours(); const m = d.getMinutes();
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12; if (h === 0) h = 12;
+    return `${h}:${String(m).padStart(2,'0')} ${ampm}`;
+  }
+  function padNum(n){ return String(n).padStart(3,'0'); }
+
+  // ================= CATALOGS =================
+  const JOB_CATALOG = {
+    full: {
+      label: 'Full Detail',
+      packages: {
+        essential: { label: 'Essential Detail', vehicles: [
+          { label:'Cars/Sedans', price:208.99 },
+          { label:'Mid-Size/Compact SUVs', price:238.99 },
+          { label:'Small Trucks', price:268.99 },
+          { label:'Minivans', price:268.99 },
+          { label:'Large SUVs/Trucks', price:268.99 }
+        ]},
+        premium: { label: 'Premium Detail', vehicles: [
+          { label:'Cars/Sedans', price:288.99 },
+          { label:'Mid-Size/Compact SUVs', price:308.99 },
+          { label:'Small Trucks', price:308.99 },
+          { label:'Minivans', price:378.99 },
+          { label:'Large SUVs/Trucks', price:378.99 }
+        ]}
+      }
+    },
+    interior: {
+      label: 'Interior Only',
+      vehicles: [
+        { label:'Cars/Sedans', price:239.99 },
+        { label:'Compact/Mid-Size SUV', price:264.99 },
+        { label:'Small Truck', price:264.99 },
+        { label:'Large SUV/3rd Row SUVs', price:284.99 },
+        { label:'Large Truck', price:284.99 }
+      ]
+    },
+    exterior: {
+      label: 'Exterior Only',
+      vehicles: [
+        { label:'Car', price:159.99 },
+        { label:'Compact/Midsize SUV', price:189.99 },
+        { label:'Truck', price:189.99 },
+        { label:'Minivan', price:189.99 },
+        { label:'Large/XL SUV', price:219.99 },
+        { label:'XL SUV, Truck or Van', price:244.99 }
+      ]
+    }
+  };
+
+  const INCLUDED_ITEMS = {
+    full: ['Hand wash & dry','Interior vacuum & wipe-down','Window cleaning (in & out)','Tire shine & wheel cleaning','Dashboard & console detailing'],
+    interior: ['Full interior vacuum','Seat & carpet shampoo','Dashboard & console detailing','Interior window cleaning','Door jamb cleaning'],
+    exterior: ['Hand wash & dry','Wheel & tire cleaning','Exterior window cleaning','Spray wax protection','Tire shine']
+  };
+
+  const ADDONS_INTERIOR = [
+    { key:'pet_hair', name:'Pet Hair Removal', price:50, plus:true },
+    { key:'leather_cond', name:'Leather Seat Conditioning', price:50 },
+    { key:'new_car_smell', name:'New Car Smell Air Cabin Treatment', price:50 },
+    { key:'uv_interior', name:'UV Protective Dressing – Interior Plastics', price:50 },
+    { key:'ozone', name:'Ozone Treatment', price:125 }
+  ];
+  const ADDONS_EXTERIOR = [
+    { key:'sap_tar', name:'Sap/Tar Removal', price:75, plus:true },
+    { key:'black_trim', name:'Black Trim Restoration', price:125 }
+  ];
+  const MACHINE_WAX_TIERS = { small:50, medium:60, large:70 };
+  const MACHINE_WAX_SMALL = ['Cars/Sedans','Car'];
+  const MACHINE_WAX_MEDIUM = ['Mid-Size/Compact SUVs','Compact/Mid-Size SUV','Compact/Midsize SUV'];
+  function machineWaxTier(vehicleTypeLabel){
+    if (MACHINE_WAX_SMALL.includes(vehicleTypeLabel)) return 'small';
+    if (MACHINE_WAX_MEDIUM.includes(vehicleTypeLabel)) return 'medium';
+    return 'large';
+  }
+  function machineWaxPrice(vehicleTypeLabel){ return MACHINE_WAX_TIERS[machineWaxTier(vehicleTypeLabel)]; }
+  const ALL_FLAT_ADDONS = ADDONS_INTERIOR.concat(ADDONS_EXTERIOR);
+
+  const PAYMENT_METHODS = ['Stripe Link','Square Reader','Square Link','Cash','Zelle','Check','Other'];
+  const PAYMENT_METHOD_ICON = { 'Stripe Link':'💳','Square Reader':'📶','Square Link':'🔗','Cash':'💵','Zelle':'⚡','Check':'🧾','Other':'✏️' };
+
+  const STATUS_SLUG = { 'Pending':'pending', 'Confirmed':'confirmed', 'In Progress':'inprogress', 'Completed':'completed' };
+
+  const ROLE_PERMISSIONS = {
+    Owner:      { seeAllJobs:true,  editJobs:true,  reassign:true,  allPaymentMethods:true,  manageCustomers:true,  deleteCustomers:true,  viewFinancials:true,  tabs:['today','alljobs','customers','payments','profile'] },
+    Manager:    { seeAllJobs:true,  editJobs:true,  reassign:true,  allPaymentMethods:true,  manageCustomers:true,  deleteCustomers:false, viewFinancials:true,  tabs:['today','alljobs','customers','payments','profile'] },
+    Technician: { seeAllJobs:false, editJobs:false, reassign:false, allPaymentMethods:true,  manageCustomers:false, deleteCustomers:false, viewFinancials:false, tabs:['today','alljobs','profile'] },
+    Contractor: { seeAllJobs:false, editJobs:false, reassign:false, allPaymentMethods:false, manageCustomers:false, deleteCustomers:false, viewFinancials:false, tabs:['today','alljobs','profile'] }
+  };
+
+  // ================= SAMPLE DATA =================
+  const EMPLOYEES = [
+    { id:1, name:'Luis Pabón', role:'Owner', pin:'0000', email:'luisepabon@gmail.com', phone:'(470) 877-4347', hourlyRate:null, commissionRate:0, defaultPaymentMethod:'Cash', active:true },
+    { id:2, name:'Dario Pabón', role:'Technician', pin:'1234', email:'dario@blisscleandetail.com', phone:'', hourlyRate:18, commissionRate:15, defaultPaymentMethod:'Cash', active:true }
+  ];
+  function findEmployee(id){ return EMPLOYEES.find(e => e.id === id); }
+  function employeeInitials(e){ return e.name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0,2); }
+  function activeEmployees(){ return EMPLOYEES.filter(e => e.active); }
+
+  let nextJobIdCounter = 4;
+  let nextPaymentIdCounter = 10;
+
+  const JOBS = [
+    {
+      id:1, jobNumber:'001',
+      customer:{ name:'John Smith', phone:'(470) 555-1234', email:'john@email.com' },
+      category:'full', packageKey:'essential', service:'Essential Detail', vehicleType:'Cars/Sedans',
+      vehicleYear:'2022', vehicleMake:'Honda', vehicleModel:'Accord', vehicleColor:'Silver',
+      vehicle:'2022 Honda Accord',
+      address:'123 Main St, Roswell, GA 30076',
+      date:new Date(TODAY), time:'8:00 AM',
+      addons:[], subtotal:208.99, addonsTotal:0, total:208.99,
+      status:'Confirmed', notes:'', assignedEmployeeIds:[2],
+      payments:[{ id:1, label:'Deposit', amount:52.25, method:'Stripe', date:new Date(TODAY), reference:'Online Booking' }],
+      priceOverride:null, depositOverride:null, auditLog:[],
+      photosBefore:[], photosAfter:[], startTime:null, endTime:null
+    },
+    {
+      id:2, jobNumber:'002',
+      customer:{ name:'Maria Garcia', phone:'(678) 555-5678', email:'maria@email.com' },
+      category:'interior', packageKey:null, service:'Interior Only', vehicleType:'Large SUV',
+      vehicleYear:'2021', vehicleMake:'Chevrolet', vehicleModel:'Suburban', vehicleColor:'White',
+      vehicle:'2021 Chevrolet Suburban',
+      address:'456 Oak Ave, Alpharetta, GA 30022',
+      date:new Date(TODAY), time:'12:00 PM',
+      addons:[], subtotal:284.99, addonsTotal:0, total:284.99,
+      status:'Confirmed', notes:'', assignedEmployeeIds:[2],
+      payments:[{ id:2, label:'Deposit', amount:71.25, method:'Stripe', date:new Date(TODAY), reference:'Online Booking' }],
+      priceOverride:null, depositOverride:null, auditLog:[],
+      photosBefore:[], photosAfter:[], startTime:null, endTime:null
+    },
+    {
+      id:3, jobNumber:'003',
+      customer:{ name:'David Johnson', phone:'(404) 555-9012', email:'david@email.com' },
+      category:'full', packageKey:'premium', service:'Premium Detail', vehicleType:'Large SUVs/Trucks',
+      vehicleYear:'2023', vehicleMake:'Ford', vehicleModel:'F-150', vehicleColor:'Black',
+      vehicle:'2023 Ford F-150',
+      address:'789 Pine Rd, Sandy Springs, GA 30328',
+      date:new Date(TODAY), time:'3:00 PM',
+      addons:[], subtotal:378.99, addonsTotal:0, total:378.99,
+      status:'Pending', notes:'', assignedEmployeeIds:[2],
+      payments:[{ id:3, label:'Deposit', amount:94.75, method:'Stripe', date:new Date(TODAY), reference:'Online Booking' }],
+      priceOverride:null, depositOverride:null, auditLog:[],
+      photosBefore:[], photosAfter:[], startTime:null, endTime:null
+    }
+  ];
+  function findJob(id){ return JOBS.find(j => j.id === id); }
+
+  function logJobActivity(job, message){
+    if (!job.auditLog) job.auditLog = [];
+    job.auditLog.push({ message, user: currentUser ? currentUser.name : 'Unknown', date: new Date() });
+  }
+
+  // ================= CUSTOMER PROFILES =================
+  const CUSTOMER_PROFILES = new Map();
+  let nextAddressIdCounter = 1;
+  let nextVehicleIdCounter = 1;
+  function getCustomerProfile(email){ return CUSTOMER_PROFILES.get(email) || null; }
+  function getOrCreateCustomerProfile(email, name, phone){
+    if (!email) return null;
+    let profile = CUSTOMER_PROFILES.get(email);
+    if (!profile){
+      profile = { email, name: name||'', phone: phone||'', addresses:[], vehicles:[], notes:'' };
+      CUSTOMER_PROFILES.set(email, profile);
+    } else {
+      if (name) profile.name = name;
+      if (phone) profile.phone = phone;
+    }
+    return profile;
+  }
+  function formatAddressLine(a){ return [a.street,a.city,a.state,a.zip].filter(Boolean).join(', '); }
+  function formatVehicleLine(v){ const b=[v.year,v.make,v.model].filter(Boolean).join(' '); return v.color ? `${b} (${v.color})` : b; }
+  function addAddressToProfile(email, data){
+    const profile = getOrCreateCustomerProfile(email);
+    if (!profile) return null;
+    if (data.isDefault) profile.addresses.forEach(a => a.isDefault = false);
+    const addr = { id: nextAddressIdCounter++, label:data.label||'Other', street:data.street||'', city:data.city||'', state:data.state||'', zip:data.zip||'', notes:data.notes||'', isDefault: !!data.isDefault || profile.addresses.length===0, matchString: data.matchString || formatAddressLine(data) };
+    profile.addresses.push(addr);
+    return addr;
+  }
+  function addVehicleToProfile(email, data){
+    const profile = getOrCreateCustomerProfile(email);
+    if (!profile) return null;
+    if (data.isDefault) profile.vehicles.forEach(v => v.isDefault = false);
+    const veh = { id: nextVehicleIdCounter++, year:data.year||'', make:data.make||'', model:data.model||'', color:data.color||'', plate:data.plate||'', vehicleType:data.vehicleType||'', notes:data.notes||'', isDefault: !!data.isDefault || profile.vehicles.length===0, matchString: data.matchString || formatVehicleLine(data) };
+    profile.vehicles.push(veh);
+    return veh;
+  }
+  function setDefaultAddress(email,id){ const p=getCustomerProfile(email); if(p) p.addresses.forEach(a=>a.isDefault=(a.id===id)); }
+  function setDefaultVehicle(email,id){ const p=getCustomerProfile(email); if(p) p.vehicles.forEach(v=>v.isDefault=(v.id===id)); }
+  function deleteAddress(email,id){ const p=getCustomerProfile(email); if(!p) return; p.addresses=p.addresses.filter(a=>a.id!==id); if(p.addresses.length && !p.addresses.some(a=>a.isDefault)) p.addresses[0].isDefault=true; }
+  function deleteVehicle(email,id){ const p=getCustomerProfile(email); if(!p) return; p.vehicles=p.vehicles.filter(v=>v.id!==id); if(p.vehicles.length && !p.vehicles.some(v=>v.isDefault)) p.vehicles[0].isDefault=true; }
+  function parseVehicleString(str){
+    const parts=(str||'').trim().split(/\s+/);
+    const year = /^\d{4}$/.test(parts[0]) ? parts.shift() : '';
+    const make = parts.shift() || '';
+    const model = parts.join(' ');
+    return { year, make, model };
+  }
+  function seedCustomerProfilesFromJobs(){
+    JOBS.forEach(j => {
+      if (!j.customer || !j.customer.email) return;
+      const profile = getOrCreateCustomerProfile(j.customer.email, j.customer.name, j.customer.phone);
+      if (j.address && !profile.addresses.some(a => a.matchString === j.address)){
+        addAddressToProfile(j.customer.email, { label: profile.addresses.length===0 ? 'Home' : 'Other', matchString:j.address, street:j.address, isDefault: profile.addresses.length===0 });
+      }
+      if (j.vehicle && !profile.vehicles.some(v => v.matchString === j.vehicle)){
+        addVehicleToProfile(j.customer.email, { year:j.vehicleYear, make:j.vehicleMake, model:j.vehicleModel, color:j.vehicleColor, vehicleType:j.vehicleType, matchString:j.vehicle, isDefault: profile.vehicles.length===0 });
+      }
+    });
+  }
+
+  // ================= PAYMENT HELPERS =================
+  function totalPaid(job){ return job.payments.reduce((s,p)=>s+p.amount,0); }
+  function balanceDue(job){ return Math.max(0, round2(job.total - totalPaid(job))); }
+  function getDepositAmount(job){ return job.payments.filter(p=>p.label==='Deposit').reduce((s,p)=>s+p.amount,0); }
+  function expectedDepositAmount(job){ return job.depositOverride != null ? job.depositOverride : round2(job.total*0.25); }
+  function getPaymentStatus(job){
+    const paid = totalPaid(job);
+    if (paid <= 0) return 'Unpaid';
+    if (paid >= job.total - 0.005) return 'Paid in Full';
+    return 'Deposit Paid';
+  }
+
+  // ================= APP STATE =================
+  let currentUser = null;
+  const clockRecords = [];
+  let currentClockRecord = null;
+  let currentView = 'today';
+  let currentJobId = null;
+  let alljobsSubtab = 'upcoming';
+  let customerSearchTerm = '';
+  let currentProfileEmail = null;
+
+  function isClockedIn(){ return !!(currentClockRecord && !currentClockRecord.clockOut); }
+  function perms(){ return currentUser ? ROLE_PERMISSIONS[currentUser.role] : ROLE_PERMISSIONS.Owner; }
+  function jobsVisibleToCurrentUser(){
+    if (!currentUser) return JOBS;
+    return perms().seeAllJobs ? JOBS : JOBS.filter(j => j.assignedEmployeeIds.includes(currentUser.id));
+  }
+
+  // ================= LOGIN =================
+  const loginScreen = document.getElementById('login-screen');
+  const appShell = document.getElementById('app');
+  const userSelect = document.getElementById('login-user-select');
+  const pinDotsEls = document.querySelectorAll('#pin-dots .pin-dot');
+  const loginErrorEl = document.getElementById('login-error');
+  let enteredPin = '';
+
+  userSelect.innerHTML = EMPLOYEES.map(e => `<option value="${e.id}">${e.name} (${e.role})</option>`).join('');
+
+  function renderPinDots(){
+    pinDotsEls.forEach((dot,i) => dot.classList.toggle('filled', i < enteredPin.length));
+  }
+
+  function shakePinDots(message){
+    loginErrorEl.textContent = message;
+    document.getElementById('pin-dots').classList.remove('shake');
+    void document.getElementById('pin-dots').offsetWidth;
+    document.getElementById('pin-dots').classList.add('shake');
+    enteredPin = '';
+    renderPinDots();
+    setTimeout(() => { loginErrorEl.textContent = ''; }, 1600);
+  }
+
+  function attemptLogin(){
+    const emp = findEmployee(Number(userSelect.value));
+    if (!emp) return;
+    if (enteredPin.length !== 4){
+      shakePinDots('Please enter your 4-digit PIN.');
+      return;
+    }
+    if (enteredPin !== emp.pin){
+      shakePinDots('Incorrect PIN. Please try again.');
+      return;
+    }
+    loginErrorEl.textContent = '';
+    currentUser = emp;
+    currentClockRecord = { employeeId: emp.id, clockIn: new Date(), clockOut: null };
+    clockRecords.push(currentClockRecord);
+    enteredPin = '';
+    renderPinDots();
+    enterApp();
+  }
+
+  document.getElementById('keypad').addEventListener('click', (e) => {
+    const btn = e.target.closest('.keypad-btn');
+    if (!btn) return;
+    const key = btn.dataset.key;
+    if (key === 'clear'){ enteredPin = ''; renderPinDots(); return; }
+    if (key === 'back'){ enteredPin = enteredPin.slice(0,-1); renderPinDots(); return; }
+    if (enteredPin.length >= 4) return;
+    enteredPin += key;
+    renderPinDots();
+    if (enteredPin.length === 4) setTimeout(attemptLogin, 120);
+  });
+
+  document.getElementById('login-enter-btn').addEventListener('click', attemptLogin);
+
+  // ================= APP ENTRY / HEADER =================
+  function greetingForNow(){
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 18) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  function renderClockToggle(){
+    const btn = document.getElementById('clock-toggle-btn');
+    const label = document.getElementById('clock-toggle-label');
+    const clockedIn = isClockedIn();
+    btn.classList.toggle('clocked-in', clockedIn);
+    label.textContent = clockedIn ? 'Clock Out' : 'Clock In';
+  }
+
+  document.getElementById('clock-toggle-btn').addEventListener('click', () => {
+    if (isClockedIn()){
+      currentClockRecord.clockOut = new Date();
+    } else {
+      currentClockRecord = { employeeId: currentUser.id, clockIn: new Date(), clockOut: null };
+      clockRecords.push(currentClockRecord);
+    }
+    renderClockToggle();
+    if (currentView === 'profile') renderProfileView();
+  });
+
+  function tickClock(){
+    const now = new Date();
+    document.getElementById('app-time').textContent = `${formatLongDate(now)} · ${formatTime(now)}`;
+    if (currentView === 'profile' && appShell.classList.contains('active')) renderClockHistory();
+  }
+
+  function enterApp(){
+    loginScreen.classList.add('hidden');
+    appShell.classList.add('active');
+    document.getElementById('app-greeting').textContent = `${greetingForNow()}, ${currentUser.name.split(' ')[0]}`;
+    renderClockToggle();
+    tickClock();
+    setInterval(tickClock, 1000);
+    seedCustomerProfilesFromJobs();
+    applyRolePermissionsUI();
+    switchView('today');
+  }
+
+  function applyRolePermissionsUI(){
+    const p = perms();
+    document.querySelectorAll('.bottom-nav-link').forEach(btn => {
+      btn.hidden = !p.tabs.includes(btn.dataset.view);
+    });
+  }
+
+  // ================= VIEW SWITCHING =================
+  function switchView(name){
+    currentView = name;
+    document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === `view-${name}`));
+    document.querySelectorAll('.bottom-nav-link').forEach(btn => btn.classList.toggle('active', btn.dataset.view === name));
+    if (name === 'today') renderTodayView();
+    if (name === 'alljobs') renderAllJobsView();
+    if (name === 'customers') renderCustomersView();
+    if (name === 'payments') renderPaymentsView();
+    if (name === 'profile') renderProfileView();
+  }
+  document.querySelectorAll('.bottom-nav-link').forEach(btn => {
+    btn.addEventListener('click', () => switchView(btn.dataset.view));
+  });
+
+  // ================= JOB CARD BUILDER (shared) =================
+  function buildJobCardHtml(j, opts){
+    opts = opts || {};
+    const bal = balanceDue(j);
+    const assignedNames = j.assignedEmployeeIds.map(id => { const e=findEmployee(id); return e?e.name:''; }).filter(Boolean).join(', ');
+    const showAssigned = perms().seeAllJobs;
+    return `
+      <div class="job-card status-${STATUS_SLUG[j.status]}" data-job-id="${j.id}">
+        <div class="job-card-top">
+          <div>
+            <div class="job-time">${j.time}</div>
+            <div class="job-customer">${j.customer.name}</div>
+            <div class="job-service">${j.service} — ${j.vehicle}</div>
+          </div>
+          <span class="badge badge-${STATUS_SLUG[j.status]}">${j.status}</span>
+        </div>
+        <div class="job-address">${opts.showDate ? formatShortDate(j.date) + ' · ' : ''}📍 ${j.address}</div>
+        <div class="job-card-bottom">
+          <span class="job-total">${formatCurrency(j.total)}</span>
+          <span class="job-balance ${bal<=0?'paid':''}">${bal<=0 ? 'Paid in Full' : 'Bal: ' + formatCurrency(bal)}</span>
+        </div>
+        ${showAssigned && assignedNames ? `<div class="job-assigned-tag">Assigned: ${assignedNames}</div>` : ''}
+      </div>
+    `;
+  }
+
+  function wireJobCardClicks(container){
+    container.querySelectorAll('.job-card').forEach(card => {
+      card.addEventListener('click', () => openJobDetail(Number(card.dataset.jobId)));
+    });
+  }
+
+  // ================= TODAY VIEW =================
+  function renderTodayView(){
+    const jobs = jobsVisibleToCurrentUser().filter(j => isSameDay(j.date, TODAY)).sort((a,b) => ADMIN_TIME_SLOTS.indexOf(a.time)-ADMIN_TIME_SLOTS.indexOf(b.time));
+    const completed = jobs.filter(j => j.status === 'Completed').length;
+    document.getElementById('sum-jobs-today').textContent = jobs.length;
+    document.getElementById('sum-completed').textContent = completed;
+    document.getElementById('sum-remaining').textContent = jobs.length - completed;
+
+    let earnings = 0;
+    if (currentUser){
+      const myCompletedToday = jobs.filter(j => j.status === 'Completed' && j.assignedEmployeeIds.includes(currentUser.id));
+      earnings += myCompletedToday.reduce((s,j) => s + j.total * (currentUser.commissionRate||0)/100, 0);
+      if (currentUser.hourlyRate) earnings += hoursWorkedToday() * currentUser.hourlyRate;
+    }
+    document.getElementById('sum-earnings').textContent = formatCurrency(earnings);
+
+    const list = document.getElementById('today-jobs-list');
+    list.innerHTML = jobs.length ? jobs.map(j => buildJobCardHtml(j)).join('') : `<p class="empty-state">No jobs scheduled for today.</p>`;
+    wireJobCardClicks(list);
+  }
+
+  function hoursWorkedToday(){
+    if (!currentUser) return 0;
+    const recs = clockRecords.filter(r => r.employeeId === currentUser.id && isSameDay(r.clockIn, TODAY));
+    let ms = 0;
+    recs.forEach(r => { ms += (r.clockOut || new Date()) - r.clockIn; });
+    return ms / 3600000;
+  }
+
+  // ================= ALL JOBS VIEW =================
+  function renderAllJobsView(){
+    const weekEnd = new Date(TODAY); weekEnd.setDate(weekEnd.getDate() + 7);
+    let jobs = jobsVisibleToCurrentUser().filter(j => j.date >= TODAY && j.date <= weekEnd);
+    if (alljobsSubtab === 'upcoming'){
+      jobs = jobs.filter(j => j.status !== 'Completed');
+    } else {
+      jobs = jobs.filter(j => j.status === 'Completed');
+    }
+    jobs.sort((a,b) => a.date-b.date || ADMIN_TIME_SLOTS.indexOf(a.time)-ADMIN_TIME_SLOTS.indexOf(b.time));
+    const list = document.getElementById('alljobs-list');
+    list.innerHTML = jobs.length ? jobs.map(j => buildJobCardHtml(j, { showDate:true })).join('') : `<p class="empty-state">No ${alljobsSubtab} jobs in the next 7 days.</p>`;
+    wireJobCardClicks(list);
+  }
+  document.querySelectorAll('#alljobs-subtabs .subtab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('#alljobs-subtabs .subtab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      alljobsSubtab = tab.dataset.ajtab;
+      renderAllJobsView();
+    });
+  });
+
+  // ================= JOB DETAIL SCREEN =================
+  const jobDetailScreen = document.getElementById('job-detail-screen');
+  const ESTIMATED_DURATION = { full:'2.5 hours', interior:'1.5 hours', exterior:'1 hour' };
+
+  function addonDisplayName(a){ return typeof a === 'string' ? a : a.name; }
+
+  function populateJobDetail(job){
+    document.getElementById('detail-job-number').textContent = `Job #${job.jobNumber}`;
+    document.getElementById('dj-customer-name').textContent = job.customer.name;
+    document.getElementById('dj-customer-phone').textContent = job.customer.phone;
+    document.getElementById('dj-customer-address').textContent = job.address;
+    document.getElementById('dj-vehicle-full').textContent = `${job.vehicleYear} ${job.vehicleMake} ${job.vehicleModel}${job.vehicleColor ? ' — ' + job.vehicleColor : ''}`;
+
+    const pkgLabel = job.packageKey ? JOB_CATALOG.full.packages[job.packageKey].label : '';
+    document.getElementById('dj-category-package').textContent = `${JOB_CATALOG[job.category].label}${pkgLabel ? ' — ' + pkgLabel : ''}`;
+    document.getElementById('dj-vehicletype').textContent = job.vehicleType;
+    document.getElementById('dj-included-list').innerHTML = (INCLUDED_ITEMS[job.category]||[]).map(i => `<li>${i}</li>`).join('');
+    document.getElementById('dj-duration').textContent = ESTIMATED_DURATION[job.category] || '—';
+
+    const addonsWrap = document.getElementById('dj-addons-wrap');
+    addonsWrap.innerHTML = job.addons.length
+      ? job.addons.map(a => `<span class="addon-tag">${addonDisplayName(a)} · ${formatCurrency(typeof a==='string'?0:a.price)}</span>`).join('')
+      : `<p style="font-size:12.5px; color:var(--ink-faint); margin:0;">No add-ons selected.</p>`;
+
+    document.getElementById('dj-total').innerHTML = formatCurrency(job.total) +
+      (job.priceOverride ? ` <span title="Overridden — ${job.priceOverride.reason}">📝</span>` : '');
+    document.getElementById('dj-deposit').textContent = formatCurrency(getDepositAmount(job));
+    const bal = balanceDue(job);
+    const balEl = document.getElementById('dj-balance');
+    balEl.textContent = formatCurrency(bal);
+    balEl.classList.toggle('paid', bal <= 0);
+    const statusBadge = document.getElementById('dj-payment-status-badge');
+    const payStatus = getPaymentStatus(job);
+    statusBadge.textContent = payStatus;
+    statusBadge.className = 'badge badge-' + (payStatus === 'Paid in Full' ? 'completed' : payStatus === 'Unpaid' ? 'pending' : 'inprogress');
+
+    const editSection = document.getElementById('dj-edit-section');
+    editSection.hidden = !perms().editJobs;
+    document.getElementById('dj-edit-collapsible-body').classList.remove('open');
+    document.getElementById('dj-edit-collapsible-header').classList.remove('open');
+
+    document.getElementById('dj-request-adjustment-wrap').hidden = perms().editJobs;
+
+    document.getElementById('dj-notes-input').value = job.notes || '';
+
+    renderPhotoGrid('dj-photos-before', job.photosBefore, 'before');
+    renderPhotoGrid('dj-photos-after', job.photosAfter, 'after');
+
+    updateActionsBar(job);
+  }
+
+  function updateActionsBar(job){
+    const startBtn = document.getElementById('dj-start-btn');
+    const completeBtn = document.getElementById('dj-complete-btn');
+    const collectBtn = document.getElementById('dj-collect-btn');
+
+    startBtn.classList.toggle('hidden', job.status !== 'Confirmed');
+    completeBtn.classList.toggle('hidden', job.status !== 'In Progress');
+    const canCollect = (job.status === 'In Progress' || job.status === 'Completed') && perms().allPaymentMethods && balanceDue(job) > 0;
+    collectBtn.classList.toggle('hidden', !canCollect);
+  }
+
+  function openJobDetail(jobId){
+    currentJobId = jobId;
+    populateJobDetail(findJob(jobId));
+    jobDetailScreen.classList.add('active');
+  }
+  function closeJobDetail(){
+    jobDetailScreen.classList.remove('active');
+    currentJobId = null;
+    refreshAllViews();
+  }
+  document.getElementById('detail-back-btn').addEventListener('click', closeJobDetail);
+
+  function refreshAllViews(){
+    if (currentView === 'today') renderTodayView();
+    if (currentView === 'alljobs') renderAllJobsView();
+    if (currentView === 'customers') renderCustomersView();
+    if (currentView === 'payments') renderPaymentsView();
+    if (currentView === 'profile') renderProfileView();
+  }
+
+  document.getElementById('dj-notes-input').addEventListener('input', (e) => {
+    const job = findJob(currentJobId);
+    if (job) job.notes = e.target.value;
+  });
+
+  document.getElementById('dj-edit-collapsible-header').addEventListener('click', () => {
+    document.getElementById('dj-edit-collapsible-header').classList.toggle('open');
+    document.getElementById('dj-edit-collapsible-body').classList.toggle('open');
+  });
+
+  document.getElementById('dj-phone-line').addEventListener('click', () => {
+    const job = findJob(currentJobId);
+    window.location.href = 'tel:' + job.customer.phone.replace(/[^\d+]/g,'');
+  });
+  document.getElementById('dj-address-line').addEventListener('click', () => {
+    const job = findJob(currentJobId);
+    window.open('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(job.address), '_blank');
+  });
+  document.getElementById('dj-navigate-btn').addEventListener('click', () => {
+    const job = findJob(currentJobId);
+    window.open('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(job.address), '_blank');
+  });
+  document.getElementById('dj-call-btn').addEventListener('click', () => {
+    const job = findJob(currentJobId);
+    window.location.href = 'tel:' + job.customer.phone.replace(/[^\d+]/g,'');
+  });
+
+  document.getElementById('dj-start-btn').addEventListener('click', () => {
+    const job = findJob(currentJobId);
+    job.status = 'In Progress';
+    job.startTime = new Date();
+    logJobActivity(job, 'Status changed — Confirmed → In Progress');
+    populateJobDetail(job);
+  });
+
+  document.getElementById('dj-complete-btn').addEventListener('click', () => {
+    const job = findJob(currentJobId);
+    if (!job.photosBefore.length){
+      alert('Please add at least 1 before photo before completing this job.');
+      return;
+    }
+    if (!job.photosAfter.length){
+      alert('Please add at least 1 after photo before completing this job.');
+      return;
+    }
+    job.status = 'Completed';
+    job.endTime = new Date();
+    logJobActivity(job, 'Status changed — In Progress → Completed');
+    populateJobDetail(job);
+  });
+
+  document.getElementById('dj-request-adjustment-btn').addEventListener('click', () => {
+    alert('Adjustment request sent to manager.');
+  });
+
+  // ================= PHOTOS =================
+  let pendingPhotoType = null;
+  function renderPhotoGrid(containerId, photos, type){
+    const container = document.getElementById(containerId);
+    const thumbs = photos.map((src,i) => `
+      <div class="photo-thumb" data-index="${i}" data-type="${type}"><img src="${src}" alt="Photo ${i+1}"></div>
+    `).join('');
+    container.innerHTML = thumbs + `<button type="button" class="photo-add-btn" data-type="${type}"><span class="plus">+</span>Add Photo</button>`;
+  }
+
+  document.getElementById('detail-content').addEventListener('click', (e) => {
+    const addBtn = e.target.closest('.photo-add-btn');
+    if (addBtn){
+      pendingPhotoType = addBtn.dataset.type;
+      document.getElementById(pendingPhotoType === 'before' ? 'photo-input-before' : 'photo-input-after').click();
+      return;
+    }
+    const thumb = e.target.closest('.photo-thumb');
+    if (thumb){
+      const job = findJob(currentJobId);
+      const arr = thumb.dataset.type === 'before' ? job.photosBefore : job.photosAfter;
+      openPhotoViewer(arr[Number(thumb.dataset.index)]);
+    }
+  });
+
+  let longPressTimer = null;
+  document.getElementById('detail-content').addEventListener('pointerdown', (e) => {
+    const thumb = e.target.closest('.photo-thumb');
+    if (!thumb) return;
+    longPressTimer = setTimeout(() => {
+      const job = findJob(currentJobId);
+      const type = thumb.dataset.type;
+      const idx = Number(thumb.dataset.index);
+      if (confirm('Delete this photo?')){
+        (type === 'before' ? job.photosBefore : job.photosAfter).splice(idx,1);
+        renderPhotoGrid(type === 'before' ? 'dj-photos-before' : 'dj-photos-after', type === 'before' ? job.photosBefore : job.photosAfter, type);
+      }
+    }, 550);
+  });
+  ['pointerup','pointerleave','pointercancel'].forEach(evt => {
+    document.getElementById('detail-content').addEventListener(evt, () => { clearTimeout(longPressTimer); });
+  });
+
+  function handlePhotoFile(input, type){
+    input.addEventListener('change', () => {
+      const file = input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const job = findJob(currentJobId);
+        (type === 'before' ? job.photosBefore : job.photosAfter).push(reader.result);
+        renderPhotoGrid(type === 'before' ? 'dj-photos-before' : 'dj-photos-after', type === 'before' ? job.photosBefore : job.photosAfter, type);
+      };
+      reader.readAsDataURL(file);
+      input.value = '';
+    });
+  }
+  handlePhotoFile(document.getElementById('photo-input-before'), 'before');
+  handlePhotoFile(document.getElementById('photo-input-after'), 'after');
+
+  function openPhotoViewer(src){
+    document.getElementById('photo-viewer-img').src = src;
+    document.getElementById('photo-viewer').classList.remove('hidden');
+  }
+  document.getElementById('photo-viewer-close').addEventListener('click', () => {
+    document.getElementById('photo-viewer').classList.add('hidden');
+  });
+
+  // ================= MODAL HELPERS =================
+  function closeModal(id){ document.getElementById(id).classList.add('hidden'); }
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.add('hidden'); });
+  });
+
+  // ================= EDIT SERVICE MODAL =================
+  function populateEsVehicleTypeSelect(){
+    const cat = document.querySelector('#es-category-tabs .type-toggle-btn.active').dataset.cat;
+    document.getElementById('es-package-field').hidden = cat !== 'full';
+    const vehicles = cat === 'full' ? JOB_CATALOG.full.packages[document.getElementById('es-package').value].vehicles : JOB_CATALOG[cat].vehicles;
+    document.getElementById('es-vehicletype').innerHTML = vehicles.map(v => `<option value="${v.label}" data-price="${v.price}">${v.label} — ${formatCurrency(v.price)}</option>`).join('');
+    const waxCb = document.getElementById('es-addon-wax');
+    renderEsWaxGroup(waxCb ? waxCb.checked : false);
+    recalcEsTotal();
+  }
+
+  function renderEsAddonGroup(containerId, catalog, selectedKeys){
+    const container = document.getElementById(containerId);
+    container.innerHTML = catalog.map(a => `
+      <label class="addon-check-item">
+        <input type="checkbox" value="${a.key}" ${selectedKeys.includes(a.key) ? 'checked' : ''}>
+        <span>${a.name}${a.plus ? '+' : ''}</span>
+        <span class="addon-price">${formatCurrency(a.price)}</span>
+      </label>
+    `).join('');
+    container.querySelectorAll('input').forEach(cb => cb.addEventListener('change', recalcEsTotal));
+  }
+
+  function renderEsWaxGroup(checked){
+    const vt = document.getElementById('es-vehicletype').value;
+    const price = machineWaxPrice(vt);
+    document.getElementById('es-addons-wax').innerHTML = `
+      <label class="addon-check-item">
+        <input type="checkbox" id="es-addon-wax" ${checked ? 'checked' : ''}>
+        <span>Machine Wax</span>
+        <span class="addon-price">${formatCurrency(price)}</span>
+      </label>
+    `;
+    document.getElementById('es-addon-wax').addEventListener('change', recalcEsTotal);
+  }
+
+  function recalcEsTotal(){
+    const vtOpt = document.getElementById('es-vehicletype').selectedOptions[0];
+    const base = vtOpt ? parseFloat(vtOpt.dataset.price) : 0;
+    let addonsTotal = 0;
+    document.querySelectorAll('#es-addons-interior input:checked, #es-addons-exterior input:checked').forEach(cb => {
+      const found = ALL_FLAT_ADDONS.find(a => a.key === cb.value);
+      if (found) addonsTotal += found.price;
+    });
+    const waxCb = document.getElementById('es-addon-wax');
+    if (waxCb && waxCb.checked) addonsTotal += machineWaxPrice(document.getElementById('es-vehicletype').value);
+    document.getElementById('es-computed-total').textContent = formatCurrency(base + addonsTotal);
+    return { base, addonsTotal };
+  }
+
+  function openEditServiceModal(){
+    const job = findJob(currentJobId);
+    document.querySelectorAll('#es-category-tabs .type-toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === job.category));
+    if (job.packageKey) document.getElementById('es-package').value = job.packageKey;
+    populateEsVehicleTypeSelect();
+    const vt = document.getElementById('es-vehicletype');
+    if ([...vt.options].some(o => o.value === job.vehicleType)) vt.value = job.vehicleType;
+
+    const selectedKeys = job.addons.map(a => {
+      const nm = addonDisplayName(a);
+      if (nm === 'Machine Wax') return 'machine_wax';
+      const found = ALL_FLAT_ADDONS.find(c => c.name === nm);
+      return found ? found.key : null;
+    }).filter(Boolean);
+    renderEsAddonGroup('es-addons-interior', ADDONS_INTERIOR, selectedKeys);
+    renderEsAddonGroup('es-addons-exterior', ADDONS_EXTERIOR, selectedKeys);
+    renderEsWaxGroup(selectedKeys.includes('machine_wax'));
+    recalcEsTotal();
+    document.getElementById('edit-service-modal').classList.remove('hidden');
+  }
+
+  document.querySelectorAll('#es-category-tabs .type-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#es-category-tabs .type-toggle-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      populateEsVehicleTypeSelect();
+    });
+  });
+  document.getElementById('es-package').addEventListener('change', populateEsVehicleTypeSelect);
+  document.getElementById('es-vehicletype').addEventListener('change', () => {
+    const waxCb = document.getElementById('es-addon-wax');
+    renderEsWaxGroup(waxCb ? waxCb.checked : false);
+    recalcEsTotal();
+  });
+  document.getElementById('es-cancel').addEventListener('click', () => closeModal('edit-service-modal'));
+  document.getElementById('dj-edit-service-btn').addEventListener('click', openEditServiceModal);
+
+  document.getElementById('es-save').addEventListener('click', () => {
+    const job = findJob(currentJobId);
+    const cat = document.querySelector('#es-category-tabs .type-toggle-btn.active').dataset.cat;
+    const pkgKey = cat === 'full' ? document.getElementById('es-package').value : null;
+    const vehicleType = document.getElementById('es-vehicletype').value;
+    const serviceLabel = cat === 'full' ? JOB_CATALOG.full.packages[pkgKey].label : JOB_CATALOG[cat].label;
+    const { base, addonsTotal } = recalcEsTotal();
+
+    const addons = [];
+    document.querySelectorAll('#es-addons-interior input:checked, #es-addons-exterior input:checked').forEach(cb => {
+      const found = ALL_FLAT_ADDONS.find(a => a.key === cb.value);
+      if (found) addons.push({ name: found.name, price: found.price });
+    });
+    const waxCb = document.getElementById('es-addon-wax');
+    if (waxCb && waxCb.checked) addons.push({ name: 'Machine Wax', price: machineWaxPrice(vehicleType) });
+
+    const changes = [];
+    if (job.service !== serviceLabel) changes.push(`Service: ${job.service} → ${serviceLabel}`);
+    if (job.vehicleType !== vehicleType) changes.push(`Vehicle type: ${job.vehicleType} → ${vehicleType}`);
+    const newTotal = round2(base + addonsTotal);
+    if (round2(job.total) !== newTotal) changes.push(`Total: ${formatCurrency(job.total)} → ${formatCurrency(newTotal)}`);
+
+    job.category = cat; job.packageKey = pkgKey; job.service = serviceLabel; job.vehicleType = vehicleType;
+    job.addons = addons; job.subtotal = base; job.addonsTotal = addonsTotal; job.total = newTotal;
+    job.priceOverride = null;
+
+    changes.forEach(c => logJobActivity(job, `Field changed — ${c}`));
+    closeModal('edit-service-modal');
+    populateJobDetail(job);
+    refreshAllViews();
+  });
+
+  // ================= EDIT PRICE MODAL =================
+  const KNOWN_REASONS = ['Loyalty discount','Promotional offer','Vehicle condition adjustment','Management approval'];
+
+  function openEditPriceModal(){
+    const job = findJob(currentJobId);
+    document.getElementById('ep-current-price').textContent = formatCurrency(job.total);
+    document.getElementById('ep-override-price').value = job.total;
+    if (job.priceOverride && KNOWN_REASONS.includes(job.priceOverride.reason)){
+      document.getElementById('ep-reason').value = job.priceOverride.reason;
+      document.getElementById('ep-other-field').hidden = true;
+      document.getElementById('ep-other').value = '';
+    } else if (job.priceOverride){
+      document.getElementById('ep-reason').value = 'Other';
+      document.getElementById('ep-other-field').hidden = false;
+      document.getElementById('ep-other').value = job.priceOverride.reason;
+    } else {
+      document.getElementById('ep-reason').value = 'Loyalty discount';
+      document.getElementById('ep-other-field').hidden = true;
+      document.getElementById('ep-other').value = '';
+    }
+    document.getElementById('edit-price-modal').classList.remove('hidden');
+  }
+  document.getElementById('ep-reason').addEventListener('change', (e) => {
+    document.getElementById('ep-other-field').hidden = e.target.value !== 'Other';
+  });
+  document.getElementById('ep-cancel').addEventListener('click', () => closeModal('edit-price-modal'));
+  document.getElementById('dj-edit-price-btn').addEventListener('click', openEditPriceModal);
+
+  document.getElementById('ep-save').addEventListener('click', () => {
+    const job = findJob(currentJobId);
+    const newPrice = parseFloat(document.getElementById('ep-override-price').value);
+    if (!newPrice || newPrice <= 0){ alert('Please enter a valid override price.'); return; }
+    const reasonSel = document.getElementById('ep-reason').value;
+    const reason = reasonSel === 'Other' ? (document.getElementById('ep-other').value.trim() || 'Other') : reasonSel;
+    const oldTotal = job.total;
+    job.priceOverride = { overridePrice: newPrice, reason, originalTotal: round2(job.subtotal + job.addonsTotal) };
+    job.total = round2(newPrice);
+    logJobActivity(job, `Field changed — Total: ${formatCurrency(oldTotal)} → ${formatCurrency(job.total)} (override: ${reason})`);
+    closeModal('edit-price-modal');
+    populateJobDetail(job);
+    refreshAllViews();
+  });
+
+  // ================= EDIT CUSTOMER MODAL =================
+  function openEditCustomerModal(){
+    const job = findJob(currentJobId);
+    document.getElementById('ec-name').value = job.customer.name;
+    document.getElementById('ec-phone').value = job.customer.phone;
+    document.getElementById('ec-email').value = job.customer.email;
+    document.getElementById('ec-address').value = job.address;
+    document.getElementById('ec-year').value = job.vehicleYear;
+    document.getElementById('ec-make').value = job.vehicleMake;
+    document.getElementById('ec-model').value = job.vehicleModel;
+    document.getElementById('ec-color').value = job.vehicleColor;
+    document.getElementById('ec-notes').value = job.notes;
+    document.getElementById('edit-customer-modal').classList.remove('hidden');
+  }
+  document.getElementById('ec-cancel').addEventListener('click', () => closeModal('edit-customer-modal'));
+  document.getElementById('dj-edit-customer-btn').addEventListener('click', openEditCustomerModal);
+
+  document.getElementById('ec-save').addEventListener('click', () => {
+    const job = findJob(currentJobId);
+    const name = document.getElementById('ec-name').value.trim();
+    const phone = document.getElementById('ec-phone').value.trim();
+    const email = document.getElementById('ec-email').value.trim();
+    const address = document.getElementById('ec-address').value.trim();
+    const year = document.getElementById('ec-year').value.trim();
+    const make = document.getElementById('ec-make').value.trim();
+    const model = document.getElementById('ec-model').value.trim();
+    const color = document.getElementById('ec-color').value.trim();
+    const notes = document.getElementById('ec-notes').value.trim();
+    if (!name || !phone || !email || !address){ alert('Please complete all required fields.'); return; }
+
+    const changes = [];
+    if (job.customer.name !== name) changes.push(`Customer name: ${job.customer.name} → ${name}`);
+    if (job.address !== address) changes.push(`Address: ${job.address} → ${address}`);
+    job.customer = { name, phone, email };
+    job.address = address;
+    job.vehicleYear = year; job.vehicleMake = make; job.vehicleModel = model; job.vehicleColor = color;
+    job.vehicle = `${year} ${make} ${model}`.trim();
+    job.notes = notes;
+    changes.forEach(c => logJobActivity(job, `Field changed — ${c}`));
+    getOrCreateCustomerProfile(email, name, phone);
+    closeModal('edit-customer-modal');
+    populateJobDetail(job);
+    refreshAllViews();
+  });
+
+  // ================= REASSIGN TECHNICIAN MODAL =================
+  function renderReassignList(term){
+    const job = findJob(currentJobId);
+    const list = activeEmployees().filter(e => e.name.toLowerCase().includes(term.toLowerCase()));
+    document.getElementById('reassign-list').innerHTML = list.length ? list.map(e => `
+      <div class="list-card" data-emp-id="${e.id}">
+        <div class="list-card-title">${e.name} ${job.assignedEmployeeIds.includes(e.id) ? '✓' : ''}</div>
+        <div class="list-card-meta">${e.role}</div>
+      </div>
+    `).join('') : `<p class="empty-state">No employees found.</p>`;
+    document.querySelectorAll('#reassign-list .list-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const empId = Number(card.dataset.empId);
+        const oldNames = job.assignedEmployeeIds.map(id => findEmployee(id).name).join(', ');
+        job.assignedEmployeeIds = [empId];
+        logJobActivity(job, `Field changed — Assigned: ${oldNames || 'none'} → ${findEmployee(empId).name}`);
+        closeModal('reassign-modal');
+        populateJobDetail(job);
+        refreshAllViews();
+      });
+    });
+  }
+  function openReassignModal(){
+    document.getElementById('reassign-search').value = '';
+    renderReassignList('');
+    document.getElementById('reassign-modal').classList.remove('hidden');
+  }
+  document.getElementById('reassign-search').addEventListener('input', (e) => renderReassignList(e.target.value));
+  document.getElementById('reassign-cancel').addEventListener('click', () => closeModal('reassign-modal'));
+  document.getElementById('dj-reassign-btn').addEventListener('click', openReassignModal);
+
+  // ================= EDIT DATE/TIME MODAL =================
+  function openEditDateTimeModal(){
+    const job = findJob(currentJobId);
+    document.getElementById('edt-date').value = toInputDate(job.date);
+    document.getElementById('edt-time').innerHTML = ADMIN_TIME_SLOTS.map(t => `<option value="${t}">${t}</option>`).join('');
+    document.getElementById('edt-time').value = job.time;
+    document.getElementById('edit-datetime-modal').classList.remove('hidden');
+  }
+  document.getElementById('edt-cancel').addEventListener('click', () => closeModal('edit-datetime-modal'));
+  document.getElementById('dj-edit-datetime-btn').addEventListener('click', openEditDateTimeModal);
+
+  document.getElementById('edt-save').addEventListener('click', () => {
+    const job = findJob(currentJobId);
+    const dateVal = document.getElementById('edt-date').value;
+    const time = document.getElementById('edt-time').value;
+    if (!dateVal){ alert('Please pick a date.'); return; }
+    const changes = [];
+    if (toInputDate(job.date) !== dateVal) changes.push(`Date: ${formatShortDate(job.date)} → ${formatShortDate(fromInputDate(dateVal))}`);
+    if (job.time !== time) changes.push(`Time: ${job.time} → ${time}`);
+    job.date = fromInputDate(dateVal);
+    job.time = time;
+    changes.forEach(c => logJobActivity(job, `Field changed — ${c}`));
+    closeModal('edit-datetime-modal');
+    populateJobDetail(job);
+    refreshAllViews();
+  });
+
+  // ================= COLLECT PAYMENT MODAL =================
+  let cpSelectedMethod = null;
+
+  function renderPaymentMethodGrid(){
+    const grid = document.getElementById('cp-method-grid');
+    grid.innerHTML = PAYMENT_METHODS.map(m => `
+      <div class="payment-method-btn ${m === cpSelectedMethod ? 'selected' : ''}" data-method="${m}">
+        <span class="pm-star ${currentUser.defaultPaymentMethod === m ? 'is-default' : ''}" data-star="${m}">★</span>
+        <span class="pm-icon">${PAYMENT_METHOD_ICON[m]}</span>
+        <span class="pm-name">${m}</span>
+      </div>
+    `).join('');
+    grid.querySelectorAll('.payment-method-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        if (e.target.closest('.pm-star')) return;
+        cpSelectedMethod = btn.dataset.method;
+        renderPaymentMethodGrid();
+        renderMethodFields(cpSelectedMethod, findJob(currentJobId));
+      });
+    });
+    grid.querySelectorAll('.pm-star').forEach(star => {
+      star.addEventListener('click', (e) => {
+        e.stopPropagation();
+        currentUser.defaultPaymentMethod = star.dataset.star;
+        renderPaymentMethodGrid();
+        if (currentView === 'profile') renderProfileView();
+      });
+    });
+  }
+
+  function updateCashChange(){
+    const job = findJob(currentJobId);
+    const bal = balanceDue(job);
+    const received = parseFloat(document.getElementById('cp-field-received').value) || 0;
+    document.getElementById('cp-change-due').textContent = formatCurrency(Math.max(0, received - bal));
+  }
+
+  function renderMethodFields(method, job){
+    const container = document.getElementById('cp-method-fields');
+    const bal = balanceDue(job);
+    if (method === 'Stripe Link'){
+      container.innerHTML = `
+        <div class="field"><label>Customer Email</label><input type="email" id="cp-field-email" value="${job.customer.email}"></div>
+        <div class="field" style="margin-top:12px;"><label>Customer Phone</label><input type="tel" id="cp-field-phone" value="${job.customer.phone}"></div>
+        <div class="field" style="margin-top:12px;"><label>Amount</label><input type="number" id="cp-field-amount" value="${bal.toFixed(2)}" step="0.01"></div>
+        <button type="button" class="btn btn-primary btn-full" id="cp-submit-btn" style="margin-top:16px;">Send Stripe Payment Link</button>
+      `;
+    } else if (method === 'Square Reader'){
+      container.innerHTML = `
+        <p style="font-size:13.5px; color:var(--ink-muted); margin:6px 0 14px;">Open the Square app and charge ${formatCurrency(bal)}.</p>
+        <div class="field"><label>Amount</label><input type="number" id="cp-field-amount" value="${bal.toFixed(2)}" step="0.01"></div>
+        <button type="button" class="btn btn-primary btn-full" id="cp-submit-btn" style="margin-top:16px;">Confirm Payment Received</button>
+      `;
+    } else if (method === 'Square Link'){
+      container.innerHTML = `
+        <div class="field"><label>Customer Email</label><input type="email" id="cp-field-email" value="${job.customer.email}"></div>
+        <div class="field" style="margin-top:12px;"><label>Customer Phone</label><input type="tel" id="cp-field-phone" value="${job.customer.phone}"></div>
+        <div class="field" style="margin-top:12px;"><label>Amount</label><input type="number" id="cp-field-amount" value="${bal.toFixed(2)}" step="0.01"></div>
+        <button type="button" class="btn btn-primary btn-full" id="cp-submit-btn" style="margin-top:16px;">Send Square Payment Link</button>
+      `;
+    } else if (method === 'Cash'){
+      container.innerHTML = `
+        <div class="field"><label>Amount Received</label><input type="number" id="cp-field-received" value="${bal.toFixed(2)}" step="0.01"></div>
+        <div class="info-line" style="margin-top:10px;"><span>Change Due</span><span id="cp-change-due" style="font-weight:700;">$0.00</span></div>
+        <button type="button" class="btn btn-primary btn-full" id="cp-submit-btn" style="margin-top:16px;">Record Cash Payment</button>
+      `;
+      document.getElementById('cp-field-received').addEventListener('input', updateCashChange);
+      updateCashChange();
+    } else if (method === 'Zelle'){
+      container.innerHTML = `
+        <div class="financial-box" style="margin-bottom:14px;"><div class="summary-label">Send Zelle To</div><div style="font-weight:700; margin-top:4px;">payments@blisscleandetail.com</div></div>
+        <div class="field"><label>Reference # (optional)</label><input type="text" id="cp-field-reference"></div>
+        <button type="button" class="btn btn-primary btn-full" id="cp-submit-btn" style="margin-top:16px;">Mark as Received</button>
+      `;
+    } else if (method === 'Check'){
+      container.innerHTML = `
+        <div class="field"><label>Check #</label><input type="text" id="cp-field-checknum"></div>
+        <button type="button" class="btn btn-primary btn-full" id="cp-submit-btn" style="margin-top:16px;">Mark as Received</button>
+      `;
+    } else {
+      container.innerHTML = `
+        <div class="field"><label>Description</label><input type="text" id="cp-field-description"></div>
+        <div class="field" style="margin-top:12px;"><label>Amount</label><input type="number" id="cp-field-amount" value="${bal.toFixed(2)}" step="0.01"></div>
+        <button type="button" class="btn btn-primary btn-full" id="cp-submit-btn" style="margin-top:16px;">Record Payment</button>
+      `;
+    }
+    document.getElementById('cp-submit-btn').addEventListener('click', () => handlePaymentSubmit(method, job));
+  }
+
+  function handlePaymentSubmit(method, job){
+    let amount, recordedMethod = method, integrationAlert = null;
+    if (method === 'Stripe Link'){
+      amount = parseFloat(document.getElementById('cp-field-amount').value) || balanceDue(job);
+      recordedMethod = 'Stripe - Link Sent';
+      integrationAlert = 'Stripe integration coming soon.';
+    } else if (method === 'Square Reader'){
+      amount = parseFloat(document.getElementById('cp-field-amount').value) || balanceDue(job);
+      recordedMethod = 'Square - Reader';
+    } else if (method === 'Square Link'){
+      amount = parseFloat(document.getElementById('cp-field-amount').value) || balanceDue(job);
+      recordedMethod = 'Square - Link Sent';
+      integrationAlert = 'Square integration coming soon.';
+    } else if (method === 'Cash'){
+      amount = balanceDue(job);
+    } else if (method === 'Zelle' || method === 'Check'){
+      amount = balanceDue(job);
+    } else {
+      amount = parseFloat(document.getElementById('cp-field-amount').value) || balanceDue(job);
+    }
+    if (!amount || amount <= 0){ alert('Please enter a valid amount.'); return; }
+
+    job.payments.push({ id: nextPaymentIdCounter++, label:'Balance', amount, method: recordedMethod, date: new Date(), reference:'' });
+    logJobActivity(job, `Payment recorded — ${formatCurrency(amount)} via ${recordedMethod}`);
+    if (integrationAlert) alert(integrationAlert);
+    showPaymentSuccess(job);
+  }
+
+  function showPaymentSuccess(job){
+    document.getElementById('cp-main-panel').classList.add('hidden');
+    document.getElementById('cp-success-panel').classList.remove('hidden');
+    document.getElementById('cp-tip-custom-field').classList.add('hidden');
+    document.getElementById('cp-new-total-line').style.display = 'none';
+    document.querySelectorAll('.tip-btn').forEach(b => b.classList.remove('selected'));
+    populateJobDetail(job);
+  }
+
+  function applyTip(amount){
+    const job = findJob(currentJobId);
+    if (!amount || amount <= 0) return;
+    job.payments.push({ id: nextPaymentIdCounter++, label:'Tip', amount, method:'Tip', date:new Date(), reference:'' });
+    logJobActivity(job, `Payment recorded — ${formatCurrency(amount)} tip`);
+    document.getElementById('cp-new-total-line').style.display = 'block';
+    document.getElementById('cp-new-total-line').textContent = `New total collected (incl. tip): ${formatCurrency(totalPaid(job))}`;
+  }
+  document.querySelectorAll('.tip-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tip-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      if (btn.dataset.tip === 'custom'){
+        document.getElementById('cp-tip-custom-field').classList.remove('hidden');
+      } else {
+        document.getElementById('cp-tip-custom-field').classList.add('hidden');
+        applyTip(parseFloat(btn.dataset.tip));
+      }
+    });
+  });
+  document.getElementById('cp-tip-custom-amount').addEventListener('change', (e) => applyTip(parseFloat(e.target.value)));
+  document.getElementById('cp-send-receipt').addEventListener('click', () => alert('Sending receipt — coming soon.'));
+  document.getElementById('cp-back-to-jobs').addEventListener('click', () => {
+    closeModal('collect-payment-modal');
+    closeJobDetail();
+  });
+  document.getElementById('cp-cancel').addEventListener('click', () => closeModal('collect-payment-modal'));
+
+  function openCollectPaymentModal(){
+    const job = findJob(currentJobId);
+    document.getElementById('cp-main-panel').classList.remove('hidden');
+    document.getElementById('cp-success-panel').classList.add('hidden');
+    document.getElementById('cp-balance-display').textContent = formatCurrency(balanceDue(job));
+    cpSelectedMethod = currentUser.defaultPaymentMethod || 'Cash';
+    renderPaymentMethodGrid();
+    renderMethodFields(cpSelectedMethod, job);
+    document.getElementById('collect-payment-modal').classList.remove('hidden');
+  }
+  document.getElementById('dj-collect-btn').addEventListener('click', openCollectPaymentModal);
+
+  // ================= CUSTOMERS VIEW =================
+  function getAllCustomerSummaries(){
+    const emails = new Set();
+    const list = [];
+    JOBS.forEach(j => {
+      if (!emails.has(j.customer.email)){
+        emails.add(j.customer.email);
+        const customerJobs = JOBS.filter(x => x.customer.email === j.customer.email);
+        list.push({ name:j.customer.name, phone:j.customer.phone, email:j.customer.email, totalSpent: customerJobs.reduce((s,x)=>s+x.total,0), jobsCount: customerJobs.length });
+      }
+    });
+    CUSTOMER_PROFILES.forEach((p) => {
+      if (!emails.has(p.email)){ emails.add(p.email); list.push({ name:p.name, phone:p.phone, email:p.email, totalSpent:0, jobsCount:0 }); }
+    });
+    return list;
+  }
+
+  function renderCustomersView(){
+    const term = customerSearchTerm.toLowerCase();
+    const filtered = getAllCustomerSummaries().filter(c => c.name.toLowerCase().includes(term) || c.email.toLowerCase().includes(term));
+    const container = document.getElementById('customers-list');
+    container.innerHTML = filtered.length ? filtered.map(c => `
+      <div class="list-card" data-email="${c.email}">
+        <div class="list-card-title">${c.name}</div>
+        <div class="list-card-meta">${c.phone} · ${c.jobsCount} job(s) · ${formatCurrency(c.totalSpent)} spent</div>
+      </div>
+    `).join('') : `<p class="empty-state">No customers found.</p>`;
+    container.querySelectorAll('.list-card').forEach(card => card.addEventListener('click', () => openCustomerProfileModal(card.dataset.email)));
+  }
+  document.getElementById('customer-search-input').addEventListener('input', (e) => { customerSearchTerm = e.target.value; renderCustomersView(); });
+
+  function openAddCustomerModal(){
+    document.getElementById('customer-form-title').textContent = 'Add Customer';
+    document.getElementById('cf-name').value = '';
+    document.getElementById('cf-phone').value = '';
+    document.getElementById('cf-email').value = '';
+    document.getElementById('customer-form-modal').classList.remove('hidden');
+  }
+  document.getElementById('add-customer-btn').addEventListener('click', openAddCustomerModal);
+  document.getElementById('cf-cancel').addEventListener('click', () => closeModal('customer-form-modal'));
+  document.getElementById('cf-save').addEventListener('click', () => {
+    const name = document.getElementById('cf-name').value.trim();
+    const phone = document.getElementById('cf-phone').value.trim();
+    const email = document.getElementById('cf-email').value.trim();
+    if (!name || !phone || !email){ alert('Please complete all fields.'); return; }
+    getOrCreateCustomerProfile(email, name, phone);
+    closeModal('customer-form-modal');
+    renderCustomersView();
+  });
+
+  // ================= CUSTOMER PROFILE MODAL =================
+  function renderCustAddresses(){
+    const profile = getCustomerProfile(currentProfileEmail);
+    const list = profile ? profile.addresses : [];
+    document.getElementById('cust-address-list').innerHTML = list.length ? list.map(a => `
+      <div class="list-card">
+        <div class="list-card-title">${a.label} ${a.isDefault ? '<span class="badge badge-role-owner">Default</span>' : ''}</div>
+        <div class="list-card-meta">${formatAddressLine(a) || a.matchString}</div>
+        <div class="list-card-actions">
+          <button type="button" class="btn btn-ghost btn-sm cust-addr-edit" data-id="${a.id}">Edit</button>
+          ${!a.isDefault ? `<button type="button" class="btn btn-ghost btn-sm cust-addr-default" data-id="${a.id}">Set Default</button>` : ''}
+          <button type="button" class="btn btn-danger btn-sm cust-addr-delete" data-id="${a.id}">Delete</button>
+        </div>
+      </div>
+    `).join('') : `<p class="empty-state">No saved addresses.</p>`;
+  }
+  function renderCustVehicles(){
+    const profile = getCustomerProfile(currentProfileEmail);
+    const list = profile ? profile.vehicles : [];
+    document.getElementById('cust-vehicle-list').innerHTML = list.length ? list.map(v => `
+      <div class="list-card">
+        <div class="list-card-title">${formatVehicleLine(v) || v.matchString} ${v.isDefault ? '<span class="badge badge-role-owner">Default</span>' : ''}</div>
+        <div class="list-card-meta">${v.plate ? 'Plate: ' + v.plate : 'No plate on file'}</div>
+        <div class="list-card-actions">
+          <button type="button" class="btn btn-ghost btn-sm cust-veh-edit" data-id="${v.id}">Edit</button>
+          ${!v.isDefault ? `<button type="button" class="btn btn-ghost btn-sm cust-veh-default" data-id="${v.id}">Set Default</button>` : ''}
+          <button type="button" class="btn btn-danger btn-sm cust-veh-delete" data-id="${v.id}">Delete</button>
+        </div>
+      </div>
+    `).join('') : `<p class="empty-state">No saved vehicles.</p>`;
+  }
+  function renderCustJobHistory(){
+    const jobs = JOBS.filter(j => j.customer.email === currentProfileEmail).sort((a,b) => b.date - a.date);
+    document.getElementById('cust-job-history-list').innerHTML = jobs.length ? jobs.map(j => `
+      <div class="list-card" data-job-id="${j.id}">
+        <div class="list-card-title">${j.service} — ${formatShortDate(j.date)}</div>
+        <div class="list-card-meta">${formatCurrency(j.total)} · ${j.status}</div>
+      </div>
+    `).join('') : `<p class="empty-state">No jobs yet.</p>`;
+    document.querySelectorAll('#cust-job-history-list .list-card').forEach(card => {
+      card.addEventListener('click', () => { closeModal('customer-profile-modal'); openJobDetail(Number(card.dataset.jobId)); });
+    });
+  }
+
+  function openCustomerProfileModal(email){
+    currentProfileEmail = email;
+    const profile = getOrCreateCustomerProfile(email);
+    document.getElementById('cust-profile-name').textContent = profile.name || email;
+    document.querySelectorAll('#cust-profile-tabs .subtab').forEach(t => t.classList.toggle('active', t.dataset.cptab === 'addresses'));
+    document.querySelectorAll('#customer-profile-modal .view').forEach(v => v.classList.toggle('active', v.id === 'cust-panel-addresses'));
+    renderCustAddresses();
+    renderCustVehicles();
+    renderCustJobHistory();
+    document.getElementById('customer-profile-modal').classList.remove('hidden');
+  }
+  document.querySelectorAll('#cust-profile-tabs .subtab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('#cust-profile-tabs .subtab').forEach(t => t.classList.toggle('active', t === tab));
+      document.querySelectorAll('#customer-profile-modal .view').forEach(v => v.classList.toggle('active', v.id === `cust-panel-${tab.dataset.cptab}`));
+    });
+  });
+  document.getElementById('cust-profile-close').addEventListener('click', () => closeModal('customer-profile-modal'));
+
+  function openCustAddressForm(id){
+    const form = document.getElementById('cust-address-form');
+    document.getElementById('cpa-edit-id').value = id || '';
+    if (id){
+      const a = getCustomerProfile(currentProfileEmail).addresses.find(x => x.id === id);
+      document.getElementById('cpa-label').value = a.label;
+      document.getElementById('cpa-street').value = a.street;
+      document.getElementById('cpa-city').value = a.city;
+      document.getElementById('cpa-state').value = a.state;
+      document.getElementById('cpa-zip').value = a.zip;
+      document.getElementById('cpa-notes').value = a.notes;
+      document.getElementById('cpa-default').checked = a.isDefault;
+    } else {
+      ['cpa-label','cpa-street','cpa-city','cpa-state','cpa-zip','cpa-notes'].forEach(id2 => document.getElementById(id2).value = '');
+      document.getElementById('cpa-default').checked = false;
+    }
+    form.classList.remove('hidden');
+  }
+  document.getElementById('cust-add-address-btn').addEventListener('click', () => openCustAddressForm(null));
+  document.getElementById('cpa-cancel').addEventListener('click', () => document.getElementById('cust-address-form').classList.add('hidden'));
+  document.getElementById('cpa-save').addEventListener('click', () => {
+    const editId = document.getElementById('cpa-edit-id').value;
+    const data = {
+      label: document.getElementById('cpa-label').value.trim() || 'Other',
+      street: document.getElementById('cpa-street').value.trim(),
+      city: document.getElementById('cpa-city').value.trim(),
+      state: document.getElementById('cpa-state').value.trim(),
+      zip: document.getElementById('cpa-zip').value.trim(),
+      notes: document.getElementById('cpa-notes').value.trim(),
+      isDefault: document.getElementById('cpa-default').checked
+    };
+    if (!data.street){ alert('Please enter a street address.'); return; }
+    data.matchString = formatAddressLine(data);
+    if (editId){
+      const a = getCustomerProfile(currentProfileEmail).addresses.find(x => x.id === Number(editId));
+      Object.assign(a, data);
+      if (data.isDefault) setDefaultAddress(currentProfileEmail, a.id);
+    } else {
+      addAddressToProfile(currentProfileEmail, data);
+    }
+    document.getElementById('cust-address-form').classList.add('hidden');
+    renderCustAddresses();
+  });
+
+  function openCustVehicleForm(id){
+    const form = document.getElementById('cust-vehicle-form');
+    document.getElementById('cpv-edit-id').value = id || '';
+    if (id){
+      const v = getCustomerProfile(currentProfileEmail).vehicles.find(x => x.id === id);
+      document.getElementById('cpv-year').value = v.year;
+      document.getElementById('cpv-make').value = v.make;
+      document.getElementById('cpv-model').value = v.model;
+      document.getElementById('cpv-color').value = v.color;
+      document.getElementById('cpv-plate').value = v.plate;
+      document.getElementById('cpv-default').checked = v.isDefault;
+    } else {
+      ['cpv-year','cpv-make','cpv-model','cpv-color','cpv-plate'].forEach(id2 => document.getElementById(id2).value = '');
+      document.getElementById('cpv-default').checked = false;
+    }
+    form.classList.remove('hidden');
+  }
+  document.getElementById('cust-add-vehicle-btn').addEventListener('click', () => openCustVehicleForm(null));
+  document.getElementById('cpv-cancel').addEventListener('click', () => document.getElementById('cust-vehicle-form').classList.add('hidden'));
+  document.getElementById('cpv-save').addEventListener('click', () => {
+    const editId = document.getElementById('cpv-edit-id').value;
+    const data = {
+      year: document.getElementById('cpv-year').value.trim(),
+      make: document.getElementById('cpv-make').value.trim(),
+      model: document.getElementById('cpv-model').value.trim(),
+      color: document.getElementById('cpv-color').value.trim(),
+      plate: document.getElementById('cpv-plate').value.trim(),
+      isDefault: document.getElementById('cpv-default').checked
+    };
+    if (!data.make || !data.model){ alert('Please enter at least a make and model.'); return; }
+    data.matchString = formatVehicleLine(data);
+    if (editId){
+      const v = getCustomerProfile(currentProfileEmail).vehicles.find(x => x.id === Number(editId));
+      Object.assign(v, data);
+      if (data.isDefault) setDefaultVehicle(currentProfileEmail, v.id);
+    } else {
+      addVehicleToProfile(currentProfileEmail, data);
+    }
+    document.getElementById('cust-vehicle-form').classList.add('hidden');
+    renderCustVehicles();
+  });
+
+  document.addEventListener('click', (e) => {
+    const addrEdit = e.target.closest('.cust-addr-edit');
+    if (addrEdit){ openCustAddressForm(Number(addrEdit.dataset.id)); return; }
+    const addrDefault = e.target.closest('.cust-addr-default');
+    if (addrDefault){ setDefaultAddress(currentProfileEmail, Number(addrDefault.dataset.id)); renderCustAddresses(); return; }
+    const addrDelete = e.target.closest('.cust-addr-delete');
+    if (addrDelete){ if (confirm('Delete this address?')){ deleteAddress(currentProfileEmail, Number(addrDelete.dataset.id)); renderCustAddresses(); } return; }
+    const vehEdit = e.target.closest('.cust-veh-edit');
+    if (vehEdit){ openCustVehicleForm(Number(vehEdit.dataset.id)); return; }
+    const vehDefault = e.target.closest('.cust-veh-default');
+    if (vehDefault){ setDefaultVehicle(currentProfileEmail, Number(vehDefault.dataset.id)); renderCustVehicles(); return; }
+    const vehDelete = e.target.closest('.cust-veh-delete');
+    if (vehDelete){ if (confirm('Delete this vehicle?')){ deleteVehicle(currentProfileEmail, Number(vehDelete.dataset.id)); renderCustVehicles(); } return; }
+  });
+
+  // ================= PAYMENTS VIEW =================
+  function renderPaymentsView(){
+    const todaysJobs = JOBS.filter(j => isSameDay(j.date, TODAY));
+    const revenue = todaysJobs.reduce((s,j) => s + totalPaid(j), 0);
+    const outstanding = todaysJobs.reduce((s,j) => s + balanceDue(j), 0);
+    document.getElementById('pay-today-revenue').textContent = formatCurrency(revenue);
+    document.getElementById('pay-outstanding').textContent = formatCurrency(outstanding);
+
+    const jobsList = document.getElementById('payments-jobs-list');
+    jobsList.innerHTML = todaysJobs.length ? todaysJobs.map(j => `
+      <div class="list-card">
+        <div class="list-card-title">#${j.jobNumber} — ${j.customer.name}</div>
+        <div class="list-card-meta">${formatCurrency(j.total)} · ${getPaymentStatus(j)}</div>
+        <div class="list-card-actions">
+          <button type="button" class="btn btn-primary btn-sm payment-collect-btn" data-job-id="${j.id}" ${balanceDue(j) <= 0 ? 'disabled' : ''}>Collect Payment</button>
+        </div>
+      </div>
+    `).join('') : `<p class="empty-state">No jobs today.</p>`;
+    jobsList.querySelectorAll('.payment-collect-btn').forEach(btn => {
+      btn.addEventListener('click', () => { currentJobId = Number(btn.dataset.jobId); openCollectPaymentModal(); });
+    });
+
+    const allPayments = [];
+    JOBS.forEach(j => j.payments.forEach(p => allPayments.push({ ...p, jobNumber:j.jobNumber, customerName:j.customer.name })));
+    allPayments.sort((a,b) => b.date - a.date);
+    document.getElementById('payments-history-list').innerHTML = allPayments.length ? allPayments.map(p => `
+      <div class="list-card">
+        <div class="list-card-title">${formatCurrency(p.amount)} — ${p.label}</div>
+        <div class="list-card-meta">#${p.jobNumber} ${p.customerName} · ${p.method} · ${formatShortDate(p.date)}</div>
+      </div>
+    `).join('') : `<p class="empty-state">No payments recorded yet.</p>`;
+  }
+
+  // ================= PROFILE VIEW =================
+  function renderProfileView(){
+    const e = currentUser;
+    document.getElementById('profile-avatar').textContent = employeeInitials(e);
+    document.getElementById('profile-name').textContent = e.name;
+    const roleBadge = document.getElementById('profile-role-badge');
+    roleBadge.textContent = e.role;
+    roleBadge.className = 'badge badge-role-' + e.role.toLowerCase();
+    document.getElementById('profile-email').textContent = e.email;
+    document.getElementById('profile-hourly-rate').textContent = e.hourlyRate != null ? formatCurrency(e.hourlyRate) + '/hr' : 'N/A';
+    document.getElementById('profile-commission').textContent = e.commissionRate != null ? e.commissionRate + '%' : 'N/A';
+    document.getElementById('profile-default-payment-select').value = e.defaultPaymentMethod;
+
+    const weekStart = new Date(TODAY); weekStart.setDate(weekStart.getDate() - (weekStart.getDay() === 0 ? 6 : weekStart.getDay() - 1));
+    const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6);
+    const weekJobs = JOBS.filter(j => j.assignedEmployeeIds.includes(e.id) && j.date >= weekStart && j.date <= weekEnd && j.status === 'Completed');
+    document.getElementById('profile-week-jobs').textContent = weekJobs.length;
+    const weekHours = clockRecords.filter(r => r.employeeId === e.id && r.clockIn >= weekStart).reduce((s,r) => s + ((r.clockOut||new Date()) - r.clockIn)/3600000, 0);
+    document.getElementById('profile-week-hours').textContent = weekHours.toFixed(1);
+    const weekEarnings = weekJobs.reduce((s,j) => s + j.total*(e.commissionRate||0)/100, 0) + (e.hourlyRate ? weekHours*e.hourlyRate : 0);
+    document.getElementById('profile-week-earnings').textContent = formatCurrency(weekEarnings);
+
+    renderClockHistory();
+  }
+  function renderClockHistory(){
+    if (!currentUser) return;
+    const recs = clockRecords.filter(r => r.employeeId === currentUser.id && isSameDay(r.clockIn, TODAY));
+    document.getElementById('profile-clock-history').innerHTML = recs.length ? recs.map(r => `
+      <div class="info-line"><span>${formatTime(r.clockIn)} – ${r.clockOut ? formatTime(r.clockOut) : 'now'}</span><span>${(((r.clockOut||new Date())-r.clockIn)/3600000).toFixed(2)} hrs</span></div>
+    `).join('') : `<p class="empty-state">No clock records yet today.</p>`;
+  }
+  document.getElementById('profile-default-payment-select').addEventListener('change', (e) => { currentUser.defaultPaymentMethod = e.target.value; });
+
+  document.getElementById('logout-btn').addEventListener('click', () => {
+    if (isClockedIn()) currentClockRecord.clockOut = new Date();
+    currentUser = null;
+    currentClockRecord = null;
+    appShell.classList.remove('active');
+    loginScreen.classList.remove('hidden');
+    switchView('today');
+  });
+
+  console.log('[AltaLux] Data model initialized.');
+})();
+</script>
+</body>
+</html>
