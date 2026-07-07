@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AltaLux Admin | Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#104872;
+    --blue-light:#1a6ba3;
+    --orange:#FF8C00;
+    --gold:#FFAA00;
+    --green:#22c55e;
+    --dark:#0a1628;
+    --dark-2:#0f1f38;
+    --dark-3:#132846;
+    --white:#FFFFFF;
+    --ink-muted:rgba(255,255,255,.62);
+    --ink-faint:rgba(255,255,255,.38);
+    --line:rgba(255,170,0,.16);
+    --danger:#ff6767;
+    --radius-lg:20px;
+    --radius-md:14px;
+    --radius-sm:10px;
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; }
+  html{ -webkit-text-size-adjust:100%; }
+  [hidden]{ display:none !important; }
+
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:'Inter',sans-serif;
+    color:var(--white);
+    background:
+      radial-gradient(1100px 550px at 15% -10%, rgba(255,140,0,.10), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, rgba(16,72,114,.5), transparent 55%),
+      linear-gradient(180deg, var(--dark) 0%, #071122 100%);
+    background-attachment:fixed;
+  }
+
+  h1,h2,h3,.brand-name,.btn,.badge,.nav-link,.sidebar-link,.stat-value,.section-title,.modal-title{
+    font-family:'Rajdhani',sans-serif;
+  }
+
+  button{ font-family:inherit; }
+
+  /* ================= LOGIN SCREEN ================= */
+  .login-screen{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .login-card{
+    width:100%;
+    max-width:380px;
+    background:linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.02));
+    border:1px solid var(--line);
+    border-radius:var(--radius-lg);
+    padding:36px 32px;
+    text-align:center;
+    box-shadow:0 20px 60px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  .login-card.shake{ animation:shake .45s ease; }
+  @keyframes shake{
+    0%,100%{ transform:translateX(0); }
+    20%{ transform:translateX(-9px); }
+    40%{ transform:translateX(9px); }
+    60%{ transform:translateX(-6px); }
+    80%{ transform:translateX(6px); }
+  }
+  .brand-name{
+    font-size:32px;
+    font-weight:700;
+    letter-spacing:4px;
+    text-transform:uppercase;
+    margin:0;
+  }
+  .brand-name .lux{
+    background:linear-gradient(120deg,var(--gold),var(--orange));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+  .brand-tagline{
+    margin:4px 0 26px;
+    font-size:11px;
+    letter-spacing:4px;
+    text-transform:uppercase;
+    color:var(--gold);
+    font-weight:600;
+  }
+  .login-card .field{ text-align:left; margin-bottom:6px; }
+  .login-error{
+    color:var(--danger);
+    font-size:13px;
+    font-weight:600;
+    margin:10px 0 0;
+  }
+  .btn-full{ width:100%; margin-top:18px; }
+
+  /* ================= SHARED FORM FIELDS ================= */
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field label{
+    font-size:11.5px;
+    font-weight:600;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--gold);
+  }
+  .field input, .field select, .field textarea{
+    font-family:'Inter',sans-serif;
+    background:rgba(255,255,255,.04);
+    border:1.5px solid rgba(255,255,255,.12);
+    border-radius:var(--radius-sm);
+    padding:11px 14px;
+    color:var(--white);
+    font-size:14.5px;
+    outline:none;
+    transition:all .2s ease;
+  }
+  .field input::placeholder, .field textarea::placeholder{ color:rgba(255,255,255,.28); }
+  .field input:focus, .field select:focus, .field textarea:focus{
+    border-color:var(--gold);
+    background:rgba(255,255,255,.06);
+    box-shadow:0 0 0 3px rgba(255,170,0,.14);
+  }
+  .field textarea{ resize:vertical; min-height:70px; font-family:'Inter',sans-serif; }
+  .field select{ cursor:pointer; }
+
+  /* ================= BUTTONS ================= */
+  .btn{
+    border:none;
+    border-radius:999px;
+    padding:12px 20px;
+    font-size:15px;
+    font-weight:700;
+    letter-spacing:.4px;
+    cursor:pointer;
+    transition:all .2s ease;
+  }
+  .btn-primary{
+    color:var(--dark);
+    background:linear-gradient(135deg,var(--gold),var(--orange));
+    box-shadow:0 8px 20px rgba(255,140,0,.3);
+  }
+  .btn-primary:hover{ transform:translateY(-1px); box-shadow:0 10px 26px rgba(255,140,0,.4); }
+  .btn-ghost{
+    background:transparent;
+    border:1.5px solid rgba(255,255,255,.2);
+    color:var(--white);
+  }
+  .btn-ghost:hover{ border-color:var(--white); background:rgba(255,255,255,.06); }
+  .btn-mini{
+    border:1.5px solid rgba(255,255,255,.16);
+    background:rgba(255,255,255,.03);
+    color:var(--white);
+    border-radius:999px;
+    padding:6px 12px;
+    font-size:12px;
+    font-weight:600;
+    cursor:pointer;
+    transition:all .2s ease;
+    white-space:nowrap;
+  }
+  .btn-mini:hover{ border-color:var(--gold); background:rgba(255,170,0,.1); }
+  .link-btn{
+    background:none;
+    border:none;
+    color:var(--gold);
+    font-size:12.5px;
+    font-weight:600;
+    cursor:pointer;
+    text-decoration:underline;
+    padding:0;
+  }
+
+  /* ================= DASHBOARD SHELL ================= */
+  .navbar{
+    display:flex;
+    align-items:center;
+    gap:20px;
+    padding:12px 20px;
+    background:rgba(10,22,40,.85);
+    border-bottom:1px solid var(--line);
+    backdrop-filter:blur(14px);
+    position:sticky;
+    top:0;
+    z-index:20;
+  }
+  .navbar-brand{
+    font-size:19px;
+    font-weight:700;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    flex-shrink:0;
+  }
+  .navbar-brand .lux{
+    background:linear-gradient(120deg,var(--gold),var(--orange));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+  .navbar-nav{
+    display:flex;
+    gap:4px;
+    overflow-x:auto;
+    flex:1;
+    scrollbar-width:none;
+  }
+  .navbar-nav::-webkit-scrollbar{ display:none; }
+  .nav-link{
+    border:none;
+    background:transparent;
+    color:var(--ink-muted);
+    font-size:13.5px;
+    font-weight:700;
+    letter-spacing:.3px;
+    padding:9px 14px;
+    border-radius:999px;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:all .2s ease;
+  }
+  .nav-link:hover{ color:var(--white); background:rgba(255,255,255,.06); }
+  .nav-link.active{
+    background:linear-gradient(135deg,var(--gold),var(--orange));
+    color:var(--dark);
+  }
+  .logout-btn{
+    flex-shrink:0;
+    border:1.5px solid rgba(255,255,255,.16);
+    background:rgba(255,255,255,.03);
+    color:var(--white);
+    width:38px; height:38px;
+    border-radius:50%;
+    font-size:16px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:all .2s ease;
+  }
+  .logout-btn:hover{ border-color:var(--danger); background:rgba(255,103,103,.12); }
+
+  .app-body{ display:flex; align-items:flex-start; }
+
+  .sidebar{
+    display:none;
+  }
+  @media (min-width:900px){
+    .sidebar{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      width:210px;
+      flex-shrink:0;
+      padding:20px 14px;
+      border-right:1px solid rgba(255,255,255,.06);
+      min-height:calc(100vh - 63px);
+      position:sticky;
+      top:63px;
+    }
+  }
+  .sidebar-link{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    border:none;
+    background:transparent;
+    color:var(--ink-muted);
+    font-size:14px;
+    font-weight:600;
+    letter-spacing:.3px;
+    padding:11px 14px;
+    border-radius:var(--radius-sm);
+    cursor:pointer;
+    text-align:left;
+    transition:all .2s ease;
+  }
+  .sidebar-link:hover{ background:rgba(255,255,255,.05); color:var(--white); }
+  .sidebar-link.active{
+    background:linear-gradient(160deg, rgba(255,170,0,.16), rgba(255,140,0,.05));
+    color:var(--white);
+    border:1px solid rgba(255,170,0,.3);
+  }
+  .sidebar-link .icon{ font-size:16px; }
+
+  .main-content{
+    flex:1;
+    min-width:0;
+    padding:20px 20px 60px;
+  }
+  @media (min-width:600px){
+    .main-content{ padding:28px 28px 64px; }
+  }
+
+  /* ================= STATS BAR ================= */
+  .stats-bar{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+    margin-bottom:28px;
+  }
+  @media (min-width:700px){
+    .stats-bar{ grid-template-columns:repeat(4,1fr); }
+  }
+  .stat-card{
+    background:linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.02));
+    border:1px solid var(--line);
+    border-radius:var(--radius-md);
+    padding:16px 18px;
+  }
+  .stat-label{
+    display:block;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--gold);
+    margin-bottom:6px;
+  }
+  .stat-value{
+    display:block;
+    font-size:26px;
+    font-weight:700;
+    color:var(--white);
+  }
+
+  .view{ display:none; animation:fadeUp .35s ease; }
+  .view.active{ display:block; }
+
+  /* ================= CARD (generic panel) ================= */
+  .panel{
+    background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015));
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:var(--radius-lg);
+    padding:20px;
+    margin-bottom:22px;
+  }
+  .section-title{
+    font-size:17px;
+    font-weight:700;
+    margin:0 0 16px;
+    letter-spacing:.3px;
+  }
+  .section-title span{ color:var(--gold); }
+
+  /* ================= MINI CALENDAR ================= */
+  .calendar-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:14px;
+    font-family:'Rajdhani',sans-serif;
+    font-weight:600;
+    font-size:16px;
+  }
+  .cal-nav{
+    width:30px; height:30px;
+    border-radius:50%;
+    border:1px solid rgba(255,255,255,.15);
+    background:rgba(255,255,255,.04);
+    color:var(--white);
+    font-size:15px;
+    cursor:pointer;
+    transition:all .2s ease;
+  }
+  .cal-nav:hover{ background:rgba(255,170,0,.18); border-color:var(--gold); }
+  .calendar-weekdays{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    text-align:center;
+    font-size:10.5px;
+    letter-spacing:1px;
+    color:var(--ink-faint);
+    margin-bottom:6px;
+    text-transform:uppercase;
+    font-weight:600;
+  }
+  .calendar-grid{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    gap:4px;
+  }
+  .cal-day{
+    aspect-ratio:1/1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:8px;
+    font-size:13px;
+    font-weight:500;
+    background:transparent;
+    border:1px solid transparent;
+    color:var(--white);
+    cursor:pointer;
+    transition:all .2s ease;
+  }
+  .cal-day.empty{ visibility:hidden; cursor:default; }
+  .cal-day:hover{ border-color:rgba(255,170,0,.4); background:rgba(255,170,0,.08); }
+  .cal-day.today{ border-color:rgba(255,170,0,.5); font-weight:700; }
+  .cal-day.selected{
+    background:linear-gradient(135deg,var(--gold),var(--orange));
+    color:var(--dark);
+    font-weight:700;
+  }
+
+  /* ================= WEEK VIEW ================= */
+  .week-view-header{ margin-bottom:14px; }
+  .table-scroll{ overflow-x:auto; }
+  .week-grid{
+    display:grid;
+    grid-template-columns:56px repeat(6,minmax(96px,1fr));
+    gap:1px;
+    background:rgba(255,255,255,.07);
+    border-radius:var(--radius-sm);
+    overflow:hidden;
+    min-width:640px;
+  }
+  .week-cell{
+    background:var(--dark-2);
+    padding:8px 6px;
+    min-height:44px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    gap:4px;
+  }
+  .week-corner{ background:var(--dark-2); }
+  .week-time-label{
+    font-size:11px;
+    color:var(--ink-faint);
+    font-weight:600;
+  }
+  .week-day-header{
+    border:none;
+    cursor:pointer;
+    color:var(--white);
+    transition:all .2s ease;
+  }
+  .week-day-header:hover{ background:rgba(255,170,0,.1); }
+  .week-day-header .week-day-name{
+    font-size:10px;
+    letter-spacing:.5px;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+  }
+  .week-day-header .week-day-num{
+    font-size:15px;
+    font-weight:700;
+  }
+  .week-day-header.is-today .week-day-num{ color:var(--gold); }
+  .week-day-header.is-selected{ background:rgba(255,170,0,.18); }
+  .week-slot-cell{ align-items:stretch; padding:6px; gap:3px; }
+  .week-chip{
+    border:none;
+    border-radius:6px;
+    padding:5px 6px;
+    font-size:10.5px;
+    font-weight:700;
+    cursor:pointer;
+    text-align:left;
+    line-height:1.2;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .chip-pending{ background:rgba(255,255,255,.16); color:var(--white); }
+  .chip-confirmed{ background:var(--blue); color:#fff; }
+  .chip-inprogress{ background:var(--orange); color:var(--dark); }
+  .chip-completed{ background:var(--green); color:#06240f; }
+
+  /* ================= JOB CARDS ================= */
+  .empty-state{
+    color:var(--ink-faint);
+    font-size:13.5px;
+    padding:20px 0;
+    text-align:center;
+  }
+  .job-card{
+    border:1px solid rgba(255,255,255,.1);
+    background:rgba(255,255,255,.02);
+    border-radius:var(--radius-md);
+    padding:16px 18px;
+    margin-bottom:12px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .job-card:last-child{ margin-bottom:0; }
+  .job-card-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:10px;
+  }
+  .job-number{
+    font-size:12px;
+    color:var(--ink-faint);
+    font-weight:700;
+    letter-spacing:.5px;
+  }
+  .job-service{ font-size:16px; font-weight:700; margin-top:2px; }
+  .job-meta{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px 16px;
+    font-size:13px;
+    color:var(--ink-muted);
+  }
+  @media (min-width:520px){
+    .job-meta{ grid-template-columns:repeat(3,1fr); }
+  }
+  .job-meta strong{ display:block; color:var(--white); font-weight:600; }
+  .job-card-actions{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    padding-top:6px;
+    border-top:1px solid rgba(255,255,255,.06);
+  }
+
+  /* ================= BADGES ================= */
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    padding:5px 12px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.3px;
+  }
+  .badge-pending{ background:rgba(255,255,255,.14); color:var(--ink-muted); border:1px solid rgba(255,255,255,.22); }
+  .badge-confirmed{ background:var(--blue); color:#fff; }
+  .badge-inprogress{ background:var(--orange); color:var(--dark); }
+  .badge-completed{ background:var(--green); color:#06240f; }
+
+  .status-select{
+    font-family:'Inter',sans-serif;
+    background:rgba(255,255,255,.06);
+    border:1.5px solid rgba(255,170,0,.4);
+    border-radius:999px;
+    padding:5px 10px;
+    color:var(--white);
+    font-size:12.5px;
+    font-weight:600;
+    cursor:pointer;
+  }
+
+  /* ================= TABLES ================= */
+  .filter-banner{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+    background:rgba(255,170,0,.08);
+    border:1px solid rgba(255,170,0,.25);
+    border-radius:var(--radius-sm);
+    padding:10px 14px;
+    font-size:13px;
+    color:var(--ink-muted);
+    margin-bottom:16px;
+  }
+  .table-wrap{ overflow-x:auto; }
+  .data-table{
+    width:100%;
+    min-width:820px;
+    border-collapse:collapse;
+    font-size:13.5px;
+  }
+  .data-table th{
+    text-align:left;
+    padding:10px 12px;
+    font-size:11px;
+    letter-spacing:.8px;
+    text-transform:uppercase;
+    color:var(--gold);
+    font-weight:700;
+    border-bottom:1px solid rgba(255,255,255,.12);
+    white-space:nowrap;
+  }
+  .data-table td{
+    padding:12px;
+    border-bottom:1px solid rgba(255,255,255,.06);
+    color:var(--ink-muted);
+    vertical-align:middle;
+    white-space:nowrap;
+  }
+  .data-table tbody tr:hover{ background:rgba(255,255,255,.02); }
+  .data-table td:first-child, .data-table td:nth-child(3){ color:var(--white); font-weight:600; }
+  .actions-cell{ display:flex; gap:6px; }
+
+  /* ================= MODAL ================= */
+  .modal-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(4,10,20,.72);
+    backdrop-filter:blur(4px);
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding:32px 16px;
+    overflow-y:auto;
+    z-index:100;
+    animation:fadeIn .2s ease;
+  }
+  @keyframes fadeIn{ from{ opacity:0; } to{ opacity:1; } }
+  .modal-box{
+    width:100%;
+    max-width:520px;
+    background:linear-gradient(180deg, #101f38, #0a1628);
+    border:1px solid var(--line);
+    border-radius:var(--radius-lg);
+    padding:28px;
+    position:relative;
+    box-shadow:0 30px 80px rgba(0,0,0,.6);
+    animation:fadeUp .3s ease;
+  }
+  @keyframes fadeUp{ from{ opacity:0; transform:translateY(12px); } to{ opacity:1; transform:translateY(0); } }
+  .modal-close{
+    position:absolute;
+    top:18px; right:18px;
+    width:32px; height:32px;
+    border-radius:50%;
+    border:1px solid rgba(255,255,255,.16);
+    background:rgba(255,255,255,.04);
+    color:var(--white);
+    font-size:15px;
+    cursor:pointer;
+  }
+  .modal-close:hover{ border-color:var(--danger); background:rgba(255,103,103,.12); }
+  .modal-title{ font-size:22px; font-weight:700; margin:0 0 18px; padding-right:30px; }
+  .modal-title span{ color:var(--gold); }
+  .modal-section-title{
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:1.2px;
+    text-transform:uppercase;
+    color:var(--gold);
+    margin:0 0 10px;
+  }
+  .summary-line{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    font-size:13.5px;
+    padding:4px 0;
+  }
+  .summary-line span:first-child{ color:var(--ink-muted); }
+  .summary-line span:last-child{ font-weight:600; text-align:right; }
+  .summary-line.grand-total span:last-child{ color:var(--gold); font-size:17px; font-family:'Rajdhani',sans-serif; }
+  hr.summary-divider{ border:none; border-top:1px solid rgba(255,255,255,.08); margin:14px 0; }
+  .modal-actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:20px;
+  }
+  .modal-actions .btn{ flex:1; min-width:140px; }
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN SCREEN ================= -->
+<div class="login-screen" id="login-screen">
+  <div class="login-card" id="login-card">
+    <h1 class="brand-name">ALTA<span class="lux">LUX</span></h1>
+    <p class="brand-tagline">Mobile Detail — Admin</p>
+    <form id="login-form">
+      <div class="field">
+        <label for="admin-password">Password</label>
+        <input type="password" id="admin-password" placeholder="Enter admin password" autocomplete="current-password" autofocus>
+      </div>
+      <p class="login-error" id="login-error" hidden>Incorrect password. Please try again.</p>
+      <button type="submit" class="btn btn-primary btn-full">Enter Dashboard</button>
+    </form>
+  </div>
+</div>
+
+<!-- ================= DASHBOARD ================= -->
+<div id="dashboard" hidden>
+
+  <nav class="navbar">
+    <span class="navbar-brand">ALTA<span class="lux">LUX</span></span>
+    <div class="navbar-nav">
+      <button type="button" class="nav-link active" data-view="calendar">Calendar</button>
+      <button type="button" class="nav-link" data-view="jobs">Jobs</button>
+      <button type="button" class="nav-link" data-view="customers">Customers</button>
+      <button type="button" class="nav-link" data-view="payments">Payments</button>
+    </div>
+    <button type="button" class="logout-btn" id="logout-btn" title="Log out" aria-label="Log out">⏻</button>
+  </nav>
+
+  <div class="app-body">
+    <aside class="sidebar">
+      <button type="button" class="sidebar-link active" data-view="calendar"><span class="icon">📅</span> Calendar</button>
+      <button type="button" class="sidebar-link" data-view="jobs"><span class="icon">🧾</span> Jobs</button>
+      <button type="button" class="sidebar-link" data-view="customers"><span class="icon">👥</span> Customers</button>
+      <button type="button" class="sidebar-link" data-view="payments"><span class="icon">💳</span> Payments</button>
+    </aside>
+
+    <main class="main-content">
+
+      <div class="stats-bar">
+        <div class="stat-card">
+          <span class="stat-label">Today's Revenue</span>
+          <span class="stat-value">$0.00</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">This Week</span>
+          <span class="stat-value">$0.00</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Jobs Today</span>
+          <span class="stat-value">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Pending</span>
+          <span class="stat-value">0</span>
+        </div>
+      </div>
+
+      <!-- ===== CALENDAR VIEW ===== -->
+      <section class="view active" id="view-calendar">
+        <div class="panel">
+          <div class="calendar-header">
+            <button type="button" class="cal-nav" id="admin-cal-prev" aria-label="Previous month">‹</button>
+            <span id="admin-cal-month-label">Month Year</span>
+            <button type="button" class="cal-nav" id="admin-cal-next" aria-label="Next month">›</button>
+          </div>
+          <div class="calendar-weekdays">
+            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+          </div>
+          <div class="calendar-grid" id="admin-calendar-grid"></div>
+        </div>
+
+        <div class="panel">
+          <div class="week-view-header">
+            <h3 class="section-title">Week of <span id="week-range-label"></span></h3>
+          </div>
+          <div class="table-scroll">
+            <div class="week-grid" id="week-grid"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3 class="section-title">Jobs for <span id="selected-day-label"></span></h3>
+          <div id="jobs-list"></div>
+        </div>
+      </section>
+
+      <!-- ===== JOBS VIEW ===== -->
+      <section class="view" id="view-jobs">
+        <div class="panel">
+          <h3 class="section-title">All Jobs</h3>
+          <div class="filter-banner" id="jobs-filter-banner" hidden>
+            Showing jobs for <strong id="jobs-filter-name"></strong> —
+            <button type="button" class="link-btn" id="jobs-filter-clear">Clear filter</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Job #</th><th>Date</th><th>Customer</th><th>Service</th><th>Vehicle</th>
+                  <th>Total</th><th>Deposit</th><th>Balance</th><th>Status</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="jobs-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== CUSTOMERS VIEW ===== -->
+      <section class="view" id="view-customers">
+        <div class="panel">
+          <h3 class="section-title">Customers</h3>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th><th>Phone</th><th>Email</th><th>Address</th>
+                  <th>Total Spent</th><th>Jobs</th><th>Last Service</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="customers-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== PAYMENTS VIEW ===== -->
+      <section class="view" id="view-payments">
+        <div class="panel">
+          <h3 class="section-title">Payments</h3>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Date</th><th>Job #</th><th>Customer</th><th>Service</th><th>Total</th>
+                  <th>Deposit Paid</th><th>Balance Due</th><th>Method</th><th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="payments-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ================= JOB DETAIL MODAL ================= -->
+<div class="modal-overlay" id="modal-overlay" hidden>
+  <div class="modal-box" id="modal-box">
+    <button type="button" class="modal-close" id="modal-close" aria-label="Close">✕</button>
+    <h2 class="modal-title">Job <span id="modal-job-number"></span></h2>
+
+    <p class="modal-section-title">Service</p>
+    <div class="summary-line"><span>Service</span><span id="modal-service"></span></div>
+    <div class="summary-line"><span>Vehicle</span><span id="modal-vehicle"></span></div>
+    <div class="summary-line"><span>Add-Ons</span><span id="modal-addons"></span></div>
+    <div class="summary-line"><span>Date</span><span id="modal-date"></span></div>
+    <div class="summary-line"><span>Time</span><span id="modal-time"></span></div>
+    <div class="summary-line"><span>Address</span><span id="modal-address"></span></div>
+
+    <hr class="summary-divider">
+    <p class="modal-section-title">Customer</p>
+    <div class="summary-line"><span>Name</span><span id="modal-customer-name"></span></div>
+    <div class="summary-line"><span>Phone</span><span id="modal-customer-phone"></span></div>
+    <div class="summary-line"><span>Email</span><span id="modal-customer-email"></span></div>
+
+    <hr class="summary-divider">
+    <p class="modal-section-title">Financial Summary</p>
+    <div class="summary-line"><span>Subtotal</span><span id="modal-subtotal"></span></div>
+    <div class="summary-line"><span>Add-Ons Total</span><span id="modal-addons-total"></span></div>
+    <div class="summary-line grand-total"><span>Total</span><span id="modal-total"></span></div>
+    <div class="summary-line"><span>Deposit Paid</span><span id="modal-deposit"></span></div>
+    <div class="summary-line"><span>Balance Due</span><span id="modal-balance"></span></div>
+
+    <hr class="summary-divider">
+    <div class="field">
+      <label for="modal-status-select">Status</label>
+      <select id="modal-status-select">
+        <option value="Pending">Pending</option>
+        <option value="Confirmed">Confirmed</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Completed">Completed</option>
+      </select>
+    </div>
+    <div class="field" style="margin-top:14px;">
+      <label for="modal-notes">Notes</label>
+      <textarea id="modal-notes" placeholder="Add internal notes..."></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="modal-mark-completed">Mark as Completed</button>
+      <button type="button" class="btn btn-ghost" id="modal-send-invoice">Send Invoice</button>
+      <button type="button" class="btn btn-primary" id="modal-collect-payment">Collect Payment</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const ADMIN_PASSWORD = 'altalux2026';
+  const AUTH_KEY = 'altalux_admin_auth';
+
+  const ADMIN_TIME_SLOTS = ['8:00 AM','10:00 AM','12:00 PM','2:00 PM','3:00 PM','4:00 PM'];
+  const WEEKDAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const WEEKDAY_LONG = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const MONTH_LABELS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  const STATUS_OPTIONS = ['Pending','Confirmed','In Progress','Completed'];
+  const STATUS_SLUG = { 'Pending':'pending', 'Confirmed':'confirmed', 'In Progress':'inprogress', 'Completed':'completed' };
+
+  function todayDate(){
+    const d = new Date();
+    d.setHours(0,0,0,0);
+    return d;
+  }
+
+  function formatCurrency(n){ return '$' + n.toFixed(2); }
+  function isSameDay(a,b){
+    return a && b && a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+  }
+  function formatShortDate(d){ return `${MONTH_LABELS[d.getMonth()].slice(0,3)} ${d.getDate()}`; }
+  function formatLongDate(d){ return `${WEEKDAY_LONG[d.getDay()]}, ${MONTH_LABELS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`; }
+  function startOfWeekMonday(d){
+    const day = d.getDay();
+    const diff = (day === 0 ? -6 : 1 - day);
+    const monday = new Date(d);
+    monday.setDate(d.getDate() + diff);
+    monday.setHours(0,0,0,0);
+    return monday;
+  }
+
+  // ---------- Sample Data ----------
+  const TODAY = todayDate();
+
+  const JOBS = [
+    {
+      id: 1, jobNumber: '001',
+      customer: { name:'John Smith', email:'john@email.com', phone:'(470) 555-1234' },
+      service: 'Essential Detail', vehicleType: 'Cars/Sedans', vehicle: '2022 Honda Accord',
+      address: '123 Main St, Roswell, GA 30076',
+      date: new Date(TODAY), time: '8:00 AM',
+      addons: [], subtotal: 208.99, addonsTotal: 0, total: 208.99, deposit: 52.25, balance: 156.74,
+      status: 'Confirmed', method: 'Card', notes: ''
+    },
+    {
+      id: 2, jobNumber: '002',
+      customer: { name:'Maria Garcia', email:'maria@email.com', phone:'(678) 555-5678' },
+      service: 'Interior Only', vehicleType: 'Large SUV', vehicle: '2021 Chevrolet Suburban',
+      address: '456 Oak Ave, Alpharetta, GA 30022',
+      date: new Date(TODAY), time: '12:00 PM',
+      addons: [], subtotal: 284.99, addonsTotal: 0, total: 284.99, deposit: 71.25, balance: 213.74,
+      status: 'In Progress', method: 'Card', notes: ''
+    },
+    {
+      id: 3, jobNumber: '003',
+      customer: { name:'David Johnson', email:'david@email.com', phone:'(404) 555-9012' },
+      service: 'Premium Detail', vehicleType: 'Large SUVs/Trucks', vehicle: '2023 Ford F-150',
+      address: '789 Pine Rd, Sandy Springs, GA 30328',
+      date: new Date(TODAY), time: '3:00 PM',
+      addons: [], subtotal: 378.99, addonsTotal: 0, total: 378.99, deposit: 94.75, balance: 284.24,
+      status: 'Pending', method: 'Card', notes: ''
+    }
+  ];
+
+  function findJob(id){ return JOBS.find(j => j.id === id); }
+  function renderStatusBadge(job){
+    return `<span class="badge badge-${STATUS_SLUG[job.status]}">${job.status}</span>`;
+  }
+
+  const state = {
+    selectedDate: new Date(TODAY),
+    calendarViewDate: new Date(TODAY.getFullYear(), TODAY.getMonth(), 1),
+    customerFilterEmail: null
+  };
+
+  let currentModalJobId = null;
+
+  // ================= LOGIN =================
+  const loginScreen = document.getElementById('login-screen');
+  const dashboard = document.getElementById('dashboard');
+  const loginForm = document.getElementById('login-form');
+  const loginCard = document.getElementById('login-card');
+  const loginError = document.getElementById('login-error');
+  const passwordInput = document.getElementById('admin-password');
+
+  function showDashboard(){
+    loginScreen.hidden = true;
+    dashboard.hidden = false;
+  }
+
+  function triggerShake(){
+    loginError.hidden = false;
+    loginCard.classList.remove('shake');
+    void loginCard.offsetWidth;
+    loginCard.classList.add('shake');
+    setTimeout(() => loginCard.classList.remove('shake'), 450);
+  }
+
+  loginForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const value = passwordInput.value.trim();
+    if (value === ADMIN_PASSWORD){
+      sessionStorage.setItem(AUTH_KEY, 'true');
+      loginError.hidden = true;
+      showDashboard();
+    } else {
+      triggerShake();
+    }
+  });
+
+  document.getElementById('logout-btn').addEventListener('click', () => {
+    sessionStorage.removeItem(AUTH_KEY);
+    passwordInput.value = '';
+    loginError.hidden = true;
+    dashboard.hidden = true;
+    loginScreen.hidden = false;
+    switchView('calendar');
+  });
+
+  // ================= VIEW SWITCHING =================
+  function switchView(name){
+    document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === `view-${name}`));
+    document.querySelectorAll('[data-view]').forEach(btn => btn.classList.toggle('active', btn.dataset.view === name));
+  }
+
+  document.querySelectorAll('[data-view]').forEach(btn => {
+    btn.addEventListener('click', () => switchView(btn.dataset.view));
+  });
+
+  // ================= MINI CALENDAR =================
+  const calGrid = document.getElementById('admin-calendar-grid');
+  const calMonthLabel = document.getElementById('admin-cal-month-label');
+
+  function renderMiniCalendar(){
+    const year = state.calendarViewDate.getFullYear();
+    const month = state.calendarViewDate.getMonth();
+    calMonthLabel.textContent = `${MONTH_LABELS[month]} ${year}`;
+
+    const firstOfMonth = new Date(year, month, 1);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const startWeekday = (firstOfMonth.getDay() + 6) % 7;
+
+    calGrid.innerHTML = '';
+    for (let i = 0; i < startWeekday; i++){
+      const empty = document.createElement('span');
+      empty.className = 'cal-day empty';
+      calGrid.appendChild(empty);
+    }
+    for (let day = 1; day <= daysInMonth; day++){
+      const cellDate = new Date(year, month, day);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cal-day';
+      btn.textContent = day;
+      if (isSameDay(cellDate, TODAY)) btn.classList.add('today');
+      if (isSameDay(cellDate, state.selectedDate)) btn.classList.add('selected');
+      btn.addEventListener('click', () => {
+        state.selectedDate = cellDate;
+        renderMiniCalendar();
+        renderWeekView();
+        renderJobsListForDay();
+      });
+      calGrid.appendChild(btn);
+    }
+  }
+
+  document.getElementById('admin-cal-prev').addEventListener('click', () => {
+    state.calendarViewDate = new Date(state.calendarViewDate.getFullYear(), state.calendarViewDate.getMonth() - 1, 1);
+    renderMiniCalendar();
+  });
+  document.getElementById('admin-cal-next').addEventListener('click', () => {
+    state.calendarViewDate = new Date(state.calendarViewDate.getFullYear(), state.calendarViewDate.getMonth() + 1, 1);
+    renderMiniCalendar();
+  });
+
+  // ================= WEEK VIEW =================
+  const weekGrid = document.getElementById('week-grid');
+  const weekRangeLabel = document.getElementById('week-range-label');
+
+  function renderWeekView(){
+    const weekStart = startOfWeekMonday(state.selectedDate);
+    const days = [];
+    for (let i = 0; i < 6; i++){
+      const d = new Date(weekStart);
+      d.setDate(weekStart.getDate() + i);
+      days.push(d);
+    }
+    weekRangeLabel.textContent = `${formatShortDate(days[0])} – ${formatShortDate(days[5])}`;
+
+    weekGrid.innerHTML = '';
+
+    const corner = document.createElement('div');
+    corner.className = 'week-cell week-corner';
+    weekGrid.appendChild(corner);
+
+    days.forEach(d => {
+      const cell = document.createElement('button');
+      cell.type = 'button';
+      cell.className = 'week-cell week-day-header';
+      if (isSameDay(d, TODAY)) cell.classList.add('is-today');
+      if (isSameDay(d, state.selectedDate)) cell.classList.add('is-selected');
+      cell.innerHTML = `<span class="week-day-name">${WEEKDAY_SHORT[d.getDay()]}</span><span class="week-day-num">${d.getDate()}</span>`;
+      cell.addEventListener('click', () => {
+        state.selectedDate = d;
+        renderMiniCalendar();
+        renderWeekView();
+        renderJobsListForDay();
+      });
+      weekGrid.appendChild(cell);
+    });
+
+    ADMIN_TIME_SLOTS.forEach(slot => {
+      const timeLabel = document.createElement('div');
+      timeLabel.className = 'week-cell week-time-label';
+      timeLabel.textContent = slot;
+      weekGrid.appendChild(timeLabel);
+
+      days.forEach(d => {
+        const cell = document.createElement('div');
+        cell.className = 'week-cell week-slot-cell';
+        const matches = JOBS.filter(j => isSameDay(j.date, d) && j.time === slot);
+        matches.forEach(j => {
+          const chip = document.createElement('button');
+          chip.type = 'button';
+          chip.className = `week-chip chip-${STATUS_SLUG[j.status]}`;
+          chip.textContent = `#${j.jobNumber} ${j.customer.name.split(' ')[0]}`;
+          chip.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openJobModal(j.id);
+          });
+          cell.appendChild(chip);
+        });
+        weekGrid.appendChild(cell);
+      });
+    });
+  }
+
+  // ================= JOBS LIST FOR SELECTED DAY =================
+  function buildJobCardHtml(j){
+    return `
+      <div class="job-card">
+        <div class="job-card-top">
+          <div>
+            <div class="job-number">JOB #${j.jobNumber}</div>
+            <div class="job-service">${j.service} — ${j.vehicleType}</div>
+          </div>
+          <span class="status-display" data-job-id="${j.id}">${renderStatusBadge(j)}</span>
+        </div>
+        <div class="job-meta">
+          <div>Customer<strong>${j.customer.name}</strong></div>
+          <div>Vehicle<strong>${j.vehicle}</strong></div>
+          <div>Time<strong>${j.time}</strong></div>
+          <div>Address<strong>${j.address}</strong></div>
+          <div>Total<strong>${formatCurrency(j.total)}</strong></div>
+          <div>Deposit Paid<strong>${formatCurrency(j.deposit)}</strong></div>
+          <div>Balance Due<strong>${formatCurrency(j.balance)}</strong></div>
+        </div>
+        <div class="job-card-actions">
+          <button type="button" class="btn-mini job-view-btn" data-job-id="${j.id}">View</button>
+          <button type="button" class="btn-mini job-editstatus-btn" data-job-id="${j.id}">Edit Status</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderJobsListForDay(){
+    document.getElementById('selected-day-label').textContent = formatLongDate(state.selectedDate);
+    const container = document.getElementById('jobs-list');
+    const dayJobs = JOBS
+      .filter(j => isSameDay(j.date, state.selectedDate))
+      .sort((a,b) => ADMIN_TIME_SLOTS.indexOf(a.time) - ADMIN_TIME_SLOTS.indexOf(b.time));
+
+    if (!dayJobs.length){
+      container.innerHTML = `<p class="empty-state">No jobs scheduled for this day.</p>`;
+      return;
+    }
+    container.innerHTML = dayJobs.map(buildJobCardHtml).join('');
+  }
+
+  // ================= JOBS TABLE =================
+  function renderJobsTable(){
+    const tbody = document.getElementById('jobs-table-body');
+    const banner = document.getElementById('jobs-filter-banner');
+
+    let list = [...JOBS].sort((a,b) => a.date - b.date || ADMIN_TIME_SLOTS.indexOf(a.time) - ADMIN_TIME_SLOTS.indexOf(b.time));
+
+    if (state.customerFilterEmail){
+      list = list.filter(j => j.customer.email === state.customerFilterEmail);
+      const customer = list[0] || JOBS.find(j => j.customer.email === state.customerFilterEmail);
+      document.getElementById('jobs-filter-name').textContent = customer ? customer.customer.name : '';
+      banner.hidden = false;
+    } else {
+      banner.hidden = true;
+    }
+
+    tbody.innerHTML = list.map(j => `
+      <tr>
+        <td>#${j.jobNumber}</td>
+        <td>${formatShortDate(j.date)}</td>
+        <td>${j.customer.name}</td>
+        <td>${j.service}</td>
+        <td>${j.vehicle}</td>
+        <td>${formatCurrency(j.total)}</td>
+        <td>${formatCurrency(j.deposit)}</td>
+        <td>${formatCurrency(j.balance)}</td>
+        <td><span class="status-display" data-job-id="${j.id}">${renderStatusBadge(j)}</span></td>
+        <td class="actions-cell">
+          <button type="button" class="btn-mini job-view-btn" data-job-id="${j.id}">View</button>
+          <button type="button" class="btn-mini job-editstatus-btn" data-job-id="${j.id}">Edit Status</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  document.getElementById('jobs-filter-clear').addEventListener('click', () => {
+    state.customerFilterEmail = null;
+    renderJobsTable();
+  });
+
+  // ================= CUSTOMERS TABLE =================
+  function getCustomers(){
+    const map = new Map();
+    JOBS.forEach(j => {
+      const key = j.customer.email;
+      if (!map.has(key)){
+        map.set(key, {
+          name: j.customer.name, phone: j.customer.phone, email: j.customer.email,
+          address: j.address, totalSpent: 0, jobsCount: 0, lastService: j.date
+        });
+      }
+      const c = map.get(key);
+      c.totalSpent += j.total;
+      c.jobsCount += 1;
+      if (j.date > c.lastService) c.lastService = j.date;
+      c.address = j.address;
+    });
+    return Array.from(map.values());
+  }
+
+  function renderCustomersTable(){
+    const tbody = document.getElementById('customers-table-body');
+    const customers = getCustomers();
+    tbody.innerHTML = customers.map(c => `
+      <tr>
+        <td>${c.name}</td>
+        <td>${c.phone}</td>
+        <td>${c.email}</td>
+        <td>${c.address}</td>
+        <td>${formatCurrency(c.totalSpent)}</td>
+        <td>${c.jobsCount}</td>
+        <td>${formatShortDate(c.lastService)}</td>
+        <td class="actions-cell">
+          <button type="button" class="btn-mini customer-viewjobs-btn" data-email="${c.email}">View Jobs</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  // ================= PAYMENTS TABLE =================
+  function renderPaymentsTable(){
+    const tbody = document.getElementById('payments-table-body');
+    const list = [...JOBS].sort((a,b) => a.date - b.date);
+    tbody.innerHTML = list.map(j => `
+      <tr>
+        <td>${formatShortDate(j.date)}</td>
+        <td>#${j.jobNumber}</td>
+        <td>${j.customer.name}</td>
+        <td>${j.service}</td>
+        <td>${formatCurrency(j.total)}</td>
+        <td>${formatCurrency(j.deposit)}</td>
+        <td>${formatCurrency(j.balance)}</td>
+        <td>${j.method}</td>
+        <td>${j.balance > 0 ? 'Deposit Paid' : 'Paid in Full'}</td>
+      </tr>
+    `).join('');
+  }
+
+  // ================= JOB DETAIL MODAL =================
+  const modalOverlay = document.getElementById('modal-overlay');
+
+  function populateModal(job){
+    document.getElementById('modal-job-number').textContent = '#' + job.jobNumber;
+    document.getElementById('modal-service').textContent = `${job.service} — ${job.vehicleType}`;
+    document.getElementById('modal-vehicle').textContent = job.vehicle;
+    document.getElementById('modal-addons').textContent = job.addons.length ? job.addons.join(', ') : 'None';
+    document.getElementById('modal-date').textContent = formatLongDate(job.date);
+    document.getElementById('modal-time').textContent = job.time;
+    document.getElementById('modal-address').textContent = job.address;
+    document.getElementById('modal-customer-name').textContent = job.customer.name;
+    document.getElementById('modal-customer-phone').textContent = job.customer.phone;
+    document.getElementById('modal-customer-email').textContent = job.customer.email;
+    document.getElementById('modal-subtotal').textContent = formatCurrency(job.subtotal);
+    document.getElementById('modal-addons-total').textContent = formatCurrency(job.addonsTotal);
+    document.getElementById('modal-total').textContent = formatCurrency(job.total);
+    document.getElementById('modal-deposit').textContent = formatCurrency(job.deposit);
+    document.getElementById('modal-balance').textContent = formatCurrency(job.balance);
+    document.getElementById('modal-status-select').value = job.status;
+    document.getElementById('modal-notes').value = job.notes || '';
+  }
+
+  function openJobModal(jobId){
+    currentModalJobId = jobId;
+    populateModal(findJob(jobId));
+    modalOverlay.hidden = false;
+  }
+
+  function closeModal(){
+    modalOverlay.hidden = true;
+    currentModalJobId = null;
+  }
+
+  document.getElementById('modal-close').addEventListener('click', closeModal);
+  modalOverlay.addEventListener('click', (e) => {
+    if (e.target === modalOverlay) closeModal();
+  });
+
+  document.getElementById('modal-notes').addEventListener('input', (e) => {
+    if (currentModalJobId !== null) findJob(currentModalJobId).notes = e.target.value;
+  });
+
+  document.getElementById('modal-mark-completed').addEventListener('click', () => {
+    if (currentModalJobId !== null) updateJobStatus(currentModalJobId, 'Completed');
+  });
+  document.getElementById('modal-send-invoice').addEventListener('click', () => {
+    const job = findJob(currentModalJobId);
+    if (job) alert(`Invoice sent to ${job.customer.email}. (Email integration coming soon)`);
+  });
+  document.getElementById('modal-collect-payment').addEventListener('click', () => {
+    const job = findJob(currentModalJobId);
+    if (job) alert(`Collecting balance of ${formatCurrency(job.balance)} from ${job.customer.name}. (Stripe integration coming soon)`);
+  });
+
+  // ================= STATUS UPDATES (shared) =================
+  function updateJobStatus(jobId, newStatus){
+    const job = findJob(jobId);
+    if (!job) return;
+    job.status = newStatus;
+    renderJobsListForDay();
+    renderWeekView();
+    renderJobsTable();
+    renderPaymentsTable();
+    if (currentModalJobId === jobId){
+      document.getElementById('modal-status-select').value = newStatus;
+    }
+  }
+
+  // ---- Event delegation: View / Edit Status buttons + status <select> changes ----
+  document.addEventListener('click', (e) => {
+    const viewBtn = e.target.closest('.job-view-btn');
+    if (viewBtn){
+      openJobModal(Number(viewBtn.dataset.jobId));
+      return;
+    }
+    const editBtn = e.target.closest('.job-editstatus-btn');
+    if (editBtn){
+      const jobId = Number(editBtn.dataset.jobId);
+      const job = findJob(jobId);
+      document.querySelectorAll(`.status-display[data-job-id="${jobId}"]`).forEach(el => {
+        el.innerHTML = `<select class="status-select" data-job-id="${jobId}">
+          ${STATUS_OPTIONS.map(s => `<option value="${s}" ${s === job.status ? 'selected' : ''}>${s}</option>`).join('')}
+        </select>`;
+      });
+      return;
+    }
+    const viewJobsBtn = e.target.closest('.customer-viewjobs-btn');
+    if (viewJobsBtn){
+      state.customerFilterEmail = viewJobsBtn.dataset.email;
+      switchView('jobs');
+      renderJobsTable();
+      return;
+    }
+  });
+
+  document.addEventListener('change', (e) => {
+    if (e.target.matches('.status-select')){
+      updateJobStatus(Number(e.target.dataset.jobId), e.target.value);
+    }
+    if (e.target.id === 'modal-status-select' && currentModalJobId !== null){
+      updateJobStatus(currentModalJobId, e.target.value);
+    }
+  });
+
+  // ================= INIT =================
+  function renderAll(){
+    renderMiniCalendar();
+    renderWeekView();
+    renderJobsListForDay();
+    renderJobsTable();
+    renderCustomersTable();
+    renderPaymentsTable();
+  }
+
+  renderAll();
+
+  if (sessionStorage.getItem(AUTH_KEY) === 'true'){
+    showDashboard();
+  }
+})();
+</script>
+
+</body>
+</html>
