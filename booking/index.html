@@ -1201,6 +1201,10 @@
   const SQUARE_APP_ID = 'sq0idp-jVMn1EDrut74rDnsRGgzrQ';
   const SQUARE_LOCATION_ID = 'LEWG2XNWRA7BS';
 
+  function isLocalPreview(){
+    return ['localhost','127.0.0.1',''].includes(window.location.hostname) && window.location.protocol !== 'https:';
+  }
+
   let db = null;
   try {
     if (typeof supabase !== 'undefined'){
@@ -1775,7 +1779,7 @@
     document.getElementById('final-balance').textContent = formatCurrency(balanceAmount());
     document.getElementById('pay-btn-amount').textContent = formatCurrency(depositAmount());
 
-    payBtn.disabled = !canPay();
+    payBtn.disabled = !canPay() || isLocalPreview();
   }
 
   function showConfirmation(paymentConfirmed){
@@ -1835,6 +1839,11 @@
   let squareCard = null;
 
   async function initSquareCard(){
+    if (isLocalPreview()){
+      document.getElementById('square-card-container').innerHTML =
+        '<p style="text-align:center; color:#94a3b8; font-size:13px; margin:0; padding:22px 10px;">Payment form will activate on the live site.</p>';
+      return;
+    }
     if (typeof Square === 'undefined'){
       console.error('Square Web Payments SDK failed to load.');
       return;
