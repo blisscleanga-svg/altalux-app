@@ -27,6 +27,7 @@
 
   *,*::before,*::after{ box-sizing:border-box; }
   html{ -webkit-text-size-adjust:100%; }
+  [hidden]{ display:none !important; }
 
   body{
     margin:0;
@@ -41,15 +42,36 @@
     padding:clamp(16px,4vw,48px) 0 64px;
   }
 
-  h1,h2,h3,.step-label,.brand-name,.btn-next,.btn-back,.btn-pay,.package-name,.vehicle-chip,.calendar-header{
+  h1,h2,h3,.step-label,.brand-name,.btn-next,.btn-back,.btn-pay,.package-name,.vehicle-chip,.calendar-header,.sidebar-title{
     font-family:'Rajdhani',sans-serif;
+  }
+
+  /* ---------- Page layout (main column + sticky sidebar) ---------- */
+  .page{
+    display:flex;
+    flex-direction:column;
+    gap:24px;
+    max-width:680px;
+    margin:0 auto;
+    padding:0 16px;
+  }
+  @media (min-width:960px){
+    .page{
+      flex-direction:row;
+      align-items:flex-start;
+      max-width:1040px;
+      gap:32px;
+      padding:0 24px;
+    }
   }
 
   .wrap{
     width:100%;
     max-width:680px;
     margin:0 auto;
-    padding:0 16px;
+  }
+  @media (min-width:960px){
+    .wrap{ flex:1 1 680px; margin:0; }
   }
 
   /* ---------- Header / Brand ---------- */
@@ -182,11 +204,40 @@
   }
 
   /* ---------- Step 1: Service ---------- */
+  .category-tabs{
+    display:flex;
+    gap:6px;
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:999px;
+    padding:5px;
+    margin-bottom:22px;
+  }
+  .category-tab{
+    flex:1;
+    border:none;
+    background:transparent;
+    color:var(--ink-muted);
+    font-size:12.5px;
+    font-weight:700;
+    letter-spacing:.2px;
+    padding:10px 4px;
+    border-radius:999px;
+    cursor:pointer;
+    transition:all .25s ease;
+  }
+  @media (min-width:420px){ .category-tab{ font-size:14px; padding:11px 8px; } }
+  .category-tab.active{
+    background:linear-gradient(135deg,var(--gold),var(--orange));
+    color:var(--dark);
+    box-shadow:0 4px 14px rgba(255,140,0,.35);
+  }
+
   .package-grid{
     display:grid;
     grid-template-columns:1fr;
     gap:12px;
-    margin-bottom:22px;
+    margin-bottom:24px;
   }
   @media (min-width:520px){
     .package-grid{ grid-template-columns:1fr 1fr; }
@@ -257,6 +308,7 @@
     display:flex;
     flex-wrap:wrap;
     gap:10px;
+    margin-bottom:24px;
   }
   .vehicle-chip{
     display:inline-flex;
@@ -283,16 +335,89 @@
   }
   .vehicle-chip.selected .chip-price{ color:var(--dark); }
 
+  /* ---------- Package detail (description / included / duration / note) ---------- */
+  .package-detail{
+    padding-top:4px;
+    margin-bottom:24px;
+  }
+  .package-description{
+    font-size:13.5px;
+    color:var(--ink-muted);
+    line-height:1.6;
+    margin:0 0 4px;
+  }
+  .included-list{
+    list-style:none;
+    margin:14px 0 0;
+    padding:0;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .included-list li{
+    display:flex;
+    align-items:flex-start;
+    gap:8px;
+    font-size:13.5px;
+    color:var(--ink-muted);
+    line-height:1.4;
+  }
+  .included-list li::before{
+    content:'✓';
+    color:var(--gold);
+    font-weight:700;
+    flex-shrink:0;
+    margin-top:1px;
+  }
+  .duration-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.5px;
+    text-transform:uppercase;
+    color:var(--gold);
+    background:rgba(255,170,0,.1);
+    border:1px solid rgba(255,170,0,.3);
+    border-radius:999px;
+    padding:6px 12px;
+    margin:16px 0 0;
+  }
+  .package-note{
+    margin-top:16px;
+    padding:12px 14px;
+    border-radius:var(--radius-sm);
+    background:rgba(255,140,0,.06);
+    border:1px solid rgba(255,140,0,.2);
+    font-size:12.5px;
+    line-height:1.5;
+    color:var(--ink-muted);
+  }
+  .package-note strong{ color:var(--gold); }
+
+  /* ---------- Add-ons ---------- */
   .addons-section{
-    margin-top:26px;
     padding-top:22px;
     border-top:1px solid rgba(255,255,255,.08);
+    margin-bottom:22px;
     animation:fadeUp .35s ease;
   }
   .addons-subtitle{
-    margin:0 0 14px;
+    margin:0 0 18px;
     font-size:13px;
     color:var(--ink-muted);
+  }
+  .addon-group{ margin-bottom:22px; }
+  .addon-group:last-child{ margin-bottom:0; }
+  .addon-group-title{
+    font-family:'Rajdhani',sans-serif;
+    font-size:12.5px;
+    font-weight:700;
+    letter-spacing:1.2px;
+    text-transform:uppercase;
+    color:var(--gold);
+    margin:0 0 10px;
   }
   .addon-item{
     display:flex;
@@ -326,7 +451,7 @@
     gap:2px;
   }
   .addon-name{ font-weight:600; font-size:14.5px; }
-  .addon-desc{ font-size:12.5px; color:var(--ink-muted); line-height:1.4; }
+  .addon-desc{ font-size:12px; color:var(--ink-faint); font-style:italic; line-height:1.4; }
   .addon-price{
     font-weight:700;
     color:var(--gold);
@@ -642,6 +767,13 @@
     color:var(--ink-faint);
   }
 
+  .fine-note{
+    font-size:11.5px;
+    color:var(--ink-faint);
+    margin:0 0 18px;
+    line-height:1.5;
+  }
+
   .policy-note{
     font-size:12px;
     line-height:1.55;
@@ -669,6 +801,8 @@
   }
   .btn-pay:hover{ transform:translateY(-2px); box-shadow:0 14px 34px rgba(255,140,0,.45); }
   .btn-pay:active{ transform:translateY(0); }
+  .btn-pay:disabled{ opacity:.4; cursor:not-allowed; box-shadow:none; transform:none; }
+  .btn-pay:disabled:hover{ transform:none; box-shadow:none; }
 
   .secure-note{
     text-align:center;
@@ -676,6 +810,28 @@
     color:var(--ink-faint);
     margin:14px 0 0;
   }
+
+  .payment-icons{
+    display:flex;
+    justify-content:center;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-top:14px;
+  }
+  .payment-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:6px 10px;
+    border-radius:8px;
+    border:1px solid rgba(255,255,255,.12);
+    background:rgba(255,255,255,.03);
+    font-size:10.5px;
+    font-weight:700;
+    letter-spacing:.3px;
+    color:var(--ink-muted);
+  }
+  .payment-badge svg{ width:20px; height:14px; flex-shrink:0; color:var(--ink-muted); }
 
   /* ---------- Nav ---------- */
   .step-error{
@@ -723,201 +879,255 @@
     color:var(--ink-faint);
   }
   .footer-note strong{ color:var(--ink-muted); }
+
+  /* ---------- Sticky sidebar summary (desktop) ---------- */
+  .sidebar-summary{ display:none; }
+  @media (min-width:960px){
+    .sidebar-summary{
+      display:block;
+      flex:0 0 300px;
+      position:sticky;
+      top:24px;
+    }
+  }
+  .sidebar-card{
+    background:linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.02));
+    border:1px solid var(--line);
+    border-radius:var(--radius-lg);
+    padding:22px;
+    box-shadow:0 20px 60px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  .sidebar-title{
+    font-size:15px;
+    font-weight:700;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--white);
+    margin:0 0 16px;
+  }
+  #sidebar-body{ display:flex; flex-direction:column; gap:10px; }
+  #sidebar-body .summary-line{ font-size:13.5px; }
 </style>
 </head>
 <body>
 
-<div class="wrap">
+<div class="page">
+  <div class="wrap">
 
-  <div class="brand">
-    <h1 class="brand-name">ALTA<span class="lux">LUX</span></h1>
-    <p class="brand-tagline">Mobile Detail</p>
-    <p class="brand-sub">Book your premium mobile detailing service in Roswell, GA. Secure your appointment with a 25% deposit.</p>
+    <div class="brand">
+      <h1 class="brand-name">ALTA<span class="lux">LUX</span></h1>
+      <p class="brand-tagline">Mobile Detail</p>
+      <p class="brand-sub">Book your premium mobile detailing service in Roswell, GA. Secure your appointment with a 25% deposit.</p>
+    </div>
+
+    <div class="progress-bar" id="progress-bar">
+      <div class="progress-step active" data-step="1">
+        <span class="step-circle">1</span>
+        <span class="step-label">Service</span>
+      </div>
+      <div class="progress-step" data-step="2">
+        <span class="step-circle">2</span>
+        <span class="step-label">Details</span>
+      </div>
+      <div class="progress-step" data-step="3">
+        <span class="step-circle">3</span>
+        <span class="step-label">Schedule</span>
+      </div>
+      <div class="progress-step" data-step="4">
+        <span class="step-circle">4</span>
+        <span class="step-label">Review &amp; Pay</span>
+      </div>
+    </div>
+
+    <div class="card">
+
+      <!-- STEP 1: SERVICE -->
+      <section class="step-panel active" data-step="1" id="step-1">
+        <h2 class="step-title">Choose Your Service</h2>
+        <p class="step-subtitle">Select a category, package, vehicle type, and any add-ons</p>
+
+        <div class="category-tabs" id="category-tabs">
+          <button type="button" class="category-tab active" data-category="full">Full Detail</button>
+          <button type="button" class="category-tab" data-category="interior">Interior Only</button>
+          <button type="button" class="category-tab" data-category="exterior">Exterior Only</button>
+        </div>
+
+        <div class="package-grid" id="package-grid">
+          <button type="button" class="package-card selected" data-key="essential">
+            <span class="package-name">Essential Detail</span>
+            <span class="package-desc">Thorough interior &amp; exterior clean for everyday upkeep</span>
+            <span class="package-from">From $208.99</span>
+          </button>
+          <button type="button" class="package-card" data-key="premium">
+            <span class="package-name">Premium Detail</span>
+            <span class="package-desc">Deep-clean treatment with extra protection and finish</span>
+            <span class="package-from">From $288.99</span>
+          </button>
+        </div>
+
+        <p class="section-label">Select Vehicle Type</p>
+        <div class="chip-group" id="vehicle-chips"></div>
+
+        <div class="package-detail" id="package-detail"></div>
+
+        <div class="addons-section" id="addons-section" hidden>
+          <p class="section-label">Add-Ons <span style="color:var(--ink-faint);font-weight:500;text-transform:none;letter-spacing:0;">(optional)</span></p>
+          <p class="addons-subtitle">Enhance your detail with these extra services</p>
+          <div id="addons-list"></div>
+        </div>
+
+        <div class="selection-summary" id="step1-summary" hidden>
+          <div class="summary-row">
+            <span>Selected Service</span>
+            <strong id="sum-package">—</strong>
+          </div>
+          <div class="summary-row" id="sum-addons-row" hidden>
+            <span>Add-Ons</span>
+            <strong id="sum-addons">$0.00</strong>
+          </div>
+          <div class="summary-row total-row">
+            <span>Total</span>
+            <strong id="sum-total">$0.00</strong>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 2: DETAILS (CUSTOMER + VEHICLE) -->
+      <section class="step-panel" data-step="2" id="step-2">
+        <h2 class="step-title">Your Details</h2>
+        <p class="step-subtitle">Tell us who we're serving and where to meet you</p>
+
+        <form id="details-form" novalidate>
+          <div class="form-grid two-col">
+            <div class="field">
+              <label for="c-name">Full Name</label>
+              <input type="text" id="c-name" name="name" placeholder="e.g. Maria Gonzalez" required>
+            </div>
+            <div class="field">
+              <label for="c-phone">Mobile Phone</label>
+              <input type="tel" id="c-phone" name="phone" placeholder="(404) 555-0123" pattern="^[0-9\-\+\(\)\s]{7,20}$" required>
+            </div>
+          </div>
+
+          <div class="form-grid" style="margin-top:16px;">
+            <div class="field">
+              <label for="c-email">Email</label>
+              <input type="email" id="c-email" name="email" placeholder="you@example.com" required>
+            </div>
+          </div>
+
+          <div class="field-section-title">Service Address</div>
+          <div class="form-grid" style="margin-top:12px;">
+            <div class="field">
+              <label for="c-address">Service Address</label>
+              <input type="text" id="c-address" name="address" placeholder="Street, city, state, ZIP" required>
+            </div>
+          </div>
+
+          <div class="field-section-title">Vehicle</div>
+          <div class="form-grid" style="margin-top:12px;">
+            <div class="field">
+              <label for="c-vehicle">Year, Make &amp; Model</label>
+              <input type="text" id="c-vehicle" name="vehicle" placeholder="e.g. 2022 Toyota Camry" required>
+            </div>
+          </div>
+
+          <div class="field-section-title">Notifications</div>
+          <div class="consent-group" style="margin-top:8px;">
+            <div class="consent-row">
+              <input type="checkbox" id="c-sms" name="sms" checked>
+              <label for="c-sms">I would like to receive automated appointment reminders via SMS/email</label>
+            </div>
+            <div class="consent-row">
+              <input type="checkbox" id="c-offers" name="offers" checked>
+              <label for="c-offers">I would like to receive exclusive offers via SMS/email</label>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <!-- STEP 3: SCHEDULE -->
+      <section class="step-panel" data-step="3" id="step-3">
+        <h2 class="step-title">Select Date &amp; Time</h2>
+        <p class="step-subtitle">We're open Monday through Saturday</p>
+
+        <div class="calendar-card">
+          <div class="calendar-header">
+            <button type="button" class="cal-nav" id="cal-prev" aria-label="Previous month">‹</button>
+            <span id="cal-month-label">Month</span>
+            <button type="button" class="cal-nav" id="cal-next" aria-label="Next month">›</button>
+          </div>
+          <div class="calendar-weekdays">
+            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+          </div>
+          <div class="calendar-grid" id="calendar-grid"></div>
+        </div>
+
+        <div class="time-slots" id="time-slots"></div>
+
+        <div class="selection-summary" id="step2-summary" hidden>
+          <div class="summary-row">
+            <span>Selected Date</span>
+            <strong id="sum-date">—</strong>
+          </div>
+          <div class="summary-row">
+            <span>Selected Time</span>
+            <strong id="sum-time">—</strong>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 4: REVIEW & PAY -->
+      <section class="step-panel" data-step="4" id="step-4">
+        <h2 class="step-title">Review &amp; Pay</h2>
+        <p class="step-subtitle">Review your details before confirming your booking</p>
+
+        <div class="summary-card" id="final-summary"><!-- injected by JS --></div>
+
+        <div class="deposit-highlight">
+          <span>Deposit Due Today (25%)</span>
+          <strong id="final-deposit">$0.00</strong>
+        </div>
+
+        <div class="balance-box">
+          <span>Remaining Balance (75%)</span>
+          <strong id="final-balance">$0.00</strong>
+          <small>Due on service day</small>
+        </div>
+
+        <p class="policy-note">A 25% non-refundable deposit is required to confirm your booking. Cancellations or rescheduling with less than 72 hours notice will forfeit the deposit. Our technicians rely on scheduled appointments for their income. Please be aware of your arrival window — if your vehicle is not available within 15 minutes of technician arrival, a $50 late fee will apply.</p>
+
+        <button type="button" class="btn-pay" id="pay-btn" disabled>Pay Deposit <span id="pay-btn-amount">$0.00</span></button>
+        <p class="secure-note">🔒 Secure payment powered by Stripe (integration coming soon)</p>
+
+        <div class="payment-icons">
+          <span class="payment-badge"><svg viewBox="0 0 24 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="22" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/><line x1="1" y1="5.5" x2="23" y2="5.5" stroke="currentColor" stroke-width="1.4"/></svg> Visa</span>
+          <span class="payment-badge"><svg viewBox="0 0 24 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="22" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/><line x1="1" y1="5.5" x2="23" y2="5.5" stroke="currentColor" stroke-width="1.4"/></svg> Mastercard</span>
+          <span class="payment-badge"><svg viewBox="0 0 24 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="22" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/><line x1="1" y1="5.5" x2="23" y2="5.5" stroke="currentColor" stroke-width="1.4"/></svg> Amex</span>
+          <span class="payment-badge"><svg viewBox="0 0 24 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="22" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/><line x1="1" y1="5.5" x2="23" y2="5.5" stroke="currentColor" stroke-width="1.4"/></svg> Discover</span>
+        </div>
+      </section>
+
+      <p class="step-error" id="step-error"></p>
+
+      <div class="step-nav" id="step-nav">
+        <button type="button" class="btn-back" id="btn-back">← Back</button>
+        <button type="button" class="btn-next" id="btn-next">Continue to Details →</button>
+      </div>
+
+    </div>
+
+    <p class="footer-note"><strong>AltaLux Mobile Detail</strong> · Roswell, GA</p>
   </div>
 
-  <div class="progress-bar" id="progress-bar">
-    <div class="progress-step active" data-step="1">
-      <span class="step-circle">1</span>
-      <span class="step-label">Service</span>
+  <aside class="sidebar-summary" id="sidebar-summary">
+    <div class="sidebar-card">
+      <p class="sidebar-title">Your Booking</p>
+      <div id="sidebar-body">
+        <p style="font-size:13px;color:var(--ink-faint);margin:0;">Select a service to see your total.</p>
+      </div>
     </div>
-    <div class="progress-step" data-step="2">
-      <span class="step-circle">2</span>
-      <span class="step-label">Details</span>
-    </div>
-    <div class="progress-step" data-step="3">
-      <span class="step-circle">3</span>
-      <span class="step-label">Schedule</span>
-    </div>
-    <div class="progress-step" data-step="4">
-      <span class="step-circle">4</span>
-      <span class="step-label">Review &amp; Pay</span>
-    </div>
-  </div>
-
-  <div class="card">
-
-    <!-- STEP 1: SERVICE -->
-    <section class="step-panel active" data-step="1" id="step-1">
-      <h2 class="step-title">Choose Your Service</h2>
-      <p class="step-subtitle">Select a detail package, your vehicle type, and any add-ons</p>
-
-      <div class="package-grid" id="package-grid">
-        <button type="button" class="package-card selected" data-category="essential">
-          <span class="package-name">Essential Detail</span>
-          <span class="package-desc">Thorough interior &amp; exterior clean for everyday upkeep</span>
-          <span class="package-from">From $208.88</span>
-        </button>
-        <button type="button" class="package-card" data-category="premium">
-          <span class="package-name">Premium Detail</span>
-          <span class="package-desc">Deep-clean treatment with extra protection and finish</span>
-          <span class="package-from">From $288.88</span>
-        </button>
-      </div>
-
-      <p class="section-label">Select Vehicle Type</p>
-      <div class="chip-group" id="vehicle-chips"></div>
-
-      <div class="addons-section" id="addons-section" hidden>
-        <p class="section-label">Add-Ons <span style="color:var(--ink-faint);font-weight:500;text-transform:none;letter-spacing:0;">(optional)</span></p>
-        <p class="addons-subtitle">Enhance your detail with these extra services</p>
-        <div id="addons-list"></div>
-      </div>
-
-      <div class="selection-summary" id="step1-summary" hidden>
-        <div class="summary-row">
-          <span>Selected Service</span>
-          <strong id="sum-package">—</strong>
-        </div>
-        <div class="summary-row" id="sum-addons-row" hidden>
-          <span>Add-Ons</span>
-          <strong id="sum-addons">$0.00</strong>
-        </div>
-        <div class="summary-row total-row">
-          <span>Total</span>
-          <strong id="sum-total">$0.00</strong>
-        </div>
-      </div>
-    </section>
-
-    <!-- STEP 2: DETAILS (CUSTOMER + VEHICLE) -->
-    <section class="step-panel" data-step="2" id="step-2">
-      <h2 class="step-title">Your Details</h2>
-      <p class="step-subtitle">Tell us who we're serving and where to meet you</p>
-
-      <form id="details-form" novalidate>
-        <div class="form-grid two-col">
-          <div class="field">
-            <label for="c-name">Name</label>
-            <input type="text" id="c-name" name="name" placeholder="e.g. Maria Gonzalez" required>
-          </div>
-          <div class="field">
-            <label for="c-phone">Mobile Phone</label>
-            <input type="tel" id="c-phone" name="phone" placeholder="(404) 555-0123" pattern="^[0-9\-\+\(\)\s]{7,20}$" required>
-          </div>
-        </div>
-
-        <div class="form-grid" style="margin-top:16px;">
-          <div class="field">
-            <label for="c-email">Email</label>
-            <input type="email" id="c-email" name="email" placeholder="you@example.com" required>
-          </div>
-        </div>
-
-        <div class="field-section-title">Service Address</div>
-        <div class="form-grid" style="margin-top:12px;">
-          <div class="field">
-            <label for="c-address">Address</label>
-            <input type="text" id="c-address" name="address" placeholder="Street, city, state, ZIP" required>
-          </div>
-        </div>
-
-        <div class="field-section-title">Vehicle</div>
-        <div class="form-grid" style="margin-top:12px;">
-          <div class="field">
-            <label for="c-vehicle">Year, Make &amp; Model</label>
-            <input type="text" id="c-vehicle" name="vehicle" placeholder="e.g. 2022 Toyota Camry" required>
-          </div>
-        </div>
-
-        <div class="field-section-title">Notifications</div>
-        <div class="consent-group" style="margin-top:8px;">
-          <div class="consent-row">
-            <input type="checkbox" id="c-sms" name="sms" checked>
-            <label for="c-sms">I would like to receive automated appointment reminders via SMS/email</label>
-          </div>
-          <div class="consent-row">
-            <input type="checkbox" id="c-offers" name="offers" checked>
-            <label for="c-offers">I would like to receive exclusive offers via SMS/email</label>
-          </div>
-        </div>
-      </form>
-    </section>
-
-    <!-- STEP 3: SCHEDULE -->
-    <section class="step-panel" data-step="3" id="step-3">
-      <h2 class="step-title">Select Date &amp; Time</h2>
-      <p class="step-subtitle">We're open Monday through Saturday</p>
-
-      <div class="calendar-card">
-        <div class="calendar-header">
-          <button type="button" class="cal-nav" id="cal-prev" aria-label="Previous month">‹</button>
-          <span id="cal-month-label">Month</span>
-          <button type="button" class="cal-nav" id="cal-next" aria-label="Next month">›</button>
-        </div>
-        <div class="calendar-weekdays">
-          <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
-        </div>
-        <div class="calendar-grid" id="calendar-grid"></div>
-      </div>
-
-      <div class="time-slots" id="time-slots"></div>
-
-      <div class="selection-summary" id="step2-summary" hidden>
-        <div class="summary-row">
-          <span>Selected Date</span>
-          <strong id="sum-date">—</strong>
-        </div>
-        <div class="summary-row">
-          <span>Selected Time</span>
-          <strong id="sum-time">—</strong>
-        </div>
-      </div>
-    </section>
-
-    <!-- STEP 4: REVIEW & PAY -->
-    <section class="step-panel" data-step="4" id="step-4">
-      <h2 class="step-title">Review &amp; Pay</h2>
-      <p class="step-subtitle">Review your details before confirming your booking</p>
-
-      <div class="summary-card" id="final-summary"><!-- injected by JS --></div>
-
-      <div class="deposit-highlight">
-        <span>Deposit Due Today (25%)</span>
-        <strong id="final-deposit">$0.00</strong>
-      </div>
-
-      <div class="balance-box">
-        <span>Remaining Balance (75%)</span>
-        <strong id="final-balance">$0.00</strong>
-        <small>Due on service day</small>
-      </div>
-
-      <p class="policy-note">A 25% non-refundable deposit is required to confirm your booking. Cancellations with less than 72 hours notice forfeit the deposit.</p>
-
-      <button type="button" class="btn-pay" id="pay-btn">Pay Deposit <span id="pay-btn-amount">$0.00</span></button>
-      <p class="secure-note">🔒 Secure payment powered by Stripe (integration coming soon)</p>
-    </section>
-
-    <p class="step-error" id="step-error"></p>
-
-    <div class="step-nav" id="step-nav">
-      <button type="button" class="btn-back" id="btn-back">Back</button>
-      <button type="button" class="btn-next" id="btn-next">Continue to Details</button>
-    </div>
-
-  </div>
-
-  <p class="footer-note"><strong>AltaLux Mobile Detail</strong> · Roswell, GA</p>
+  </aside>
 </div>
 
 <script>
@@ -925,34 +1135,156 @@
   "use strict";
 
   // ---------- Data ----------
-  const SERVICES = {
-    essential: {
-      label: 'Essential Detail',
-      vehicles: [
-        { label: 'Cars', price: 208.88 },
-        { label: 'Mid-Size SUV', price: 238.88 },
-        { label: 'Small Trucks / Minivans / Large SUV', price: 268.88 }
+  const CATEGORIES = {
+    full: {
+      label: 'Full Detail',
+      hasSubpackages: true,
+      packages: [
+        {
+          key: 'essential',
+          name: 'Essential Detail',
+          includesWax: false,
+          vehicles: [
+            { label: 'Cars/Sedans', price: 208.99, tier: 'small' },
+            { label: 'Mid-Size/Compact SUVs', price: 238.99, tier: 'mid' },
+            { label: 'Small Trucks', price: 268.99, tier: 'mid' },
+            { label: 'Minivans', price: 268.99, tier: 'large' },
+            { label: 'Large SUVs/Trucks', price: 268.99, tier: 'large' }
+          ],
+          description: "Your vehicle gets a thorough refresh inside and out. We start with a complete exterior hand wash, bug splatter removal, dressed tires, and detailed wheels and wheel wells. Inside, we blow out cupholders and crevices, dust all panels and surfaces, apply UV protection to the dashboard, vacuum the interior, and leave every window spotless — inside and out.",
+          included: [
+            'Full Exterior Hand Wash',
+            'Bug Splatter Removal from Exterior',
+            'Tires Dressed',
+            'Detail Wheels & Wheel Wells',
+            'Interior Compressed Air Blowout of Cupholders & Crevices',
+            'Dust Panels, Dashboard, Console & All Interior Surfaces',
+            'Dashboard UV Protection Applied',
+            'Interior & Exterior Windows Cleaned',
+            'Door Jambs Detailed',
+            'Interior Vacuumed'
+          ],
+          duration: '3 hours',
+          note: 'Headliners are delicate and full cleaning can loosen the glue that holds them in place. Headliner cleaning is not included in standard packages. Spot treatment may be available upon request.'
+        },
+        {
+          key: 'premium',
+          name: 'Premium Detail',
+          includesWax: true,
+          vehicles: [
+            { label: 'Cars/Sedans', price: 288.99, tier: 'small' },
+            { label: 'Mid-Size/Compact SUVs', price: 308.99, tier: 'mid' },
+            { label: 'Small Trucks', price: 308.99, tier: 'mid' },
+            { label: 'Minivans', price: 378.99, tier: 'large' },
+            { label: 'Large SUVs/Trucks', price: 378.99, tier: 'large' }
+          ],
+          description: "Our most comprehensive treatment — everything in the Essential package plus a deeper level of paint and interior care. Ideal for vehicles that need serious restoration or maximum protection.",
+          included: [
+            'Full Exterior Hand Wash',
+            'Bug Splatter Removal from Exterior',
+            'Tires Dressed',
+            'Detail Wheels & Wheel Wells',
+            'Interior Compressed Air Blowout of Cupholders & Crevices',
+            'Dust Panels, Dashboard, Console & All Interior Surfaces',
+            'Dashboard UV Protection Applied',
+            'Interior & Exterior Windows Cleaned',
+            'Door Jambs Detailed',
+            'Interior Vacuumed',
+            'Machine Applied Wax',
+            'Clay Bar Treatment',
+            'Carpets & Seats Shampooed',
+            'Leather Seats Exfoliated'
+          ],
+          duration: '3 hours',
+          note: 'Headliners are delicate and full cleaning can loosen the glue that holds them in place. Headliner cleaning is not included in standard packages. Spot treatment may be available upon request.'
+        }
       ]
     },
-    premium: {
-      label: 'Premium Detail',
-      vehicles: [
-        { label: 'Cars', price: 288.88 },
-        { label: 'Mid-Size SUV', price: 308.88 },
-        { label: 'Small Trucks', price: 308.88 },
-        { label: 'Minivans / Large SUV', price: 378.88 }
+    interior: {
+      label: 'Interior Only',
+      hasSubpackages: false,
+      packages: [
+        {
+          key: 'interior',
+          name: 'Interior Only',
+          includesWax: false,
+          vehicles: [
+            { label: 'Cars/Sedans', price: 239.99, tier: 'small' },
+            { label: 'Compact/Mid-Size SUV', price: 264.99, tier: 'mid' },
+            { label: 'Small Truck', price: 264.99, tier: 'mid' },
+            { label: 'Large SUV/3rd Row SUVs', price: 284.99, tier: 'large' },
+            { label: 'Large Truck', price: 284.99, tier: 'large' }
+          ],
+          description: "A focused deep-dive into your vehicle's cabin. From steam-cleaned vents to shampooed carpets, every interior surface is treated with professional-grade products and restored to its best condition.",
+          included: [
+            'Full Interior Blowout with Compressed Air',
+            'Vacuum of Seats, Mats, Cracks, Crevices & Trunk Space',
+            'Deep Carpet and Cloth Seats Shampooed (or Leather Seats Scrubbed)',
+            'Carpet Mats Shampooed, All-Weather/Rubber Mats Cleaned & Protected',
+            'Interior Panels, Console, and Dashboard Deep-Cleaned',
+            'Steam Cleaning of Interior Panels & Vents (as needed)',
+            'Air Vents Blown Out and Detailed',
+            'Streak-Free Window Cleaning – Inside & Out',
+            'Door and Trunk/Cargo Jambs Wiped & Detailed',
+            'Vanity + Rearview Mirrors Cleaned',
+            'Center Console Detailed'
+          ],
+          duration: '3 hours',
+          note: null
+        }
+      ]
+    },
+    exterior: {
+      label: 'Exterior Only',
+      hasSubpackages: false,
+      packages: [
+        {
+          key: 'exterior',
+          name: 'Exterior Only',
+          includesWax: true,
+          vehicles: [
+            { label: 'Car', price: 159.99, tier: 'small' },
+            { label: 'Compact/Midsize SUV', price: 189.99, tier: 'mid' },
+            { label: 'Truck', price: 189.99, tier: 'mid' },
+            { label: 'Minivan', price: 189.99, tier: 'large' },
+            { label: 'Large/XL SUV', price: 219.99, tier: 'large' },
+            { label: 'XL SUV, Truck or Van', price: 244.99, tier: 'large' }
+          ],
+          description: "A precise exterior treatment that protects your paint and restores your vehicle's shine — without touching the interior.",
+          included: [
+            'Full Exterior Hand Wash',
+            'Bug Removal',
+            'Iron Remover Treatment',
+            'Tires Dressed',
+            'Detail Wheels & Wheel Wells',
+            'Exterior Windows Cleaned',
+            'Machine Applied Wax',
+            'Clay Bar',
+            'Paint Sealant Applied'
+          ],
+          duration: '3 hours',
+          note: null
+        }
       ]
     }
   };
 
-  const ADDONS = [
-    { key: 'pet_hair',      name: 'Pet Hair Removal',            price: 30.00, desc: 'Deep vacuum and brush treatment to remove embedded pet fur' },
-    { key: 'extra_dirty',   name: 'Extra Dirty Vehicle Boost',   price: 38.88, desc: 'For vehicles with heavy dirt, mud, or grime buildup' },
-    { key: 'odor',          name: 'Odor Elimination Treatment',  price: 45.00, desc: 'Neutralizes odors from smoke, pets, food, and mildew' },
-    { key: 'engine_bay',    name: 'Engine Bay Cleaning',          price: 55.00, desc: 'Safe degreasing and detailing of the engine compartment' },
-    { key: 'headlight',     name: 'Headlight Restoration',        price: 48.88, desc: 'Restores clarity and brightness to foggy or yellowed headlights' },
-    { key: 'ceramic_spray', name: 'Ceramic Spray Coating',        price: 65.00, desc: 'Adds a protective hydrophobic layer for shine and protection' }
+  const WAX_TIER_PRICES = { small: 50.00, mid: 60.00, large: 70.00 };
+
+  const ADDONS_INTERIOR = [
+    { key: 'pet_hair',      name: 'Pet Hair Removal',                        price: 50.00, plus: true, note: 'Final price may vary' },
+    { key: 'leather_cond',  name: 'Leather Seat Conditioning',               price: 50.00 },
+    { key: 'new_car_smell', name: 'New Car Smell Air Cabin Treatment',       price: 50.00 },
+    { key: 'uv_interior',   name: 'UV Protective Dressing – Interior Plastics', price: 50.00 },
+    { key: 'ozone',         name: 'Ozone Treatment',                         price: 125.00 }
   ];
+
+  const ADDONS_EXTERIOR = [
+    { key: 'sap_tar',     name: 'Sap/Tar Removal',        price: 75.00, plus: true, note: 'Final price may vary' },
+    { key: 'black_trim',  name: 'Black Trim Restoration',  price: 125.00 }
+  ];
+
+  const ALL_FIXED_ADDONS = ADDONS_INTERIOR.concat(ADDONS_EXTERIOR);
 
   const TIME_SLOTS = ['8:00 AM','10:00 AM','12:00 PM','2:00 PM','4:00 PM'];
   const WEEKDAY_LABELS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -961,12 +1293,13 @@
   const DEPOSIT_RATE = 0.25;
 
   const state = {
-    category: 'essential',
+    category: 'full',
+    package: CATEGORIES.full.packages[0],
     vehicleIndex: null,
     price: 0,
     addons: new Set(),
-    date: null,       // Date object
-    time: null,       // string
+    date: null,
+    time: null,
     name: '', phone: '', email: '',
     address: '',
     vehicle: '',
@@ -989,8 +1322,17 @@
   function isSameDay(a,b){
     return a && b && a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
   }
+  function currentVehicleTier(){
+    if (state.vehicleIndex === null) return 'small';
+    return state.package.vehicles[state.vehicleIndex].tier;
+  }
   function addonsTotal(){
-    return ADDONS.reduce((sum, a) => sum + (state.addons.has(a.key) ? a.price : 0), 0);
+    let total = 0;
+    ALL_FIXED_ADDONS.forEach(a => { if (state.addons.has(a.key)) total += a.price; });
+    if (state.addons.has('machine_wax') && !state.package.includesWax){
+      total += WAX_TIER_PRICES[currentVehicleTier()] || 0;
+    }
+    return total;
   }
   function subtotal(){
     return state.price + addonsTotal();
@@ -1001,6 +1343,16 @@
   function balanceAmount(){
     return subtotal() - depositAmount();
   }
+  function getSelectedAddonsDetailed(){
+    const list = [];
+    ALL_FIXED_ADDONS.forEach(a => {
+      if (state.addons.has(a.key)) list.push({ name: a.name, price: a.price, plus: !!a.plus });
+    });
+    if (state.addons.has('machine_wax') && !state.package.includesWax){
+      list.push({ name: 'Machine Applied Wax', price: WAX_TIER_PRICES[currentVehicleTier()], plus: false });
+    }
+    return list;
+  }
   function showError(msg){
     const el = document.getElementById('step-error');
     el.textContent = msg;
@@ -1009,15 +1361,42 @@
   }
 
   // ---------- Step 1: Service ----------
+  const categoryTabs = document.querySelectorAll('.category-tab');
+  const packageGrid = document.getElementById('package-grid');
   const packageCards = document.querySelectorAll('.package-card');
   const vehicleChipsWrap = document.getElementById('vehicle-chips');
+  const packageDetailEl = document.getElementById('package-detail');
   const addonsSection = document.getElementById('addons-section');
   const addonsList = document.getElementById('addons-list');
 
+  function selectPackage(pkg){
+    state.package = pkg;
+    state.vehicleIndex = null;
+    state.price = 0;
+    packageCards.forEach(c => c.classList.toggle('selected', c.dataset.key === pkg.key));
+    renderPackageDetail();
+    renderVehicleChips();
+    addonsSection.hidden = true;
+    refreshTotals();
+  }
+
+  function renderPackageDetail(){
+    const pkg = state.package;
+    const noteHtml = pkg.note ? `<div class="package-note"><strong>Note:</strong> ${pkg.note}</div>` : '';
+    packageDetailEl.innerHTML = `
+      <p class="package-description">${pkg.description}</p>
+      <p class="section-label" style="margin-top:18px;">What's Included</p>
+      <ul class="included-list">
+        ${pkg.included.map(i => `<li>${i}</li>`).join('')}
+      </ul>
+      <span class="duration-badge">Duration: ${pkg.duration}</span>
+      ${noteHtml}
+    `;
+  }
+
   function renderVehicleChips(){
-    const svc = SERVICES[state.category];
     vehicleChipsWrap.innerHTML = '';
-    svc.vehicles.forEach((v, idx) => {
+    state.package.vehicles.forEach((v, idx) => {
       const chip = document.createElement('button');
       chip.type = 'button';
       chip.className = 'vehicle-chip';
@@ -1028,34 +1407,60 @@
         state.price = v.price;
         renderVehicleChips();
         addonsSection.hidden = false;
-        updateStep1Summary();
+        renderAddons();
+        refreshTotals();
       });
       vehicleChipsWrap.appendChild(chip);
     });
   }
 
-  function renderAddons(){
-    addonsList.innerHTML = '';
-    ADDONS.forEach(a => {
-      const item = document.createElement('label');
-      item.className = 'addon-item';
-      item.innerHTML = `
-        <input type="checkbox" data-key="${a.key}">
-        <span class="addon-info">
-          <span class="addon-name">${a.name}</span>
-          <span class="addon-desc">${a.desc}</span>
-        </span>
-        <span class="addon-price">+${formatCurrency(a.price)}</span>
-      `;
-      const checkbox = item.querySelector('input');
-      checkbox.addEventListener('change', () => {
-        if (checkbox.checked) state.addons.add(a.key);
-        else state.addons.delete(a.key);
-        item.classList.toggle('selected', checkbox.checked);
-        updateStep1Summary();
-      });
-      addonsList.appendChild(item);
+  function buildAddonItem(a){
+    const item = document.createElement('label');
+    item.className = 'addon-item';
+    const checked = state.addons.has(a.key);
+    if (checked) item.classList.add('selected');
+    const priceLabel = formatCurrency(a.price) + (a.plus ? '+' : '');
+    item.innerHTML = `
+      <input type="checkbox" data-key="${a.key}" ${checked ? 'checked' : ''}>
+      <span class="addon-info">
+        <span class="addon-name">${a.name}</span>
+        ${a.note ? `<span class="addon-desc">${a.note}</span>` : ''}
+      </span>
+      <span class="addon-price">${priceLabel}</span>
+    `;
+    const checkbox = item.querySelector('input');
+    checkbox.addEventListener('change', () => {
+      if (checkbox.checked) state.addons.add(a.key);
+      else state.addons.delete(a.key);
+      item.classList.toggle('selected', checkbox.checked);
+      refreshTotals();
     });
+    return item;
+  }
+
+  function buildAddonGroup(title, items){
+    const group = document.createElement('div');
+    group.className = 'addon-group';
+    const heading = document.createElement('p');
+    heading.className = 'addon-group-title';
+    heading.textContent = title;
+    group.appendChild(heading);
+    items.forEach(a => group.appendChild(buildAddonItem(a)));
+    return group;
+  }
+
+  function renderAddons(){
+    if (state.package.includesWax) state.addons.delete('machine_wax');
+
+    addonsList.innerHTML = '';
+    addonsList.appendChild(buildAddonGroup('Interior', ADDONS_INTERIOR));
+
+    if (!state.package.includesWax){
+      const waxItem = { key: 'machine_wax', name: 'Machine Applied Wax', price: WAX_TIER_PRICES[currentVehicleTier()] };
+      addonsList.appendChild(buildAddonGroup('Machine Applied Wax', [waxItem]));
+    }
+
+    addonsList.appendChild(buildAddonGroup('Exterior', ADDONS_EXTERIOR));
   }
 
   function updateStep1Summary(){
@@ -1064,9 +1469,8 @@
       summary.hidden = true;
       return;
     }
-    const svc = SERVICES[state.category];
-    const v = svc.vehicles[state.vehicleIndex];
-    document.getElementById('sum-package').textContent = `${svc.label} — ${v.label}`;
+    const v = state.package.vehicles[state.vehicleIndex];
+    document.getElementById('sum-package').textContent = `${state.package.name} — ${v.label}`;
 
     const addonsRow = document.getElementById('sum-addons-row');
     const addonsSum = addonsTotal();
@@ -1081,16 +1485,47 @@
     summary.hidden = false;
   }
 
+  function renderSidebar(){
+    const body = document.getElementById('sidebar-body');
+    if (state.vehicleIndex === null){
+      body.innerHTML = `<p style="font-size:13px;color:var(--ink-faint);margin:0;">Select a service to see your total.</p>`;
+      return;
+    }
+    const v = state.package.vehicles[state.vehicleIndex];
+    const selectedAddons = getSelectedAddonsDetailed();
+    const addonsHtml = selectedAddons.map(a =>
+      `<div class="summary-line"><span>${a.name}</span><span>${formatCurrency(a.price)}${a.plus ? '+' : ''}</span></div>`
+    ).join('');
+
+    body.innerHTML = `
+      <div class="summary-line"><span>Service</span><span>${state.package.name} — ${v.label}</span></div>
+      ${addonsHtml}
+      <hr class="summary-divider">
+      <div class="summary-line"><span>Subtotal</span><span>${formatCurrency(subtotal())}</span></div>
+      <div class="summary-line" style="color:var(--orange);font-weight:700;"><span>Deposit (25%)</span><span>${formatCurrency(depositAmount())}</span></div>
+    `;
+  }
+
+  function refreshTotals(){
+    updateStep1Summary();
+    renderSidebar();
+  }
+
+  categoryTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      categoryTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      state.category = tab.dataset.category;
+      const cat = CATEGORIES[state.category];
+      packageGrid.hidden = !cat.hasSubpackages;
+      selectPackage(cat.packages[0]);
+    });
+  });
+
   packageCards.forEach(card => {
     card.addEventListener('click', () => {
-      packageCards.forEach(c => c.classList.remove('selected'));
-      card.classList.add('selected');
-      state.category = card.dataset.category;
-      state.vehicleIndex = null;
-      state.price = 0;
-      renderVehicleChips();
-      addonsSection.hidden = true;
-      updateStep1Summary();
+      const pkg = CATEGORIES.full.packages.find(p => p.key === card.dataset.key);
+      selectPackage(pkg);
     });
   });
 
@@ -1202,26 +1637,37 @@
   }
 
   // ---------- Step 4: Review & Pay ----------
+  const payBtn = document.getElementById('pay-btn');
+
+  function canPay(){
+    return state.vehicleIndex !== null &&
+      !!state.name && !!state.phone && !!state.email &&
+      !!state.address && !!state.vehicle &&
+      !!state.date && !!state.time;
+  }
+
   function renderFinalSummary(){
-    const svc = SERVICES[state.category];
-    const v = svc.vehicles[state.vehicleIndex];
+    const v = state.package.vehicles[state.vehicleIndex];
     const dateLabel = state.date
       ? `${WEEKDAY_LABELS[state.date.getDay()]}, ${MONTH_LABELS[state.date.getMonth()]} ${state.date.getDate()}, ${state.date.getFullYear()}`
       : '—';
 
-    const selectedAddons = ADDONS.filter(a => state.addons.has(a.key));
-    const addonsHtml = selectedAddons.length
-      ? `
-        <hr class="summary-divider">
-        <div class="summary-block-title">Add-Ons</div>
-        ${selectedAddons.map(a => `<div class="summary-line"><span>${a.name}</span><span>${formatCurrency(a.price)}</span></div>`).join('')}
-      `
-      : '';
+    const selectedAddons = getSelectedAddonsDetailed();
+    const hasPlus = selectedAddons.some(a => a.plus);
+
+    const addonsHtml = selectedAddons.length ? `
+      <hr class="summary-divider">
+      <div class="summary-block-title">Add-Ons</div>
+      ${selectedAddons.map(a => `<div class="summary-line"><span>${a.name}</span><span>${formatCurrency(a.price)}${a.plus ? '+' : ''}</span></div>`).join('')}
+      <div class="summary-line"><span>Add-Ons Total</span><span>${formatCurrency(addonsTotal())}</span></div>
+    ` : '';
 
     document.getElementById('final-summary').innerHTML = `
       <div class="summary-block-title">Service</div>
-      <div class="summary-line"><span>Package</span><span>${svc.label} — ${v.label}</span></div>
-      <div class="summary-line"><span>Base Price</span><span>${formatCurrency(v.price)}</span></div>
+      <div class="summary-line"><span>Category</span><span>${CATEGORIES[state.category].label}</span></div>
+      <div class="summary-line"><span>Package</span><span>${state.package.name}</span></div>
+      <div class="summary-line"><span>Vehicle Type</span><span>${v.label}</span></div>
+      <div class="summary-line"><span>Service Subtotal</span><span>${formatCurrency(state.price)}</span></div>
       ${addonsHtml}
       <hr class="summary-divider">
       <div class="summary-block-title">Schedule</div>
@@ -1237,36 +1683,20 @@
       <div class="summary-line"><span>Email</span><span>${state.email}</span></div>
       <div class="summary-line"><span>Address</span><span>${state.address}</span></div>
       <hr class="summary-divider">
-      <div class="summary-line grand-total"><span>Total Service Price</span><span>${formatCurrency(subtotal())}</span></div>
+      <div class="summary-line grand-total"><span>Total</span><span>${formatCurrency(subtotal())}</span></div>
+      ${hasPlus ? `<p class="fine-note" style="margin:6px 0 0;">* Items marked with + may vary based on vehicle condition</p>` : ''}
     `;
 
     document.getElementById('final-deposit').textContent = formatCurrency(depositAmount());
     document.getElementById('final-balance').textContent = formatCurrency(balanceAmount());
     document.getElementById('pay-btn-amount').textContent = formatCurrency(depositAmount());
+
+    payBtn.disabled = !canPay();
   }
 
-  document.getElementById('pay-btn').addEventListener('click', () => {
-    const svc = SERVICES[state.category];
-    const v = svc.vehicles[state.vehicleIndex];
-    const dateLabel = state.date
-      ? `${WEEKDAY_LABELS[state.date.getDay()]}, ${MONTH_LABELS[state.date.getMonth()]} ${state.date.getDate()}, ${state.date.getFullYear()}`
-      : '—';
-    const selectedAddons = ADDONS.filter(a => state.addons.has(a.key));
-    const addonsLine = selectedAddons.length
-      ? `Add-Ons: ${selectedAddons.map(a => a.name).join(', ')}\n`
-      : '';
-
-    alert(
-      '✅ Booking confirmed!\n\n' +
-      `Service: ${svc.label} — ${v.label}\n` +
-      addonsLine +
-      `Date: ${dateLabel}\n` +
-      `Time: ${state.time}\n` +
-      `Vehicle: ${state.vehicle}\n` +
-      `Total Service Price: ${formatCurrency(subtotal())}\n` +
-      `Deposit Charged Today: ${formatCurrency(depositAmount())}\n\n` +
-      '(Stripe payment integration coming soon)'
-    );
+  payBtn.addEventListener('click', () => {
+    if (payBtn.disabled) return;
+    alert('Booking request received! We will be in touch to confirm your appointment.');
   });
 
   // ---------- Step navigation ----------
@@ -1274,7 +1704,6 @@
   const stepPanels = document.querySelectorAll('.step-panel');
   const btnBack = document.getElementById('btn-back');
   const btnNext = document.getElementById('btn-next');
-  const stepNav = document.getElementById('step-nav');
 
   function validateStep(step){
     if (step === 1){
@@ -1318,8 +1747,11 @@
     });
 
     btnBack.style.visibility = n === 1 ? 'hidden' : 'visible';
-    stepNav.style.display = n === 4 ? 'none' : 'flex';
-    btnNext.textContent = n === 1 ? 'Continue to Details' : 'Next';
+    btnNext.style.display = n === 4 ? 'none' : '';
+
+    if (n === 1) btnNext.textContent = 'Continue to Details →';
+    else if (n === 2) btnNext.textContent = 'Continue to Schedule →';
+    else if (n === 3) btnNext.textContent = 'Continue to Review →';
 
     if (n === 3) { renderCalendar(); renderTimeSlots(); }
     if (n === 4) { renderFinalSummary(); }
@@ -1338,7 +1770,8 @@
 
   // ---------- Init ----------
   renderVehicleChips();
-  renderAddons();
+  renderPackageDetail();
+  refreshTotals();
   goToStep(1);
 })();
 </script>
