@@ -924,6 +924,89 @@
     #invoice-modal-overlay .invoice-table th{ color:#104872 !important; }
     #invoice-modal-overlay .invoice-summary-line.total{ color:#c46a00 !important; }
   }
+
+  /* ================= LOADING OVERLAY (Supabase data fetch) ================= */
+  .loading-overlay{
+    position:fixed; inset:0; z-index:300;
+    background:rgba(6,14,28,.92);
+    backdrop-filter:blur(6px);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;
+  }
+  .loading-spinner{
+    width:44px; height:44px;
+    border:4px solid rgba(255,170,0,.2);
+    border-top-color:var(--gold);
+    border-radius:50%;
+    animation:spin .8s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .loading-text{
+    font-family:'Rajdhani',sans-serif;
+    font-size:15px;
+    font-weight:600;
+    letter-spacing:.5px;
+    color:var(--ink-muted);
+  }
+
+  /* ================= TOASTS ================= */
+  .toast-container{
+    position:fixed; top:16px; right:16px; z-index:250;
+    display:flex; flex-direction:column; gap:10px;
+    max-width:340px;
+  }
+  .toast{
+    background:linear-gradient(180deg, #101f38, #0a1628);
+    border:1px solid var(--line);
+    border-left:4px solid var(--gold);
+    border-radius:var(--radius-sm);
+    padding:12px 16px;
+    font-size:13.5px;
+    color:var(--white);
+    box-shadow:0 12px 30px rgba(0,0,0,.5);
+    animation:toastIn .3s cubic-bezier(.34,1.56,.64,1);
+  }
+  .toast.toast-error{ border-left-color:var(--danger); }
+  .toast.toast-success{ border-left-color:var(--green); }
+  .toast.toast-hide{ animation:toastOut .25s ease forwards; }
+  @keyframes toastIn{ from{ opacity:0; transform:translateX(30px); } to{ opacity:1; transform:translateX(0); } }
+  @keyframes toastOut{ from{ opacity:1; transform:translateX(0); } to{ opacity:0; transform:translateX(30px); } }
+
+  /* ================= BOOKINGS BADGE / NEW REQUESTS ================= */
+  .booking-badge{
+    background:var(--orange);
+    color:var(--dark);
+    font-size:11px;
+    font-weight:700;
+    min-width:20px;
+    height:20px;
+    padding:0 6px;
+    border-radius:999px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    margin-left:-6px;
+    margin-right:8px;
+    box-shadow:0 0 0 3px rgba(255,140,0,.25);
+  }
+  .booking-request-card{
+    border:1.5px solid rgba(255,170,0,.35);
+    background:linear-gradient(160deg, rgba(255,170,0,.08), rgba(255,140,0,.02));
+    border-radius:var(--radius-md);
+    padding:16px 18px;
+    margin-bottom:12px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .booking-request-card:last-child{ margin-bottom:0; }
+  .booking-request-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .booking-request-name{ font-size:16px; font-weight:700; }
+  .booking-request-meta{
+    display:grid; grid-template-columns:1fr 1fr; gap:8px 16px; font-size:13px; color:var(--ink-muted);
+  }
+  @media (min-width:520px){ .booking-request-meta{ grid-template-columns:repeat(4,1fr); } }
+  .booking-request-meta strong{ display:block; color:var(--white); font-weight:600; }
+  .booking-request-actions{ display:flex; gap:8px; flex-wrap:wrap; padding-top:6px; border-top:1px solid rgba(255,255,255,.06); }
 </style>
 </head>
 <body>
@@ -935,11 +1018,15 @@
     <p class="brand-tagline">Mobile Detail — Admin</p>
     <form id="login-form">
       <div class="field">
-        <label for="admin-password">Password</label>
-        <input type="password" id="admin-password" placeholder="Enter admin password" autocomplete="current-password" autofocus>
+        <label for="admin-email">Email</label>
+        <input type="email" id="admin-email" placeholder="you@company.com" autocomplete="username" autofocus>
       </div>
-      <p class="login-error" id="login-error" hidden>Incorrect password. Please try again.</p>
-      <button type="submit" class="btn btn-primary btn-full">Enter Dashboard</button>
+      <div class="field" style="margin-top:14px;">
+        <label for="admin-password">Password</label>
+        <input type="password" id="admin-password" placeholder="Enter your password" autocomplete="current-password">
+      </div>
+      <p class="login-error" id="login-error" hidden>Incorrect email or password. Please try again.</p>
+      <button type="submit" class="btn btn-primary btn-full" id="login-submit">Enter Dashboard</button>
     </form>
   </div>
 </div>
@@ -956,6 +1043,7 @@
       <button type="button" class="nav-link" data-view="customers">Customers</button>
       <button type="button" class="nav-link" data-view="payments">Payments</button>
     </div>
+    <span class="booking-badge" id="booking-badge" hidden>0</span>
     <button type="button" class="logout-btn" id="logout-btn" title="Log out" aria-label="Log out">⏻</button>
   </nav>
 
@@ -987,6 +1075,11 @@
           <span class="stat-label">Pending</span>
           <span class="stat-value">0</span>
         </div>
+      </div>
+
+      <div class="panel" id="booking-requests-panel" hidden>
+        <h3 class="section-title">New Booking Requests</h3>
+        <div id="booking-requests-list"></div>
       </div>
 
       <!-- ===== CALENDAR VIEW ===== -->
@@ -1167,6 +1260,15 @@
     </main>
   </div>
 </div>
+
+<!-- ================= LOADING OVERLAY ================= -->
+<div class="loading-overlay" id="loading-overlay" hidden>
+  <div class="loading-spinner"></div>
+  <p class="loading-text">Loading your dashboard...</p>
+</div>
+
+<!-- ================= TOAST CONTAINER ================= -->
+<div class="toast-container" id="toast-container"></div>
 
 <!-- ================= JOB DETAIL MODAL ================= -->
 <div class="modal-overlay" id="modal-overlay" hidden>
@@ -1580,13 +1682,25 @@
   <button type="button" class="fab-main" id="fab-main" aria-label="Create new"><span id="fab-main-icon">+</span></button>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
   "use strict";
 
-  const ADMIN_PASSWORD = 'altalux2026';
-  const AUTH_KEY = 'altalux_admin_auth';
   const TAX_RATE = 0.06;
+
+  // ---------- Supabase ----------
+  const SUPABASE_URL = 'https://xmhsehfdmiqbwhpqjgon.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtaHNlaGZkbWlxYndocHFqZ29uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzODU5NzQsImV4cCI6MjA5ODk2MTk3NH0.J2UOp-pgzP6ByvDBoHcocFAmarWdlDK8M31YgKrUNss';
+  let db = null;
+  try {
+    if (typeof supabase !== 'undefined'){
+      const { createClient } = supabase;
+      db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+  } catch (err){
+    console.error('Supabase client failed to initialize:', err);
+  }
 
   const ADMIN_TIME_SLOTS = ['8:00 AM','10:00 AM','12:00 PM','2:00 PM','3:00 PM','4:00 PM'];
   const WEEKDAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -1808,18 +1922,315 @@
   let currentInvoiceJobId = null;
   let currentProfileEmail = null;
 
+  // ================= SUPABASE DATA SYNC =================
+  const BOOKINGS = [];
+  let realtimeSubscribed = false;
+
+  async function attemptSupabaseWrite(fn, successMsg, failureLabel){
+    try {
+      if (!db) throw new Error('Supabase client unavailable');
+      await fn();
+      showToast(successMsg, 'success');
+    } catch (err){
+      console.error(`[Supabase] ${failureLabel} failed, kept locally only:`, err);
+      showToast(`${failureLabel} — saved locally only (database sync failed).`, 'error');
+    }
+  }
+
+  function showToast(message, type){
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast' + (type ? ` toast-${type}` : '');
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.classList.add('toast-hide');
+      setTimeout(() => toast.remove(), 300);
+    }, 5000);
+  }
+
+  function mapJobRow(row, index){
+    const jv = (row.job_vehicles && row.job_vehicles[0]) || {};
+    const vehicle = jv.vehicles || {};
+    const vehicleLabel = [vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(' ');
+    const customer = row.customers || {};
+    return {
+      id: index + 1,
+      supabaseId: row.id,
+      jobNumber: row.job_number || String(index + 1).padStart(3, '0'),
+      paymentNumber: 'PAY-' + (row.job_number || String(index + 1).padStart(3, '0')),
+      customer: { name: customer.full_name || '', email: customer.email || '', phone: customer.phone || '' },
+      service: row.package || row.category || '',
+      vehicleType: jv.vehicle_type || vehicle.vehicle_type || '',
+      vehicle: vehicleLabel || '—',
+      address: customer.address || '',
+      date: row.service_date ? fromInputDate(row.service_date) : new Date(TODAY),
+      time: row.service_time || ADMIN_TIME_SLOTS[0],
+      addons: (row.job_addons || []).map(a => ({ name: a.name, price: Number(a.price) || 0 })),
+      subtotal: Number(row.subtotal) || 0,
+      addonsTotal: Number(row.addons_total) || 0,
+      total: Number(row.total) || 0,
+      status: row.status || 'Pending',
+      notes: row.notes || '',
+      paymentStatusOverride: null,
+      payments: [],
+      invoice: {
+        number: '', status: 'Draft',
+        issueDate: new Date(row.created_at || TODAY),
+        dueDate: row.service_date ? fromInputDate(row.service_date) : new Date(TODAY),
+        taxEnabled: false
+      }
+    };
+  }
+
+  function mapBookingRow(row){
+    return {
+      supabaseId: row.id,
+      fullName: row.full_name, phone: row.phone, email: row.email, address: row.address,
+      vehicle: row.vehicle, category: row.category, package: row.package, vehicleType: row.vehicle_type,
+      serviceDate: row.service_date ? fromInputDate(row.service_date) : new Date(TODAY),
+      serviceTime: row.service_time,
+      subtotal: Number(row.subtotal) || 0, addonsTotal: Number(row.addons_total) || 0,
+      total: Number(row.total) || 0, deposit: Number(row.deposit) || 0,
+      addons: row.addons || [],
+      receiveReminders: !!row.receive_reminders, receiveOffers: !!row.receive_offers,
+      status: row.status || 'Pending'
+    };
+  }
+
+  async function loadAllDataFromSupabase(){
+    const overlay = document.getElementById('loading-overlay');
+    overlay.hidden = false;
+
+    if (!db){
+      console.error('[Supabase] Client unavailable — using session/sample data only.');
+      overlay.hidden = true;
+      showToast('Working offline — showing local data only.', 'error');
+      return;
+    }
+
+    try {
+      const { data: jobRows, error: jobsErr } = await db
+        .from('jobs')
+        .select('*, customers(*), job_vehicles(*, vehicles(*)), job_addons(*)')
+        .order('service_date', { ascending: true });
+      if (jobsErr) throw jobsErr;
+
+      if (jobRows && jobRows.length){
+        const mapped = jobRows.map(mapJobRow);
+        const jobBySupabaseId = new Map(mapped.map(j => [j.supabaseId, j]));
+
+        const { data: paymentRows, error: paymentsErr } = await db.from('payments').select('*');
+        if (paymentsErr) console.error('[Supabase] Failed to load payments:', paymentsErr);
+        (paymentRows || []).forEach(p => {
+          const job = jobBySupabaseId.get(p.job_id);
+          if (!job) return;
+          job.payments.push({
+            id: p.id, label: p.payment_type || 'Payment', amount: Number(p.amount) || 0,
+            method: p.payment_method || '',
+            date: p.payment_date ? fromInputDate(p.payment_date) : new Date(p.created_at || TODAY),
+            reference: p.reference_number || '', notes: p.notes || '', recordedBy: 'Admin'
+          });
+        });
+
+        const { data: invoiceRows, error: invoicesErr } = await db.from('invoices').select('*');
+        if (invoicesErr) console.error('[Supabase] Failed to load invoices:', invoicesErr);
+        (invoiceRows || []).forEach(inv => {
+          const job = jobBySupabaseId.get(inv.job_id);
+          if (!job) return;
+          job.invoice = {
+            number: inv.invoice_number || '', status: inv.status || 'Draft',
+            issueDate: new Date(inv.created_at || TODAY),
+            dueDate: inv.due_date ? fromInputDate(inv.due_date) : new Date(TODAY),
+            taxEnabled: !!inv.tax_enabled
+          };
+        });
+
+        JOBS.length = 0;
+        mapped.forEach(j => JOBS.push(j));
+        nextJobIdCounter = JOBS.length + 1;
+        console.log(`[Supabase] Loaded ${JOBS.length} job(s) from database.`);
+      } else {
+        console.log('[Supabase] No jobs in database yet — keeping sample data.');
+      }
+
+      const { data: customerRows, error: customersErr } = await db.from('customers').select('*, vehicles(*)');
+      if (customersErr) console.error('[Supabase] Failed to load customers:', customersErr);
+      (customerRows || []).forEach(c => {
+        const alreadyInJobs = JOBS.some(j => j.customer.email === c.email);
+        const alreadyStandalone = STANDALONE_CUSTOMERS.some(sc => sc.email === c.email);
+        if (!alreadyInJobs && !alreadyStandalone){
+          STANDALONE_CUSTOMERS.push({ name: c.full_name, phone: c.phone, email: c.email, address: c.address });
+        }
+      });
+
+      const { data: bookingRows, error: bookingsErr } = await db
+        .from('bookings')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (bookingsErr) throw bookingsErr;
+      BOOKINGS.length = 0;
+      (bookingRows || []).forEach(row => BOOKINGS.push(mapBookingRow(row)));
+      console.log(`[Supabase] Loaded ${BOOKINGS.length} booking(s).`);
+
+    } catch (err){
+      console.error('[Supabase] Failed to load dashboard data, falling back to session/sample data:', err);
+      showToast('Could not reach the database — showing local data.', 'error');
+    } finally {
+      overlay.hidden = true;
+      renderAll();
+      renderBookingsSection();
+    }
+  }
+
+  function renderBookingsBadge(){
+    const pending = BOOKINGS.filter(b => b.status === 'Pending');
+    const badge = document.getElementById('booking-badge');
+    if (pending.length){
+      badge.textContent = pending.length;
+      badge.hidden = false;
+    } else {
+      badge.hidden = true;
+    }
+  }
+
+  function buildBookingRequestCardHtml(b, idx){
+    return `
+      <div class="booking-request-card">
+        <div class="booking-request-top">
+          <div class="booking-request-name">${b.fullName}</div>
+        </div>
+        <div class="booking-request-meta">
+          <div>Phone<strong>${b.phone}</strong></div>
+          <div>Service<strong>${b.package || b.category}</strong></div>
+          <div>Date<strong>${formatShortDate(b.serviceDate)} · ${b.serviceTime}</strong></div>
+          <div>Deposit<strong>${formatCurrency(b.deposit)}</strong></div>
+        </div>
+        <div class="booking-request-actions">
+          <button type="button" class="btn-mini booking-convert-btn" data-booking-index="${idx}">Convert to Job</button>
+          <button type="button" class="btn-mini danger booking-dismiss-btn" data-booking-index="${idx}">Dismiss</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderBookingsSection(){
+    renderBookingsBadge();
+    const panel = document.getElementById('booking-requests-panel');
+    const pending = BOOKINGS.filter(b => b.status === 'Pending');
+    if (!pending.length){
+      panel.hidden = true;
+      return;
+    }
+    panel.hidden = false;
+    document.getElementById('booking-requests-list').innerHTML = pending
+      .map(b => buildBookingRequestCardHtml(b, BOOKINGS.indexOf(b)))
+      .join('');
+  }
+
+  async function convertBookingToJob(index){
+    const b = BOOKINGS[index];
+    if (!b || b.status !== 'Pending') return;
+
+    const job = createJobFromData({
+      customer: { name: b.fullName, phone: b.phone, email: b.email },
+      service: b.package || b.category,
+      vehicleType: b.vehicleType,
+      vehicle: b.vehicle,
+      address: b.address,
+      date: b.serviceDate,
+      time: b.serviceTime,
+      subtotal: b.subtotal,
+      addonsTotal: b.addonsTotal,
+      total: b.total,
+      status: 'Confirmed',
+      notes: ''
+    });
+    if (b.deposit > 0){
+      job.payments.push({
+        id: nextPaymentId++, label: 'Deposit', amount: b.deposit, method: 'Stripe',
+        date: new Date(TODAY), reference: 'Online Booking', notes: '', recordedBy: 'Online Booking'
+      });
+    }
+
+    b.status = 'Converted';
+
+    let synced = false;
+    try {
+      if (!db) throw new Error('Supabase client unavailable');
+      if (b.supabaseId){
+        const { error } = await db.from('bookings').update({ status: 'Converted' }).eq('id', b.supabaseId);
+        if (error) throw error;
+      }
+      synced = true;
+    } catch (err){
+      console.error('[Supabase] Failed to sync booking conversion, kept locally only:', err);
+    }
+
+    renderAll();
+    renderBookingsSection();
+    showToast(
+      synced ? `Job #${job.jobNumber} created from booking.` : `Job #${job.jobNumber} created locally (database sync failed).`,
+      synced ? 'success' : 'error'
+    );
+  }
+
+  async function dismissBooking(index){
+    const b = BOOKINGS[index];
+    if (!b || b.status !== 'Pending') return;
+    if (!confirm(`Dismiss the booking request from ${b.fullName}?`)) return;
+
+    b.status = 'Dismissed';
+
+    let synced = false;
+    try {
+      if (!db) throw new Error('Supabase client unavailable');
+      if (b.supabaseId){
+        const { error } = await db.from('bookings').update({ status: 'Dismissed' }).eq('id', b.supabaseId);
+        if (error) throw error;
+      }
+      synced = true;
+    } catch (err){
+      console.error('[Supabase] Failed to sync booking dismissal, kept locally only:', err);
+    }
+
+    renderBookingsSection();
+    showToast(synced ? 'Booking dismissed.' : 'Booking dismissed locally (database sync failed).', synced ? 'success' : 'error');
+  }
+
+  function setupRealtimeBookingsSubscription(){
+    if (!db || realtimeSubscribed) return;
+    realtimeSubscribed = true;
+    try {
+      db.channel('bookings')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bookings' }, (payload) => {
+          const booking = mapBookingRow(payload.new);
+          BOOKINGS.unshift(booking);
+          renderBookingsSection();
+          showToast(`New booking request from ${booking.fullName}!`, 'success');
+        })
+        .subscribe();
+    } catch (err){
+      console.error('[Supabase] Failed to set up realtime subscription:', err);
+    }
+  }
+
   // ================= LOGIN =================
   const loginScreen = document.getElementById('login-screen');
   const dashboard = document.getElementById('dashboard');
   const loginForm = document.getElementById('login-form');
   const loginCard = document.getElementById('login-card');
   const loginError = document.getElementById('login-error');
+  const emailInput = document.getElementById('admin-email');
   const passwordInput = document.getElementById('admin-password');
+  const loginSubmitBtn = document.getElementById('login-submit');
 
   function showDashboard(){
     loginScreen.hidden = true;
     dashboard.hidden = false;
     updateFabVisibility();
+    loadAllDataFromSupabase();
+    setupRealtimeBookingsSubscription();
   }
 
   function updateFabVisibility(){
@@ -1827,7 +2238,8 @@
     document.getElementById('fab-container').hidden = anyModalOpen || dashboard.hidden;
   }
 
-  function triggerShake(){
+  function triggerShake(message){
+    loginError.textContent = message || 'Incorrect email or password. Please try again.';
     loginError.hidden = false;
     loginCard.classList.remove('shake');
     void loginCard.offsetWidth;
@@ -1835,20 +2247,38 @@
     setTimeout(() => loginCard.classList.remove('shake'), 450);
   }
 
-  loginForm.addEventListener('submit', (e) => {
+  loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const value = passwordInput.value.trim();
-    if (value === ADMIN_PASSWORD){
-      sessionStorage.setItem(AUTH_KEY, 'true');
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+
+    if (!db){
+      triggerShake('Unable to connect to the server. Check your internet connection.');
+      return;
+    }
+
+    loginSubmitBtn.disabled = true;
+    loginSubmitBtn.textContent = 'Signing in...';
+
+    try {
+      const { error } = await db.auth.signInWithPassword({ email, password });
+      if (error) throw error;
       loginError.hidden = true;
       showDashboard();
-    } else {
-      triggerShake();
+    } catch (err){
+      console.error('[Supabase] Sign-in failed:', err);
+      const message = err && err.message === 'Email not confirmed'
+        ? 'Please confirm your email address first — check your inbox for the confirmation link.'
+        : 'Incorrect email or password. Please try again.';
+      triggerShake(message);
+    } finally {
+      loginSubmitBtn.disabled = false;
+      loginSubmitBtn.textContent = 'Enter Dashboard';
     }
   });
 
-  document.getElementById('logout-btn').addEventListener('click', () => {
-    sessionStorage.removeItem(AUTH_KEY);
+  document.getElementById('logout-btn').addEventListener('click', async () => {
+    if (db) await db.auth.signOut().catch(err => console.error('[Supabase] Sign-out failed:', err));
     passwordInput.value = '';
     loginError.hidden = true;
     dashboard.hidden = true;
@@ -2455,6 +2885,16 @@
       openEventModal(Number(eventViewBtn.dataset.eventId));
       return;
     }
+    const bookingConvertBtn = e.target.closest('.booking-convert-btn');
+    if (bookingConvertBtn){
+      convertBookingToJob(Number(bookingConvertBtn.dataset.bookingIndex));
+      return;
+    }
+    const bookingDismissBtn = e.target.closest('.booking-dismiss-btn');
+    if (bookingDismissBtn){
+      dismissBooking(Number(bookingDismissBtn.dataset.bookingIndex));
+      return;
+    }
   });
 
   document.addEventListener('change', (e) => {
@@ -2553,6 +2993,15 @@
 
     closeRecordPaymentModal();
     refreshAfterPaymentChange(job.id);
+
+    attemptSupabaseWrite(async () => {
+      if (!job.supabaseId) throw new Error('This job does not have a database record to attach the payment to.');
+      const { error } = await db.from('payments').insert([{
+        job_id: job.supabaseId, amount, payment_method: method, payment_type: label,
+        payment_date: toInputDate(date), reference_number: reference, notes
+      }]);
+      if (error) throw error;
+    }, `Payment of ${formatCurrency(amount)} synced to database.`, `Payment for Job #${job.jobNumber} database sync`);
   });
 
   // ================= INVOICE MODAL =================
@@ -2934,6 +3383,28 @@
     closeCreateJobModal();
     renderAll();
     alert(`Job #${job.jobNumber} created for ${name}.`);
+
+    attemptSupabaseWrite(async () => {
+      const { data: custData, error: custErr } = await db
+        .from('customers')
+        .insert([{ full_name: name, phone, email, address }])
+        .select()
+        .single();
+      if (custErr) throw custErr;
+
+      const { data: jobData, error: jobErr } = await db
+        .from('jobs')
+        .insert([{
+          job_number: job.jobNumber, customer_id: custData.id,
+          category: JOB_CATALOG[cat].label, package: serviceLabel,
+          service_date: dateVal, service_time: time,
+          subtotal: price, addons_total: 0, total: price, status, notes
+        }])
+        .select()
+        .single();
+      if (jobErr) throw jobErr;
+      job.supabaseId = jobData.id;
+    }, `Job #${job.jobNumber} synced to database.`, `Job #${job.jobNumber} database sync`);
   });
 
   // ================= CREATE CUSTOMER MODAL =================
@@ -2969,6 +3440,11 @@
     closeCreateCustomerModal();
     renderCustomersTable();
     alert(`Customer ${name} created.`);
+
+    attemptSupabaseWrite(async () => {
+      const { error } = await db.from('customers').insert([{ full_name: name, phone, email, address }]);
+      if (error) throw error;
+    }, `Customer ${name} synced to database.`, `Customer ${name} database sync`);
   });
 
   // ================= CREATE PROPOSAL MODAL =================
@@ -3126,9 +3602,18 @@
 
   renderAll();
 
-  if (sessionStorage.getItem(AUTH_KEY) === 'true'){
-    showDashboard();
-  }
+  (async function checkExistingSession(){
+    if (!db) return;
+    try {
+      const { data, error } = await db.auth.getSession();
+      if (error) throw error;
+      if (data && data.session){
+        showDashboard();
+      }
+    } catch (err){
+      console.error('[Supabase] Failed to check existing session:', err);
+    }
+  })();
 })();
 </script>
 

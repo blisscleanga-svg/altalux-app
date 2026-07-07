@@ -907,6 +907,46 @@
   }
   #sidebar-body{ display:flex; flex-direction:column; gap:10px; }
   #sidebar-body .summary-line{ font-size:13.5px; }
+
+  /* ---------- Confirmation screen ---------- */
+  .confirm-check{
+    width:72px; height:72px;
+    margin:0 auto;
+    border-radius:50%;
+    background:linear-gradient(135deg,var(--gold),var(--orange));
+    color:var(--dark);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:38px;
+    font-weight:700;
+    box-shadow:0 10px 30px rgba(255,140,0,.4);
+    animation:popIn .4s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes popIn{ from{ transform:scale(0); opacity:0; } to{ transform:scale(1); opacity:1; } }
+  .confirm-header{ text-align:center; padding:4px 0 8px; }
+  .confirm-header .step-title{ margin-top:18px; }
+  .confirm-header .step-subtitle{ max-width:420px; margin:0 auto; }
+  .confirm-contact{
+    text-align:center;
+    margin-top:18px;
+    font-size:13.5px;
+    color:var(--ink-muted);
+  }
+  .confirm-contact strong{ color:var(--gold); }
+
+  /* ---------- Loading spinner (pay button) ---------- */
+  .btn-spinner{
+    display:inline-block;
+    width:16px; height:16px;
+    border:3px solid rgba(10,22,40,.3);
+    border-top-color:var(--dark);
+    border-radius:50%;
+    animation:spin .7s linear infinite;
+    vertical-align:middle;
+    margin-right:8px;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -1108,6 +1148,17 @@
         </div>
       </section>
 
+      <!-- CONFIRMATION SCREEN (shown after successful booking submission) -->
+      <section class="step-panel" id="step-confirmation">
+        <div class="confirm-header">
+          <div class="confirm-check">✓</div>
+          <h2 class="step-title">Booking Request Received!</h2>
+          <p class="step-subtitle" id="confirm-message"></p>
+        </div>
+        <div class="summary-card" id="confirm-summary"><!-- injected by JS --></div>
+        <p class="confirm-contact">Questions? Call us at <strong>(888) 853-0590</strong></p>
+      </section>
+
       <p class="step-error" id="step-error"></p>
 
       <div class="step-nav" id="step-nav">
@@ -1130,9 +1181,23 @@
   </aside>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
   "use strict";
+
+  // ---------- Supabase ----------
+  const SUPABASE_URL = 'https://xmhsehfdmiqbwhpqjgon.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtaHNlaGZkbWlxYndocHFqZ29uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzODU5NzQsImV4cCI6MjA5ODk2MTk3NH0.J2UOp-pgzP6ByvDBoHcocFAmarWdlDK8M31YgKrUNss';
+  let db = null;
+  try {
+    if (typeof supabase !== 'undefined'){
+      const { createClient } = supabase;
+      db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+  } catch (err){
+    console.error('Supabase client failed to initialize:', err);
+  }
 
   // ---------- Data ----------
   const CATEGORIES = {
@@ -1321,6 +1386,13 @@
   }
   function isSameDay(a,b){
     return a && b && a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+  }
+  function toISODate(d){
+    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+  function round2(n){
+    return Math.round(n * 100) / 100;
   }
   function currentVehicleTier(){
     if (state.vehicleIndex === null) return 'small';
@@ -1694,9 +1766,72 @@
     payBtn.disabled = !canPay();
   }
 
-  payBtn.addEventListener('click', () => {
+  function showConfirmation(){
+    const v = state.package.vehicles[state.vehicleIndex];
+    const dateLabel = state.date
+      ? `${WEEKDAY_LABELS[state.date.getDay()]}, ${MONTH_LABELS[state.date.getMonth()]} ${state.date.getDate()}, ${state.date.getFullYear()}`
+      : '—';
+
+    document.getElementById('confirm-message').textContent =
+      `Thank you ${state.name}! We will contact you within 24 hours to confirm your appointment and process your deposit payment.`;
+
+    document.getElementById('confirm-summary').innerHTML = `
+      <div class="summary-line"><span>Service</span><span>${state.package.name} — ${v.label}</span></div>
+      <div class="summary-line"><span>Date</span><span>${dateLabel}</span></div>
+      <div class="summary-line"><span>Time</span><span>${state.time}</span></div>
+      <div class="summary-line grand-total"><span>Deposit Amount</span><span>${formatCurrency(depositAmount())}</span></div>
+    `;
+
+    stepPanels.forEach(p => p.classList.remove('active'));
+    document.getElementById('step-confirmation').classList.add('active');
+    progressSteps.forEach(ps => ps.classList.add('completed'));
+    document.getElementById('step-nav').style.display = 'none';
+    document.querySelector('.card').scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+
+  payBtn.addEventListener('click', async () => {
     if (payBtn.disabled) return;
-    alert('Booking request received! We will be in touch to confirm your appointment.');
+
+    const v = state.package.vehicles[state.vehicleIndex];
+    const selectedAddons = getSelectedAddonsDetailed();
+    const originalHtml = payBtn.innerHTML;
+
+    payBtn.disabled = true;
+    payBtn.innerHTML = '<span class="btn-spinner"></span> Processing...';
+
+    const payload = {
+      full_name: state.name,
+      phone: state.phone,
+      email: state.email,
+      address: state.address,
+      vehicle: state.vehicle,
+      category: CATEGORIES[state.category].label,
+      package: state.package.name,
+      vehicle_type: v.label,
+      service_date: toISODate(state.date),
+      service_time: state.time,
+      subtotal: round2(state.price),
+      addons_total: round2(addonsTotal()),
+      total: round2(subtotal()),
+      deposit: round2(depositAmount()),
+      addons: selectedAddons.map(a => ({ name: a.name, price: a.price })),
+      receive_reminders: state.smsReminders,
+      receive_offers: state.exclusiveOffers,
+      status: 'Pending',
+      stripe_session_id: null
+    };
+
+    try {
+      if (!db) throw new Error('Supabase client is not available.');
+      const { error } = await db.from('bookings').insert([payload]);
+      if (error) throw error;
+      showConfirmation();
+    } catch (err){
+      console.error('Booking submission failed:', err);
+      payBtn.disabled = false;
+      payBtn.innerHTML = originalHtml;
+      showError('Something went wrong submitting your booking. Please try again, or call us at (888) 853-0590.');
+    }
   });
 
   // ---------- Step navigation ----------
