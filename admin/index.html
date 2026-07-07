@@ -2252,6 +2252,11 @@
         </div>
 
         <div class="field" style="margin-top:18px;">
+          <label for="emp-pin">Mobile App PIN <span style="color:var(--ink-faint); text-transform:none; font-weight:400;">(4 digits — used to log into the technician app)</span></label>
+          <input type="text" id="emp-pin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="1234">
+        </div>
+
+        <div class="field" style="margin-top:18px;">
           <label>Photo</label>
           <div class="avatar-upload">
             <div class="employee-avatar" id="emp-avatar-preview">?</div>
@@ -2679,7 +2684,7 @@
       id: 1, employeeId: 'EMP-001', type: 'employee',
       firstName: 'Luis', lastName: 'Pabón',
       phone: '(470) 877-4347', email: 'luisepabon@gmail.com',
-      role: 'Owner', hourlyRate: null, commissionRate: 0,
+      role: 'Owner', hourlyRate: null, commissionRate: 0, pin: '0000',
       photo: null, notes: '', active: true, createdDate: new Date(TODAY),
       hoursThisWeek: 0, hoursThisMonth: 0,
       payHistory: []
@@ -2688,7 +2693,7 @@
       id: 2, employeeId: 'EMP-002', type: 'employee',
       firstName: 'Dario', lastName: 'Pabón',
       phone: '', email: 'dario@blisscleandetail.com',
-      role: 'Technician', hourlyRate: 18, commissionRate: 15,
+      role: 'Technician', hourlyRate: 18, commissionRate: 15, pin: '1234',
       photo: null, notes: '', active: true, createdDate: new Date(TODAY),
       hoursThisWeek: 32, hoursThisMonth: 128,
       payHistory: [
@@ -2990,6 +2995,27 @@
       BOOKINGS.length = 0;
       (bookingRows || []).forEach(row => BOOKINGS.push(mapBookingRow(row)));
       console.log(`[Supabase] Loaded ${BOOKINGS.length} booking(s).`);
+
+      const { data: employeeRows, error: employeesErr } = await db.from('employees').select('*');
+      if (employeesErr) console.error('[Supabase] Failed to load employees (has the migration been run yet?):', employeesErr);
+      if (employeeRows && employeeRows.length){
+        EMPLOYEES.length = 0;
+        employeeRows.forEach((row, i) => EMPLOYEES.push({
+          id: i + 1, supabaseId: row.id, employeeId: 'EMP-' + padNum(i + 1), type: 'employee',
+          firstName: row.first_name || '', lastName: row.last_name || '',
+          phone: row.phone || '', email: row.email || '',
+          role: row.role || 'Technician', hourlyRate: row.hourly_rate != null ? Number(row.hourly_rate) : null,
+          commissionRate: row.commission_rate != null ? Number(row.commission_rate) : 0,
+          pin: row.pin || '1234',
+          photo: row.photo_url || null, notes: row.notes || '', active: row.is_active !== false,
+          createdDate: row.created_at ? new Date(row.created_at) : new Date(TODAY),
+          hoursThisWeek: 0, hoursThisMonth: 0, payHistory: []
+        }));
+        nextEmployeeIdCounter = EMPLOYEES.length + 1;
+        console.log(`[Supabase] Loaded ${EMPLOYEES.length} employee(s) from database.`);
+      } else {
+        console.log('[Supabase] No employees in database yet — keeping sample data.');
+      }
 
     } catch (err){
       console.error('[Supabase] Failed to load dashboard data, falling back to session/sample data:', err);
@@ -5413,6 +5439,7 @@
     setEmployeeModalType('employee');
     document.querySelectorAll('.role-radio-option').forEach(opt => opt.classList.remove('selected'));
     employeePhotoDataUrl = null;
+    document.getElementById('emp-pin').value = '';
     const preview = document.getElementById('emp-avatar-preview');
     preview.innerHTML = '?';
     preview.style.background = '';
@@ -5446,6 +5473,7 @@
       selectRoleRadio(e.role);
       document.getElementById('emp-hourly').value = e.hourlyRate != null ? e.hourlyRate : '';
       document.getElementById('emp-commission').value = e.commissionRate != null ? e.commissionRate : '';
+      document.getElementById('emp-pin').value = e.pin || '';
       document.getElementById('emp-notes').value = e.notes || '';
       const preview = document.getElementById('emp-avatar-preview');
       if (e.photo){
@@ -5494,20 +5522,28 @@
       alert('Please complete first name, last name, email, and role.');
       return null;
     }
+    const pinInput = document.getElementById('emp-pin').value.trim();
+    if (pinInput && !/^\d{4}$/.test(pinInput)){
+      alert('PIN must be exactly 4 digits.');
+      return null;
+    }
+    const existing = currentEditEmployeeId ? findEmployee(currentEditEmployeeId) : null;
+    const pin = pinInput || (existing ? existing.pin : '1234');
+
     const data = {
       type: 'employee', firstName, lastName,
       phone: document.getElementById('emp-phone').value.trim(),
       email, role: roleInput.value,
       hourlyRate: document.getElementById('emp-hourly').value ? parseFloat(document.getElementById('emp-hourly').value) : null,
       commissionRate: document.getElementById('emp-commission').value ? parseFloat(document.getElementById('emp-commission').value) : null,
+      pin,
       photo: employeePhotoDataUrl,
       notes: document.getElementById('emp-notes').value.trim(),
       active: true
     };
-    if (currentEditEmployeeId){
-      const e = findEmployee(currentEditEmployeeId);
-      Object.assign(e, data);
-      return e;
+    if (existing){
+      Object.assign(existing, data);
+      return existing;
     }
     const numId = nextEmployeeIdCounter++;
     const e = {
@@ -5518,17 +5554,37 @@
     return e;
   }
 
+  function syncEmployeeToSupabase(e){
+    attemptSupabaseWrite(async () => {
+      const payload = {
+        first_name: e.firstName, last_name: e.lastName, email: e.email, phone: e.phone,
+        role: e.role, hourly_rate: e.hourlyRate, commission_rate: e.commissionRate || 0,
+        pin: e.pin, is_active: e.active
+      };
+      if (e.supabaseId){
+        const { error } = await db.from('employees').update(payload).eq('id', e.supabaseId);
+        if (error) throw error;
+      } else {
+        const { data, error } = await db.from('employees').insert([payload]).select().single();
+        if (error) throw error;
+        e.supabaseId = data.id;
+      }
+    }, `${e.firstName} ${e.lastName} synced to database.`, `Employee ${e.firstName} ${e.lastName} database sync`);
+  }
+
   document.getElementById('employee-save-btn').addEventListener('click', () => {
     const saved = saveEmployeeFromForm();
     if (!saved) return;
     closeEmployeeModal();
     renderEmployeesView();
+    if (saved.type === 'employee') syncEmployeeToSupabase(saved);
   });
 
   document.getElementById('employee-add-another-btn').addEventListener('click', () => {
     const saved = saveEmployeeFromForm();
     if (!saved) return;
     renderEmployeesView();
+    if (saved.type === 'employee') syncEmployeeToSupabase(saved);
     currentEditEmployeeId = null;
     resetEmployeeForm();
     document.getElementById('employee-modal-title').innerHTML = 'Add <span>Employee</span>';
@@ -5540,6 +5596,7 @@
     e.active = !e.active;
     renderEmployeesGrid();
     renderEmployeesStats();
+    if (e.type === 'employee') syncEmployeeToSupabase(e);
   }
 
   // ================= EMPLOYEE PROFILE MODAL =================
@@ -5642,11 +5699,11 @@
 
   document.getElementById('ep-pay-hourly').addEventListener('change', (e) => {
     const emp = findEmployee(currentProfileEmployeeId);
-    if (emp) emp.hourlyRate = e.target.value ? parseFloat(e.target.value) : null;
+    if (emp){ emp.hourlyRate = e.target.value ? parseFloat(e.target.value) : null; syncEmployeeToSupabase(emp); }
   });
   document.getElementById('ep-pay-commission').addEventListener('change', (e) => {
     const emp = findEmployee(currentProfileEmployeeId);
-    if (emp) emp.commissionRate = e.target.value ? parseFloat(e.target.value) : null;
+    if (emp){ emp.commissionRate = e.target.value ? parseFloat(e.target.value) : null; syncEmployeeToSupabase(emp); }
   });
 
   document.getElementById('ep-assign-job-btn').addEventListener('click', () => {

@@ -1166,6 +1166,7 @@
   }
 
   async function resolveEmployeeSupabaseId(){
+    if (currentUser && currentUser.supabaseId) return currentUser.supabaseId;
     if (!db || !currentUser) return null;
     try {
       const { data, error } = await db.from('employees').select('id').eq('email', currentUser.email).single();
@@ -1251,7 +1252,39 @@
   const loginErrorEl = document.getElementById('login-error');
   let enteredPin = '';
 
-  userSelect.innerHTML = EMPLOYEES.map(e => `<option value="${e.id}">${e.name} (${e.role})</option>`).join('');
+  function renderUserSelectOptions(){
+    userSelect.innerHTML = EMPLOYEES.map(e => `<option value="${e.id}">${e.name} (${e.role})</option>`).join('');
+  }
+  renderUserSelectOptions();
+
+  async function loadEmployeesFromSupabase(){
+    if (!db) return;
+    try {
+      const { data, error } = await db.from('employees').select('*').eq('is_active', true);
+      if (error) throw error;
+      if (data && data.length){
+        EMPLOYEES.length = 0;
+        data.forEach((row, i) => EMPLOYEES.push({
+          id: i + 1, supabaseId: row.id,
+          name: `${row.first_name || ''} ${row.last_name || ''}`.trim(),
+          role: row.role || 'Technician',
+          pin: row.pin || '1234',
+          email: row.email || '', phone: row.phone || '',
+          hourlyRate: row.hourly_rate != null ? Number(row.hourly_rate) : null,
+          commissionRate: row.commission_rate != null ? Number(row.commission_rate) : 0,
+          defaultPaymentMethod: row.preferred_payment_method || 'Square Reader',
+          active: true
+        }));
+        renderUserSelectOptions();
+        console.log(`[Supabase] Loaded ${EMPLOYEES.length} employee(s) for login.`);
+      } else {
+        console.log('[Supabase] No employees in database yet — using sample login list.');
+      }
+    } catch (err){
+      console.error('[Supabase] Failed to load employees, using sample login list:', err);
+    }
+  }
+  loadEmployeesFromSupabase();
 
   function renderPinDots(){
     pinDotsEls.forEach((dot,i) => dot.classList.toggle('filled', i < enteredPin.length));
