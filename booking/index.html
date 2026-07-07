@@ -833,25 +833,8 @@
   }
   .payment-badge svg{ width:20px; height:14px; flex-shrink:0; color:var(--ink-muted); }
 
-  /* ---------- Payment method tabs (Square / Stripe) ---------- */
-  .payment-method-tabs{ display:flex; gap:8px; margin-bottom:16px; }
-  .payment-method-tab{
-    flex:1; padding:12px 10px; border-radius:12px; border:1.5px solid rgba(255,255,255,.15);
-    background:rgba(255,255,255,.03); color:#fff; font-weight:700; cursor:pointer; text-align:center;
-    font-size:13.5px; font-family:inherit;
-  }
-  .payment-method-tab.active{ border-color:var(--gold); background:rgba(255,170,0,.1); color:var(--gold); }
-  .payment-method-tab.disabled{ opacity:.45; cursor:not-allowed; }
-  .coming-soon-badge{ display:inline-block; font-size:9.5px; font-weight:700; background:rgba(255,255,255,.14); color:var(--ink-muted); padding:2px 7px; border-radius:999px; margin-left:6px; vertical-align:middle; }
+  /* ---------- Square card form ---------- */
   .square-card-container{ background:#fff; border-radius:12px; padding:16px 14px; margin-bottom:14px; min-height:88px; }
-  .btn-pay-secondary{
-    width:100%; border:1.5px solid var(--orange); border-radius:999px; padding:13px 20px; font-size:14.5px;
-    font-weight:700; color:var(--orange); background:transparent; cursor:pointer; margin-top:10px;
-  }
-  .btn-pay-secondary:disabled{ opacity:.4; cursor:not-allowed; }
-  .stripe-greyed-box{ opacity:.45; filter:grayscale(1); pointer-events:none; }
-  .stripe-skeleton-row{ height:44px; background:#e8e8e8; border-radius:6px; }
-  .stripe-skeleton-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
 
   /* ---------- Nav ---------- */
   .step-error{
@@ -1157,30 +1140,10 @@
 
         <p class="policy-note">A 25% non-refundable deposit is required to confirm your booking. Cancellations or rescheduling with less than 72 hours notice will forfeit the deposit. Our technicians rely on scheduled appointments for their income. Please be aware of your arrival window — if your vehicle is not available within 15 minutes of technician arrival, a $50 late fee will apply.</p>
 
-        <div class="payment-method-tabs" id="payment-method-tabs">
-          <button type="button" class="payment-method-tab active" data-method="square">Square</button>
-          <button type="button" class="payment-method-tab disabled" data-method="stripe" disabled>🔒 Stripe <span class="coming-soon-badge">Coming Soon</span></button>
-        </div>
-
-        <div id="square-payment-panel">
-          <div class="square-card-container" id="square-card-container"></div>
-          <p class="step-error" id="square-card-error" style="display:none;"></p>
-          <button type="button" class="btn-pay" id="pay-btn" disabled>Pay Deposit <span id="pay-btn-amount">$0.00</span> with Square</button>
-          <button type="button" class="btn-pay-secondary" id="square-link-btn">Pay with Square Link</button>
-          <p class="secure-note">🔒 Secure payment powered by Square</p>
-        </div>
-
-        <div id="stripe-payment-panel" style="display:none;">
-          <div class="square-card-container stripe-greyed-box">
-            <div class="stripe-skeleton-row"></div>
-            <div class="stripe-skeleton-grid">
-              <div class="stripe-skeleton-row"></div>
-              <div class="stripe-skeleton-row"></div>
-            </div>
-          </div>
-          <button type="button" class="btn-pay" disabled>🔒 Activate Stripe to enable</button>
-          <p class="secure-note">Add your Stripe keys in the admin settings to turn this on.</p>
-        </div>
+        <div class="square-card-container" id="square-card-container"></div>
+        <p class="step-error" id="square-card-error" style="display:none;"></p>
+        <button type="button" class="btn-pay" id="pay-btn" disabled>Pay Deposit <span id="pay-btn-amount">$0.00</span></button>
+        <p class="secure-note">🔒 Secure payment powered by Square</p>
 
         <div class="payment-icons">
           <span class="payment-badge"><svg viewBox="0 0 24 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="22" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/><line x1="1" y1="5.5" x2="23" y2="5.5" stroke="currentColor" stroke-width="1.4"/></svg> Visa</span>
@@ -1940,55 +1903,6 @@
     }
   });
 
-  // ---------- Square Link (redirect to hosted checkout) ----------
-  const SQUARE_RETURN_STORAGE_KEY = 'altalux_pending_square_booking';
-  const squareLinkBtn = document.getElementById('square-link-btn');
-
-  squareLinkBtn.addEventListener('click', async () => {
-    if (!canPay()) return;
-    const originalHtml = squareLinkBtn.innerHTML;
-    squareLinkBtn.disabled = true;
-    squareLinkBtn.innerHTML = '<span class="btn-spinner"></span> Redirecting...';
-
-    try {
-      const v = state.package.vehicles[state.vehicleIndex];
-      const linkResult = await callSquareFunction('create_link', {
-        amount: Math.round(depositAmount() * 100),
-        jobId: 'BOOKING',
-        customerName: state.name,
-        customerEmail: state.email,
-        description: `${state.package.name} — ${state.vehicle}`,
-        redirectUrl: window.location.origin + window.location.pathname + '?square_return=1'
-      });
-      if (!linkResult.url) throw new Error('Could not create a Square payment link.');
-
-      sessionStorage.setItem(SQUARE_RETURN_STORAGE_KEY, JSON.stringify(buildBookingPayload(null)));
-      window.location.href = linkResult.url;
-    } catch (err){
-      console.error('Square Link creation failed:', err);
-      squareLinkBtn.disabled = false;
-      squareLinkBtn.innerHTML = originalHtml;
-      showError('Could not start Square checkout. Please try the card option above or call us at (888) 853-0590.');
-    }
-  });
-
-  // ---------- Handle return from Square-hosted checkout ----------
-  (async function handleSquareReturn(){
-    const pending = sessionStorage.getItem(SQUARE_RETURN_STORAGE_KEY);
-    const params = new URLSearchParams(window.location.search);
-    if (!pending || !params.has('square_return')) return;
-    sessionStorage.removeItem(SQUARE_RETURN_STORAGE_KEY);
-    try {
-      const payload = JSON.parse(pending);
-      if (!db) throw new Error('Supabase client is not available.');
-      const { error } = await db.from('bookings').insert([payload]);
-      if (error) throw error;
-      state.name = payload.full_name;
-      showConfirmation(true);
-    } catch (err){
-      console.error('Failed to record booking after Square Link return:', err);
-    }
-  })();
 
   // ---------- Step navigation ----------
   const progressSteps = document.querySelectorAll('.progress-step');
