@@ -914,28 +914,6 @@
     .fab-option{ font-size:12.5px; padding:9px 14px; }
   }
 
-  /* ================= ROLE SELECTOR SCREEN ================= */
-  .role-select-screen{
-    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
-  }
-  .role-select-card{
-    width:100%; max-width:460px;
-    background:linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.02));
-    border:1px solid var(--line); border-radius:var(--radius-lg);
-    padding:36px 32px; text-align:center;
-    box-shadow:0 20px 60px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.05);
-  }
-  .role-select-title{ font-size:14px; letter-spacing:1.5px; text-transform:uppercase; color:var(--gold); font-weight:700; margin:18px 0 20px; }
-  .role-select-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  .role-select-btn{
-    border:1.5px solid rgba(255,255,255,.14); background:rgba(255,255,255,.03); color:var(--white);
-    border-radius:var(--radius-md); padding:18px 12px; cursor:pointer; transition:all .2s ease;
-    display:flex; flex-direction:column; align-items:center; gap:6px; font-family:'Rajdhani',sans-serif;
-  }
-  .role-select-btn:hover{ border-color:var(--gold); background:rgba(255,170,0,.08); transform:translateY(-2px); }
-  .role-select-btn .role-icon{ font-size:26px; }
-  .role-select-btn .role-name{ font-size:15px; font-weight:700; }
-
   /* ================= ROLE BADGES ================= */
   .badge-role-owner{ background:var(--gold); color:var(--dark); }
   .badge-role-manager{ background:var(--blue); color:#fff; }
@@ -1238,29 +1216,15 @@
     <form id="login-form">
       <div class="field">
         <label for="admin-email">Email</label>
-        <input type="email" id="admin-email" placeholder="you@company.com" autocomplete="username" autofocus>
+        <input type="email" id="admin-email" placeholder="Email address" autocomplete="username" autofocus>
       </div>
       <div class="field" style="margin-top:14px;">
         <label for="admin-password">Password</label>
-        <input type="password" id="admin-password" placeholder="Enter your password" autocomplete="current-password">
+        <input type="password" id="admin-password" placeholder="Password" autocomplete="current-password">
       </div>
-      <p class="login-error" id="login-error" hidden>Incorrect email or password. Please try again.</p>
-      <button type="submit" class="btn btn-primary btn-full" id="login-submit">Enter Dashboard</button>
+      <p class="login-error" id="login-error" hidden>Invalid email or password</p>
+      <button type="submit" class="btn btn-primary btn-full" id="login-submit">Sign In</button>
     </form>
-  </div>
-</div>
-
-<!-- ================= ROLE SELECTOR SCREEN ================= -->
-<div class="role-select-screen" id="role-select-screen" hidden>
-  <div class="role-select-card">
-    <h1 class="brand-name">ALTA<span class="lux">LUX</span></h1>
-    <p class="role-select-title">Continue as</p>
-    <div class="role-select-grid">
-      <button type="button" class="role-select-btn" data-role="Owner"><span class="role-icon">👑</span><span class="role-name">Owner</span></button>
-      <button type="button" class="role-select-btn" data-role="Manager"><span class="role-icon">🗂️</span><span class="role-name">Manager</span></button>
-      <button type="button" class="role-select-btn" data-role="Technician"><span class="role-icon">🔧</span><span class="role-name">Technician</span></button>
-      <button type="button" class="role-select-btn" data-role="Contractor"><span class="role-icon">🧰</span><span class="role-name">Contractor</span></button>
-    </div>
   </div>
 </div>
 
@@ -2226,24 +2190,26 @@
         <div class="field" style="margin-top:14px;"><label for="emp-phone">Phone Number</label><input type="tel" id="emp-phone"></div>
         <div class="field" style="margin-top:14px;"><label for="emp-email">Email</label><input type="email" id="emp-email"></div>
 
-        <p class="modal-section-title" style="margin-top:18px;">Role</p>
-        <div id="emp-role-options">
-          <label class="role-radio-option" data-role="Owner">
-            <input type="radio" name="emp-role" value="Owner">
-            <span><span class="role-radio-label">Owner</span><span class="role-radio-desc">Full access, all features</span></span>
-          </label>
-          <label class="role-radio-option" data-role="Manager">
-            <input type="radio" name="emp-role" value="Manager">
-            <span><span class="role-radio-label">Manager</span><span class="role-radio-desc">Day to day operations, no delete</span></span>
-          </label>
-          <label class="role-radio-option" data-role="Technician">
-            <input type="radio" name="emp-role" value="Technician">
-            <span><span class="role-radio-label">Technician</span><span class="role-radio-desc">Own jobs only, mobile app access</span></span>
-          </label>
-          <label class="role-radio-option" data-role="Contractor">
-            <input type="radio" name="emp-role" value="Contractor">
-            <span><span class="role-radio-label">Contractor</span><span class="role-radio-desc">Limited access, own jobs only</span></span>
-          </label>
+        <div id="emp-role-section">
+          <p class="modal-section-title" style="margin-top:18px;">Role</p>
+          <div id="emp-role-options">
+            <label class="role-radio-option" data-role="Owner">
+              <input type="radio" name="emp-role" value="Owner">
+              <span><span class="role-radio-label">Owner</span><span class="role-radio-desc">Full access, all features</span></span>
+            </label>
+            <label class="role-radio-option" data-role="Manager">
+              <input type="radio" name="emp-role" value="Manager">
+              <span><span class="role-radio-label">Manager</span><span class="role-radio-desc">Day to day operations, no delete</span></span>
+            </label>
+            <label class="role-radio-option" data-role="Technician">
+              <input type="radio" name="emp-role" value="Technician">
+              <span><span class="role-radio-label">Technician</span><span class="role-radio-desc">Own jobs only, mobile app access</span></span>
+            </label>
+            <label class="role-radio-option" data-role="Contractor">
+              <input type="radio" name="emp-role" value="Contractor">
+              <span><span class="role-radio-label">Contractor</span><span class="role-radio-desc">Limited access, own jobs only</span></span>
+            </label>
+          </div>
         </div>
 
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:18px;">
@@ -2251,9 +2217,9 @@
           <div class="field"><label for="emp-commission">Commission Rate % <span style="color:var(--ink-faint); text-transform:none; font-weight:400;">(optional)</span></label><input type="number" id="emp-commission" min="0" max="100" step="0.1" placeholder="0"></div>
         </div>
 
-        <div class="field" style="margin-top:18px;">
-          <label for="emp-pin">Mobile App PIN <span style="color:var(--ink-faint); text-transform:none; font-weight:400;">(4 digits — used to log into the technician app)</span></label>
-          <input type="text" id="emp-pin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="1234">
+        <div class="field" style="margin-top:18px;" id="emp-password-section">
+          <label for="emp-password">Password <span style="color:var(--ink-faint); text-transform:none; font-weight:400;">(used to sign in — leave blank to keep current)</span></label>
+          <input type="text" id="emp-password" placeholder="altalux2026" autocomplete="new-password">
         </div>
 
         <div class="field" style="margin-top:18px;">
@@ -2654,8 +2620,6 @@
   let currentProfileEmail = null;
 
   // ================= EMPLOYEES / ROLES / PERMISSIONS =================
-  const ROLE_KEY = 'altalux_admin_role';
-  const ROLE_OPTIONS = ['Owner','Manager','Technician','Contractor'];
   const ROLE_SLUG = { 'Owner':'owner', 'Manager':'manager', 'Technician':'technician', 'Contractor':'contractor' };
   const ROLE_DESCRIPTIONS = {
     Owner: 'Full access, all features',
@@ -2684,7 +2648,7 @@
       id: 1, employeeId: 'EMP-001', type: 'employee',
       firstName: 'Luis', lastName: 'Pabón',
       phone: '(470) 877-4347', email: 'luisepabon@gmail.com',
-      role: 'Owner', hourlyRate: null, commissionRate: 0, pin: '0000',
+      role: 'Owner', hourlyRate: null, commissionRate: 0, password: 'altalux2026',
       photo: null, notes: '', active: true, createdDate: new Date(TODAY),
       hoursThisWeek: 0, hoursThisMonth: 0,
       payHistory: []
@@ -2693,7 +2657,7 @@
       id: 2, employeeId: 'EMP-002', type: 'employee',
       firstName: 'Dario', lastName: 'Pabón',
       phone: '', email: 'dario@blisscleandetail.com',
-      role: 'Technician', hourlyRate: 18, commissionRate: 15, pin: '1234',
+      role: 'Technician', hourlyRate: 18, commissionRate: 15, password: 'dario2026',
       photo: null, notes: '', active: true, createdDate: new Date(TODAY),
       hoursThisWeek: 32, hoursThisMonth: 128,
       payHistory: [
@@ -2713,6 +2677,34 @@
     return EMPLOYEE_COLOR_PALETTE[idx % EMPLOYEE_COLOR_PALETTE.length];
   }
   function activeEmployees(){ return EMPLOYEES.filter(e => e.type === 'employee' && e.active); }
+
+  async function loadEmployeesFromSupabase(){
+    if (!db) return;
+    try {
+      const { data, error } = await db.from('employees').select('*');
+      if (error) throw error;
+      if (data && data.length){
+        EMPLOYEES.length = 0;
+        data.forEach((row, i) => EMPLOYEES.push({
+          id: i + 1, supabaseId: row.id, employeeId: 'EMP-' + padNum(i + 1), type: 'employee',
+          firstName: row.first_name || '', lastName: row.last_name || '',
+          phone: row.phone || '', email: row.email || '',
+          role: row.role || 'Technician', hourlyRate: row.hourly_rate != null ? Number(row.hourly_rate) : null,
+          commissionRate: row.commission_rate != null ? Number(row.commission_rate) : 0,
+          password: row.password || 'altalux2026',
+          photo: row.photo_url || null, notes: row.notes || '', active: row.is_active !== false,
+          createdDate: row.created_at ? new Date(row.created_at) : new Date(TODAY),
+          hoursThisWeek: 0, hoursThisMonth: 0, payHistory: []
+        }));
+        nextEmployeeIdCounter = EMPLOYEES.length + 1;
+        console.log(`[Supabase] Loaded ${EMPLOYEES.length} employee(s) from database.`);
+      } else {
+        console.log('[Supabase] No employees in database yet — keeping sample data.');
+      }
+    } catch (err){
+      console.error('[Supabase] Failed to load employees (has the migration been run yet?):', err);
+    }
+  }
 
   function jobsAssignedTo(employeeId){
     return JOBS.filter(j => Array.isArray(j.assignedEmployeeIds) && j.assignedEmployeeIds.includes(employeeId));
@@ -2996,26 +2988,7 @@
       (bookingRows || []).forEach(row => BOOKINGS.push(mapBookingRow(row)));
       console.log(`[Supabase] Loaded ${BOOKINGS.length} booking(s).`);
 
-      const { data: employeeRows, error: employeesErr } = await db.from('employees').select('*');
-      if (employeesErr) console.error('[Supabase] Failed to load employees (has the migration been run yet?):', employeesErr);
-      if (employeeRows && employeeRows.length){
-        EMPLOYEES.length = 0;
-        employeeRows.forEach((row, i) => EMPLOYEES.push({
-          id: i + 1, supabaseId: row.id, employeeId: 'EMP-' + padNum(i + 1), type: 'employee',
-          firstName: row.first_name || '', lastName: row.last_name || '',
-          phone: row.phone || '', email: row.email || '',
-          role: row.role || 'Technician', hourlyRate: row.hourly_rate != null ? Number(row.hourly_rate) : null,
-          commissionRate: row.commission_rate != null ? Number(row.commission_rate) : 0,
-          pin: row.pin || '1234',
-          photo: row.photo_url || null, notes: row.notes || '', active: row.is_active !== false,
-          createdDate: row.created_at ? new Date(row.created_at) : new Date(TODAY),
-          hoursThisWeek: 0, hoursThisMonth: 0, payHistory: []
-        }));
-        nextEmployeeIdCounter = EMPLOYEES.length + 1;
-        console.log(`[Supabase] Loaded ${EMPLOYEES.length} employee(s) from database.`);
-      } else {
-        console.log('[Supabase] No employees in database yet — keeping sample data.');
-      }
+      await loadEmployeesFromSupabase();
 
     } catch (err){
       console.error('[Supabase] Failed to load dashboard data, falling back to session/sample data:', err);
@@ -3169,7 +3142,6 @@
 
   // ================= LOGIN =================
   const loginScreen = document.getElementById('login-screen');
-  const roleSelectScreen = document.getElementById('role-select-screen');
   const dashboard = document.getElementById('dashboard');
   const techView = document.getElementById('tech-view');
   const loginForm = document.getElementById('login-form');
@@ -3179,18 +3151,44 @@
   const passwordInput = document.getElementById('admin-password');
   const loginSubmitBtn = document.getElementById('login-submit');
 
-  function showRoleSelector(){
-    loginScreen.hidden = true;
-    roleSelectScreen.hidden = false;
+  const SESSION_KEYS = ['loggedInEmail','loggedInName','loggedInRole','loggedInEmployeeId'];
+  let currentEmployeeId = null;
+
+  // A single shared Supabase Auth session is kept running in the background
+  // (invisible to the user) so writes still pass the `authenticated`-scoped
+  // RLS policies, regardless of which employee is using the app.
+  const SUPABASE_SESSION_EMAIL = 'altaluxdetail@gmail.com';
+  const SUPABASE_SESSION_PASSWORD = 'Noseolvida999';
+  async function ensureSupabaseAuthSession(){
+    if (!db) return;
+    try {
+      const { data } = await db.auth.getSession();
+      if (data && data.session) return;
+      await db.auth.signInWithPassword({ email: SUPABASE_SESSION_EMAIL, password: SUPABASE_SESSION_PASSWORD });
+    } catch (err){
+      console.error('[Supabase] Background session sign-in failed:', err);
+    }
   }
 
-  function proceedToDashboard(role){
-    currentRole = role;
-    sessionStorage.setItem(ROLE_KEY, role);
-    loginScreen.hidden = true;
-    roleSelectScreen.hidden = true;
+  function findEmployeeByCredentials(email, password){
+    return EMPLOYEES.find(e => e.type === 'employee' && e.active &&
+      e.email && e.email.toLowerCase() === email.toLowerCase() && e.password === password);
+  }
 
-    const perms = ROLE_PERMISSIONS[role];
+  function clearLoginSession(){
+    SESSION_KEYS.forEach(k => sessionStorage.removeItem(k));
+  }
+
+  function proceedToDashboard(employee){
+    currentRole = employee.role;
+    currentEmployeeId = employee.id;
+    sessionStorage.setItem('loggedInEmail', employee.email);
+    sessionStorage.setItem('loggedInName', `${employee.firstName} ${employee.lastName}`.trim());
+    sessionStorage.setItem('loggedInRole', employee.role);
+    sessionStorage.setItem('loggedInEmployeeId', String(employee.id));
+    loginScreen.hidden = true;
+
+    const perms = ROLE_PERMISSIONS[employee.role];
     if (perms.mobileLayout === 'technician'){
       dashboard.hidden = true;
       document.body.classList.remove('has-bottom-nav');
@@ -3199,10 +3197,12 @@
     } else {
       techView.hidden = true;
       dashboard.hidden = false;
-      applyRolePermissions(role);
+      applyRolePermissions(employee.role);
       updateFabVisibility();
-      loadAllDataFromSupabase();
-      setupRealtimeBookingsSubscription();
+      ensureSupabaseAuthSession().then(() => {
+        loadAllDataFromSupabase();
+        setupRealtimeBookingsSubscription();
+      });
     }
   }
 
@@ -3223,7 +3223,7 @@
   }
 
   function triggerShake(message){
-    loginError.textContent = message || 'Incorrect email or password. Please try again.';
+    loginError.textContent = message || 'Invalid email or password';
     loginError.hidden = false;
     loginCard.classList.remove('shake');
     void loginCard.offsetWidth;
@@ -3231,53 +3231,35 @@
     setTimeout(() => loginCard.classList.remove('shake'), 450);
   }
 
-  loginForm.addEventListener('submit', async (e) => {
+  loginForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const email = emailInput.value.trim();
     const password = passwordInput.value;
 
-    if (!db){
-      triggerShake('Unable to connect to the server. Check your internet connection.');
-      return;
-    }
-
     loginSubmitBtn.disabled = true;
     loginSubmitBtn.textContent = 'Signing in...';
 
-    try {
-      const { error } = await db.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      loginError.hidden = true;
-      const savedRole = sessionStorage.getItem(ROLE_KEY);
-      if (savedRole && ROLE_OPTIONS.includes(savedRole)){
-        proceedToDashboard(savedRole);
-      } else {
-        showRoleSelector();
-      }
-    } catch (err){
-      console.error('[Supabase] Sign-in failed:', err);
-      const message = err && err.message === 'Email not confirmed'
-        ? 'Please confirm your email address first — check your inbox for the confirmation link.'
-        : 'Incorrect email or password. Please try again.';
-      triggerShake(message);
-    } finally {
+    const employee = findEmployeeByCredentials(email, password);
+    if (!employee){
+      triggerShake('Invalid email or password');
       loginSubmitBtn.disabled = false;
-      loginSubmitBtn.textContent = 'Enter Dashboard';
+      loginSubmitBtn.textContent = 'Sign In';
+      return;
     }
-  });
-
-  document.querySelectorAll('.role-select-btn').forEach(btn => {
-    btn.addEventListener('click', () => proceedToDashboard(btn.dataset.role));
+    loginError.hidden = true;
+    proceedToDashboard(employee);
+    loginSubmitBtn.disabled = false;
+    loginSubmitBtn.textContent = 'Sign In';
   });
 
   function doLogout(){
-    sessionStorage.removeItem(ROLE_KEY);
+    clearLoginSession();
     currentRole = null;
+    currentEmployeeId = null;
     passwordInput.value = '';
     loginError.hidden = true;
     dashboard.hidden = true;
     techView.hidden = true;
-    roleSelectScreen.hidden = true;
     loginScreen.hidden = false;
     document.getElementById('fab-backdrop').hidden = true;
     document.body.classList.remove('has-bottom-nav');
@@ -3285,14 +3267,8 @@
     switchView('calendar');
   }
 
-  document.getElementById('logout-btn').addEventListener('click', async () => {
-    if (db) await db.auth.signOut().catch(err => console.error('[Supabase] Sign-out failed:', err));
-    doLogout();
-  });
-  document.getElementById('tech-logout-btn').addEventListener('click', async () => {
-    if (db) await db.auth.signOut().catch(err => console.error('[Supabase] Sign-out failed:', err));
-    doLogout();
-  });
+  document.getElementById('logout-btn').addEventListener('click', () => doLogout());
+  document.getElementById('tech-logout-btn').addEventListener('click', () => doLogout());
 
   // ================= VIEW SWITCHING =================
   function switchView(name){
@@ -5434,12 +5410,19 @@
     reader.readAsDataURL(file);
   });
 
+  function applyEmployeeModalPermissions(){
+    const isOwner = currentRole === 'Owner';
+    document.getElementById('emp-role-section').hidden = !isOwner;
+    document.getElementById('emp-password-section').hidden = !isOwner;
+  }
+
   function resetEmployeeForm(){
     document.getElementById('employee-form').reset();
     setEmployeeModalType('employee');
     document.querySelectorAll('.role-radio-option').forEach(opt => opt.classList.remove('selected'));
     employeePhotoDataUrl = null;
-    document.getElementById('emp-pin').value = '';
+    document.getElementById('emp-password').value = '';
+    applyEmployeeModalPermissions();
     const preview = document.getElementById('emp-avatar-preview');
     preview.innerHTML = '?';
     preview.style.background = '';
@@ -5448,6 +5431,7 @@
   function openAddEmployeeModal(){
     currentEditEmployeeId = null;
     resetEmployeeForm();
+    if (currentRole === 'Owner') selectRoleRadio('Technician');
     document.getElementById('employee-modal-title').innerHTML = 'Add <span>Employee</span>';
     employeeModalOverlay.hidden = false;
   }
@@ -5473,7 +5457,6 @@
       selectRoleRadio(e.role);
       document.getElementById('emp-hourly').value = e.hourlyRate != null ? e.hourlyRate : '';
       document.getElementById('emp-commission').value = e.commissionRate != null ? e.commissionRate : '';
-      document.getElementById('emp-pin').value = e.pin || '';
       document.getElementById('emp-notes').value = e.notes || '';
       const preview = document.getElementById('emp-avatar-preview');
       if (e.photo){
@@ -5522,21 +5505,19 @@
       alert('Please complete first name, last name, email, and role.');
       return null;
     }
-    const pinInput = document.getElementById('emp-pin').value.trim();
-    if (pinInput && !/^\d{4}$/.test(pinInput)){
-      alert('PIN must be exactly 4 digits.');
-      return null;
-    }
     const existing = currentEditEmployeeId ? findEmployee(currentEditEmployeeId) : null;
-    const pin = pinInput || (existing ? existing.pin : '1234');
+    const isOwner = currentRole === 'Owner';
+    const passwordInput = isOwner ? document.getElementById('emp-password').value.trim() : '';
+    const password = passwordInput || (existing ? existing.password : 'altalux2026');
+    const role = isOwner ? roleInput.value : (existing ? existing.role : roleInput.value);
 
     const data = {
       type: 'employee', firstName, lastName,
       phone: document.getElementById('emp-phone').value.trim(),
-      email, role: roleInput.value,
+      email, role,
       hourlyRate: document.getElementById('emp-hourly').value ? parseFloat(document.getElementById('emp-hourly').value) : null,
       commissionRate: document.getElementById('emp-commission').value ? parseFloat(document.getElementById('emp-commission').value) : null,
-      pin,
+      password,
       photo: employeePhotoDataUrl,
       notes: document.getElementById('emp-notes').value.trim(),
       active: true
@@ -5559,7 +5540,7 @@
       const payload = {
         first_name: e.firstName, last_name: e.lastName, email: e.email, phone: e.phone,
         role: e.role, hourly_rate: e.hourlyRate, commission_rate: e.commissionRate || 0,
-        pin: e.pin, is_active: e.active
+        password: e.password, is_active: e.active
       };
       if (e.supabaseId){
         const { error } = await db.from('employees').update(payload).eq('id', e.supabaseId);
@@ -5904,21 +5885,17 @@
 
   renderAll();
 
-  (async function checkExistingSession(){
-    if (!db) return;
-    try {
-      const { data, error } = await db.auth.getSession();
-      if (error) throw error;
-      if (data && data.session){
-        const savedRole = sessionStorage.getItem(ROLE_KEY);
-        if (savedRole && ROLE_OPTIONS.includes(savedRole)){
-          proceedToDashboard(savedRole);
-        } else {
-          showRoleSelector();
-        }
+  (async function initApp(){
+    await loadEmployeesFromSupabase();
+
+    const savedEmail = sessionStorage.getItem('loggedInEmail');
+    if (savedEmail){
+      const employee = EMPLOYEES.find(e => e.type === 'employee' && e.active && e.email.toLowerCase() === savedEmail.toLowerCase());
+      if (employee){
+        proceedToDashboard(employee);
+      } else {
+        clearLoginSession();
       }
-    } catch (err){
-      console.error('[Supabase] Failed to check existing session:', err);
     }
   })();
 })();

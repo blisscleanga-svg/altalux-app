@@ -79,17 +79,7 @@
   .login-logo{ text-align:center; font-size:30px; font-weight:700; letter-spacing:1px; margin-bottom:6px; }
   .login-logo .lux{ color:var(--gold); }
   .login-tagline{ text-align:center; color:var(--ink-faint); font-size:12.5px; letter-spacing:1.5px; text-transform:uppercase; margin:0 0 34px; }
-  .pin-dots{ display:flex; justify-content:center; gap:14px; margin:22px 0; }
-  .pin-dot{ width:16px; height:16px; border-radius:50%; border:2px solid rgba(255,255,255,.3); transition:all .15s ease; }
-  .pin-dot.filled{ background:var(--gold); border-color:var(--gold); }
   .login-error{ text-align:center; color:var(--red); font-size:13px; font-weight:600; min-height:18px; margin:0 0 8px; }
-  .keypad{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:10px 0 26px; }
-  .keypad-btn{
-    min-height:58px; border-radius:var(--radius-md); border:1px solid var(--line); background:rgba(255,255,255,.04);
-    color:var(--white); font-size:22px; font-weight:600; cursor:pointer; font-family:'Rajdhani',sans-serif;
-  }
-  .keypad-btn:active{ background:rgba(255,170,0,.16); }
-  .keypad-btn.keypad-clear{ font-size:13px; font-weight:700; color:var(--ink-muted); }
   @keyframes shake{
     10%,90%{ transform:translateX(-1px); } 20%,80%{ transform:translateX(2px); }
     30%,50%,70%{ transform:translateX(-5px); } 40%,60%{ transform:translateX(5px); }
@@ -364,32 +354,18 @@
   <div class="login-logo">ALTA<span class="lux">LUX</span></div>
   <p class="login-tagline">Mobile Detail — Team App</p>
 
-  <div class="field">
-    <label for="login-user-select">Select User</label>
-    <select id="login-user-select"></select>
-  </div>
-
-  <div class="pin-dots" id="pin-dots">
-    <span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span>
-  </div>
-  <p class="login-error" id="login-error"></p>
-
-  <div class="keypad" id="keypad">
-    <button type="button" class="keypad-btn" data-key="1">1</button>
-    <button type="button" class="keypad-btn" data-key="2">2</button>
-    <button type="button" class="keypad-btn" data-key="3">3</button>
-    <button type="button" class="keypad-btn" data-key="4">4</button>
-    <button type="button" class="keypad-btn" data-key="5">5</button>
-    <button type="button" class="keypad-btn" data-key="6">6</button>
-    <button type="button" class="keypad-btn" data-key="7">7</button>
-    <button type="button" class="keypad-btn" data-key="8">8</button>
-    <button type="button" class="keypad-btn" data-key="9">9</button>
-    <button type="button" class="keypad-btn keypad-clear" data-key="clear">Clear</button>
-    <button type="button" class="keypad-btn" data-key="0">0</button>
-    <button type="button" class="keypad-btn keypad-clear" data-key="back">⌫</button>
-  </div>
-
-  <button type="button" class="btn btn-primary btn-full" id="login-enter-btn">Clock In &amp; Enter</button>
+  <form id="login-form">
+    <div class="field">
+      <label for="login-email">Email</label>
+      <input type="email" id="login-email" placeholder="Email address" autocomplete="username" autofocus>
+    </div>
+    <div class="field" style="margin-top:14px;">
+      <label for="login-password">Password</label>
+      <input type="password" id="login-password" placeholder="Password" autocomplete="current-password">
+    </div>
+    <p class="login-error" id="login-error"></p>
+    <button type="submit" class="btn btn-primary btn-full" id="login-enter-btn">Sign In</button>
+  </form>
 </div>
 
 <!-- ================= APP SHELL ================= -->
@@ -970,8 +946,8 @@
 
   // ================= SAMPLE DATA =================
   const EMPLOYEES = [
-    { id:1, name:'Luis Pabón', role:'Owner', pin:'0000', email:'luisepabon@gmail.com', phone:'(470) 877-4347', hourlyRate:null, commissionRate:0, defaultPaymentMethod:'Cash', active:true },
-    { id:2, name:'Dario Pabón', role:'Technician', pin:'1234', email:'dario@blisscleandetail.com', phone:'', hourlyRate:18, commissionRate:15, defaultPaymentMethod:'Cash', active:true }
+    { id:1, name:'Luis Pabón', role:'Owner', password:'altalux2026', email:'luisepabon@gmail.com', phone:'(470) 877-4347', hourlyRate:null, commissionRate:0, defaultPaymentMethod:'Cash', active:true },
+    { id:2, name:'Dario Pabón', role:'Technician', password:'dario2026', email:'dario@blisscleandetail.com', phone:'', hourlyRate:18, commissionRate:15, defaultPaymentMethod:'Cash', active:true }
   ];
   function findEmployee(id){ return EMPLOYEES.find(e => e.id === id); }
   function employeeInitials(e){ return e.name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0,2); }
@@ -1247,15 +1223,13 @@
   // ================= LOGIN =================
   const loginScreen = document.getElementById('login-screen');
   const appShell = document.getElementById('app');
-  const userSelect = document.getElementById('login-user-select');
-  const pinDotsEls = document.querySelectorAll('#pin-dots .pin-dot');
+  const loginForm = document.getElementById('login-form');
+  const loginEmailInput = document.getElementById('login-email');
+  const loginPasswordInput = document.getElementById('login-password');
   const loginErrorEl = document.getElementById('login-error');
-  let enteredPin = '';
 
-  function renderUserSelectOptions(){
-    userSelect.innerHTML = EMPLOYEES.map(e => `<option value="${e.id}">${e.name} (${e.role})</option>`).join('');
-  }
-  renderUserSelectOptions();
+  const SESSION_KEYS = ['loggedInEmail','loggedInName','loggedInRole','loggedInEmployeeId'];
+  function clearLoginSession(){ SESSION_KEYS.forEach(k => sessionStorage.removeItem(k)); }
 
   async function loadEmployeesFromSupabase(){
     if (!db) return;
@@ -1268,14 +1242,13 @@
           id: i + 1, supabaseId: row.id,
           name: `${row.first_name || ''} ${row.last_name || ''}`.trim(),
           role: row.role || 'Technician',
-          pin: row.pin || '1234',
+          password: row.password || 'altalux2026',
           email: row.email || '', phone: row.phone || '',
           hourlyRate: row.hourly_rate != null ? Number(row.hourly_rate) : null,
           commissionRate: row.commission_rate != null ? Number(row.commission_rate) : 0,
           defaultPaymentMethod: row.preferred_payment_method || 'Square Reader',
           active: true
         }));
-        renderUserSelectOptions();
         console.log(`[Supabase] Loaded ${EMPLOYEES.length} employee(s) for login.`);
       } else {
         console.log('[Supabase] No employees in database yet — using sample login list.');
@@ -1284,55 +1257,53 @@
       console.error('[Supabase] Failed to load employees, using sample login list:', err);
     }
   }
-  loadEmployeesFromSupabase();
 
-  function renderPinDots(){
-    pinDotsEls.forEach((dot,i) => dot.classList.toggle('filled', i < enteredPin.length));
+  function findEmployeeByCredentials(email, password){
+    return EMPLOYEES.find(e => e.active && e.email && e.email.toLowerCase() === email.toLowerCase() && e.password === password);
   }
 
-  function shakePinDots(message){
+  function triggerLoginShake(message){
     loginErrorEl.textContent = message;
-    document.getElementById('pin-dots').classList.remove('shake');
-    void document.getElementById('pin-dots').offsetWidth;
-    document.getElementById('pin-dots').classList.add('shake');
-    enteredPin = '';
-    renderPinDots();
-    setTimeout(() => { loginErrorEl.textContent = ''; }, 1600);
+    loginForm.classList.remove('shake');
+    void loginForm.offsetWidth;
+    loginForm.classList.add('shake');
+    setTimeout(() => { loginErrorEl.textContent = ''; }, 2400);
   }
 
-  function attemptLogin(){
-    const emp = findEmployee(Number(userSelect.value));
-    if (!emp) return;
-    if (enteredPin.length !== 4){
-      shakePinDots('Please enter your 4-digit PIN.');
-      return;
-    }
-    if (enteredPin !== emp.pin){
-      shakePinDots('Incorrect PIN. Please try again.');
-      return;
-    }
-    loginErrorEl.textContent = '';
+  function doLoginAs(emp){
     currentUser = emp;
+    sessionStorage.setItem('loggedInEmail', emp.email);
+    sessionStorage.setItem('loggedInName', emp.name);
+    sessionStorage.setItem('loggedInRole', emp.role);
+    sessionStorage.setItem('loggedInEmployeeId', String(emp.id));
     currentClockRecord = { employeeId: emp.id, clockIn: new Date(), clockOut: null };
     clockRecords.push(currentClockRecord);
-    enteredPin = '';
-    renderPinDots();
     enterApp();
   }
 
-  document.getElementById('keypad').addEventListener('click', (e) => {
-    const btn = e.target.closest('.keypad-btn');
-    if (!btn) return;
-    const key = btn.dataset.key;
-    if (key === 'clear'){ enteredPin = ''; renderPinDots(); return; }
-    if (key === 'back'){ enteredPin = enteredPin.slice(0,-1); renderPinDots(); return; }
-    if (enteredPin.length >= 4) return;
-    enteredPin += key;
-    renderPinDots();
-    if (enteredPin.length === 4) setTimeout(attemptLogin, 120);
+  loginForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = loginEmailInput.value.trim();
+    const password = loginPasswordInput.value;
+    const emp = findEmployeeByCredentials(email, password);
+    if (!emp){
+      triggerLoginShake('Invalid email or password');
+      return;
+    }
+    loginErrorEl.textContent = '';
+    doLoginAs(emp);
   });
 
-  document.getElementById('login-enter-btn').addEventListener('click', attemptLogin);
+  async function initLoginScreen(){
+    await loadEmployeesFromSupabase();
+    const savedEmail = sessionStorage.getItem('loggedInEmail');
+    if (savedEmail){
+      const emp = EMPLOYEES.find(e => e.active && e.email && e.email.toLowerCase() === savedEmail.toLowerCase());
+      if (emp) doLoginAs(emp);
+      else clearLoginSession();
+    }
+  }
+  initLoginScreen();
 
   // ================= APP ENTRY / HEADER =================
   function greetingForNow(){
@@ -2542,6 +2513,9 @@
     if (isClockedIn()) currentClockRecord.clockOut = new Date();
     currentUser = null;
     currentClockRecord = null;
+    clearLoginSession();
+    loginForm.reset();
+    loginErrorEl.textContent = '';
     appShell.classList.remove('active');
     loginScreen.classList.remove('hidden');
     switchView('today');
