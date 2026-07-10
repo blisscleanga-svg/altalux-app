@@ -946,8 +946,8 @@
 
   // ================= SAMPLE DATA =================
   const EMPLOYEES = [
-    { id:1, name:'Luis Pabón', role:'Owner', password:'altalux2026', email:'luisepabon@gmail.com', phone:'(470) 877-4347', hourlyRate:null, commissionRate:0, defaultPaymentMethod:'Cash', active:true },
-    { id:2, name:'Dario Pabón', role:'Technician', password:'dario2026', email:'dario@blisscleandetail.com', phone:'', hourlyRate:18, commissionRate:15, defaultPaymentMethod:'Cash', active:true }
+    { id:1, name:'Luis Pabón', role:'Owner', email:'luisepabon@gmail.com', phone:'(470) 877-4347', hourlyRate:null, commissionRate:0, defaultPaymentMethod:'Cash', active:true },
+    { id:2, name:'Dario Pabón', role:'Technician', email:'dario@blisscleandetail.com', phone:'', hourlyRate:18, commissionRate:15, defaultPaymentMethod:'Cash', active:true }
   ];
   function findEmployee(id){ return EMPLOYEES.find(e => e.id === id); }
   function employeeInitials(e){ return e.name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0,2); }
@@ -1242,7 +1242,6 @@
           id: i + 1, supabaseId: row.id,
           name: `${row.first_name || ''} ${row.last_name || ''}`.trim(),
           role: row.role || 'Technician',
-          password: row.password || 'altalux2026',
           email: row.email || '', phone: row.phone || '',
           hourlyRate: row.hourly_rate != null ? Number(row.hourly_rate) : null,
           commissionRate: row.commission_rate != null ? Number(row.commission_rate) : 0,
@@ -1258,8 +1257,8 @@
     }
   }
 
-  function findEmployeeByCredentials(email, password){
-    return EMPLOYEES.find(e => e.active && e.email && e.email.toLowerCase() === email.toLowerCase() && e.password === password);
+  function findEmployeeByEmail(email){
+    return EMPLOYEES.find(e => e.active && e.email && e.email.toLowerCase() === email.toLowerCase());
   }
 
   function triggerLoginShake(message){
@@ -1281,27 +1280,44 @@
     enterApp();
   }
 
-  loginForm.addEventListener('submit', (e) => {
+  loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = loginEmailInput.value.trim();
     const password = loginPasswordInput.value;
-    const emp = findEmployeeByCredentials(email, password);
-    if (!emp){
-      triggerLoginShake('Invalid email or password');
-      return;
-    }
     loginErrorEl.textContent = '';
-    doLoginAs(emp);
+
+    try {
+      if (!db) throw new Error('Working offline — cannot sign in.');
+      const { error: authError } = await db.auth.signInWithPassword({ email, password });
+      if (authError) throw authError;
+
+      const emp = findEmployeeByEmail(email);
+      if (!emp){
+        await db.auth.signOut();
+        throw new Error('No active employee profile matches this account.');
+      }
+      doLoginAs(emp);
+    } catch (err){
+      console.error('[Auth] Sign-in failed:', err);
+      triggerLoginShake('Invalid email or password');
+    }
   });
 
   async function initLoginScreen(){
     await loadEmployeesFromSupabase();
-    const savedEmail = sessionStorage.getItem('loggedInEmail');
-    if (savedEmail){
-      const emp = EMPLOYEES.find(e => e.active && e.email && e.email.toLowerCase() === savedEmail.toLowerCase());
-      if (emp) doLoginAs(emp);
-      else clearLoginSession();
+    if (db){
+      const { data } = await db.auth.getSession();
+      const sessionEmail = data && data.session && data.session.user && data.session.user.email;
+      if (sessionEmail){
+        const emp = findEmployeeByEmail(sessionEmail);
+        if (emp){
+          doLoginAs(emp);
+          return;
+        }
+        await db.auth.signOut();
+      }
     }
+    clearLoginSession();
   }
   initLoginScreen();
 
@@ -2510,6 +2526,7 @@
   document.getElementById('profile-default-payment-select').addEventListener('change', (e) => { currentUser.defaultPaymentMethod = e.target.value; });
 
   document.getElementById('logout-btn').addEventListener('click', () => {
+    if (db) db.auth.signOut();
     if (isClockedIn()) currentClockRecord.clockOut = new Date();
     currentUser = null;
     currentClockRecord = null;

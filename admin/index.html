@@ -2218,8 +2218,8 @@
         </div>
 
         <div class="field" style="margin-top:18px;" id="emp-password-section">
-          <label for="emp-password">Password <span style="color:var(--ink-faint); text-transform:none; font-weight:400;">(used to sign in — leave blank to keep current)</span></label>
-          <input type="text" id="emp-password" placeholder="altalux2026" autocomplete="new-password">
+          <label for="emp-password">Login Password <span style="color:var(--ink-faint); text-transform:none; font-weight:400;">(sets/resets their real sign-in — leave blank to keep current)</span></label>
+          <input type="text" id="emp-password" placeholder="Min. 6 characters" autocomplete="new-password">
         </div>
 
         <div class="field" style="margin-top:18px;">
@@ -2648,7 +2648,7 @@
       id: 1, employeeId: 'EMP-001', type: 'employee',
       firstName: 'Luis', lastName: 'Pabón',
       phone: '(470) 877-4347', email: 'luisepabon@gmail.com',
-      role: 'Owner', hourlyRate: null, commissionRate: 0, password: 'altalux2026',
+      role: 'Owner', hourlyRate: null, commissionRate: 0,
       photo: null, notes: '', active: true, createdDate: new Date(TODAY),
       hoursThisWeek: 0, hoursThisMonth: 0,
       payHistory: []
@@ -2657,7 +2657,7 @@
       id: 2, employeeId: 'EMP-002', type: 'employee',
       firstName: 'Dario', lastName: 'Pabón',
       phone: '', email: 'dario@blisscleandetail.com',
-      role: 'Technician', hourlyRate: 18, commissionRate: 15, password: 'dario2026',
+      role: 'Technician', hourlyRate: 18, commissionRate: 15,
       photo: null, notes: '', active: true, createdDate: new Date(TODAY),
       hoursThisWeek: 32, hoursThisMonth: 128,
       payHistory: [
@@ -2691,7 +2691,6 @@
           phone: row.phone || '', email: row.email || '',
           role: row.role || 'Technician', hourlyRate: row.hourly_rate != null ? Number(row.hourly_rate) : null,
           commissionRate: row.commission_rate != null ? Number(row.commission_rate) : 0,
-          password: row.password || 'altalux2026',
           photo: row.photo_url || null, notes: row.notes || '', active: row.is_active !== false,
           createdDate: row.created_at ? new Date(row.created_at) : new Date(TODAY),
           hoursThisWeek: 0, hoursThisMonth: 0, payHistory: []
@@ -3154,25 +3153,26 @@
   const SESSION_KEYS = ['loggedInEmail','loggedInName','loggedInRole','loggedInEmployeeId'];
   let currentEmployeeId = null;
 
-  // A single shared Supabase Auth session is kept running in the background
-  // (invisible to the user) so writes still pass the `authenticated`-scoped
-  // RLS policies, regardless of which employee is using the app.
-  const SUPABASE_SESSION_EMAIL = 'altaluxdetail@gmail.com';
-  const SUPABASE_SESSION_PASSWORD = 'Noseolvida999';
-  async function ensureSupabaseAuthSession(){
-    if (!db) return;
-    try {
-      const { data } = await db.auth.getSession();
-      if (data && data.session) return;
-      await db.auth.signInWithPassword({ email: SUPABASE_SESSION_EMAIL, password: SUPABASE_SESSION_PASSWORD });
-    } catch (err){
-      console.error('[Supabase] Background session sign-in failed:', err);
-    }
+  function findEmployeeByEmail(email){
+    return EMPLOYEES.find(e => e.type === 'employee' && e.active &&
+      e.email && e.email.toLowerCase() === email.toLowerCase());
   }
 
-  function findEmployeeByCredentials(email, password){
-    return EMPLOYEES.find(e => e.type === 'employee' && e.active &&
-      e.email && e.email.toLowerCase() === email.toLowerCase() && e.password === password);
+  async function callManageEmployeeAuthFunction(action, extra){
+    const { data: { session } } = await db.auth.getSession();
+    if (!session) throw new Error('You must be signed in to do this.');
+    const res = await fetch(SUPABASE_URL + '/functions/v1/manage-employee-auth', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + session.access_token,
+        'apikey': SUPABASE_ANON_KEY
+      },
+      body: JSON.stringify({ action, ...extra })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Request failed.');
+    return data;
   }
 
   function clearLoginSession(){
@@ -3199,10 +3199,8 @@
       dashboard.hidden = false;
       applyRolePermissions(employee.role);
       updateFabVisibility();
-      ensureSupabaseAuthSession().then(() => {
-        loadAllDataFromSupabase();
-        setupRealtimeBookingsSubscription();
-      });
+      loadAllDataFromSupabase();
+      setupRealtimeBookingsSubscription();
     }
   }
 
@@ -3231,28 +3229,37 @@
     setTimeout(() => loginCard.classList.remove('shake'), 450);
   }
 
-  loginForm.addEventListener('submit', (e) => {
+  loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = emailInput.value.trim();
     const password = passwordInput.value;
 
     loginSubmitBtn.disabled = true;
     loginSubmitBtn.textContent = 'Signing in...';
+    loginError.hidden = true;
 
-    const employee = findEmployeeByCredentials(email, password);
-    if (!employee){
+    try {
+      if (!db) throw new Error('Working offline — cannot sign in.');
+      const { error: authError } = await db.auth.signInWithPassword({ email, password });
+      if (authError) throw authError;
+
+      const employee = findEmployeeByEmail(email);
+      if (!employee){
+        await db.auth.signOut();
+        throw new Error('No active employee profile matches this account.');
+      }
+      proceedToDashboard(employee);
+    } catch (err){
+      console.error('[Auth] Sign-in failed:', err);
       triggerShake('Invalid email or password');
+    } finally {
       loginSubmitBtn.disabled = false;
       loginSubmitBtn.textContent = 'Sign In';
-      return;
     }
-    loginError.hidden = true;
-    proceedToDashboard(employee);
-    loginSubmitBtn.disabled = false;
-    loginSubmitBtn.textContent = 'Sign In';
   });
 
   function doLogout(){
+    if (db) db.auth.signOut();
     clearLoginSession();
     currentRole = null;
     currentEmployeeId = null;
@@ -5508,7 +5515,6 @@
     const existing = currentEditEmployeeId ? findEmployee(currentEditEmployeeId) : null;
     const isOwner = currentRole === 'Owner';
     const passwordInput = isOwner ? document.getElementById('emp-password').value.trim() : '';
-    const password = passwordInput || (existing ? existing.password : 'altalux2026');
     const role = isOwner ? roleInput.value : (existing ? existing.role : roleInput.value);
 
     const data = {
@@ -5517,19 +5523,22 @@
       email, role,
       hourlyRate: document.getElementById('emp-hourly').value ? parseFloat(document.getElementById('emp-hourly').value) : null,
       commissionRate: document.getElementById('emp-commission').value ? parseFloat(document.getElementById('emp-commission').value) : null,
-      password,
       photo: employeePhotoDataUrl,
       notes: document.getElementById('emp-notes').value.trim(),
       active: true
     };
+    // Login password (if the owner set one) is never stored on the employee
+    // record — it's only relayed to the manage-employee-auth function below.
+    const pendingPassword = passwordInput || (existing ? null : 'altalux2026');
     if (existing){
       Object.assign(existing, data);
+      existing._pendingPassword = pendingPassword;
       return existing;
     }
     const numId = nextEmployeeIdCounter++;
     const e = {
       id: numId, employeeId: 'EMP-' + padNum(numId), createdDate: new Date(TODAY),
-      hoursThisWeek: 0, hoursThisMonth: 0, payHistory: [], ...data
+      hoursThisWeek: 0, hoursThisMonth: 0, payHistory: [], ...data, _pendingPassword: pendingPassword
     };
     EMPLOYEES.push(e);
     return e;
@@ -5540,7 +5549,7 @@
       const payload = {
         first_name: e.firstName, last_name: e.lastName, email: e.email, phone: e.phone,
         role: e.role, hourly_rate: e.hourlyRate, commission_rate: e.commissionRate || 0,
-        password: e.password, is_active: e.active
+        is_active: e.active
       };
       if (e.supabaseId){
         const { error } = await db.from('employees').update(payload).eq('id', e.supabaseId);
@@ -5549,6 +5558,11 @@
         const { data, error } = await db.from('employees').insert([payload]).select().single();
         if (error) throw error;
         e.supabaseId = data.id;
+      }
+      if (e._pendingPassword){
+        const pw = e._pendingPassword;
+        e._pendingPassword = null;
+        await callManageEmployeeAuthFunction('set_password', { email: e.email, password: pw });
       }
     }, `${e.firstName} ${e.lastName} synced to database.`, `Employee ${e.firstName} ${e.lastName} database sync`);
   }
@@ -5888,15 +5902,19 @@
   (async function initApp(){
     await loadEmployeesFromSupabase();
 
-    const savedEmail = sessionStorage.getItem('loggedInEmail');
-    if (savedEmail){
-      const employee = EMPLOYEES.find(e => e.type === 'employee' && e.active && e.email.toLowerCase() === savedEmail.toLowerCase());
-      if (employee){
-        proceedToDashboard(employee);
-      } else {
-        clearLoginSession();
+    if (db){
+      const { data } = await db.auth.getSession();
+      const sessionEmail = data && data.session && data.session.user && data.session.user.email;
+      if (sessionEmail){
+        const employee = findEmployeeByEmail(sessionEmail);
+        if (employee){
+          proceedToDashboard(employee);
+          return;
+        }
+        await db.auth.signOut();
       }
     }
+    clearLoginSession();
   })();
 })();
 </script>
