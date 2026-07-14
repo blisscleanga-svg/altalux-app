@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AltaLux Admin | Dashboard</title>
+<script src="/shared/config.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -134,6 +135,41 @@
   .field textarea{ resize:vertical; min-height:70px; font-family:'Inter',sans-serif; }
   .field select{ cursor:pointer; }
   .field input:disabled{ opacity:.6; cursor:not-allowed; }
+
+  /* ================= SETTINGS VIEW ================= */
+  .settings-pane{ display:none; }
+  .settings-pane.active{ display:block; }
+  .settings-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+    gap:16px;
+    margin-bottom:8px;
+  }
+  .settings-save-status{ font-size:12.5px; color:var(--gold); margin-left:10px; }
+  .color-field{ display:flex; align-items:center; gap:8px; }
+  .color-field input[type="color"]{ width:44px; height:38px; padding:2px; border-radius:var(--radius-sm); border:1.5px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); cursor:pointer; }
+  .color-field input[type="text"], .color-field input[type="password"]{ flex:1; }
+  .branding-preview{
+    border:1.5px solid rgba(255,255,255,.12);
+    border-radius:var(--radius-sm);
+    padding:18px;
+    background:var(--brand-bg, var(--dark));
+    margin-bottom:8px;
+  }
+  .branding-preview-bar{ display:flex; align-items:center; justify-content:space-between; }
+  .branding-preview-brand{ font-family:'Rajdhani',sans-serif; font-weight:700; font-size:18px; color:var(--white); }
+  .branding-preview-btn{
+    font-family:'Rajdhani',sans-serif; font-weight:700; letter-spacing:.5px;
+    background:linear-gradient(135deg, var(--brand-accent, var(--gold)), var(--brand-secondary, var(--orange)));
+    color:var(--dark); border:none; border-radius:var(--radius-sm); padding:10px 20px; cursor:pointer;
+  }
+  .checkbox-row{ display:flex; flex-wrap:wrap; gap:14px; margin-bottom:16px; }
+  .checkbox-row label{ display:flex; align-items:center; gap:6px; font-size:13px; color:var(--ink-muted); cursor:pointer; }
+  .settings-toggle-list{ display:flex; flex-direction:column; gap:4px; margin-bottom:8px; }
+  #settings-services-table input[type="number"], #settings-addons-table input[type="text"], #settings-addons-table input[type="number"]{
+    width:100%; min-width:90px; font-family:'Inter',sans-serif; background:rgba(255,255,255,.04);
+    border:1.5px solid rgba(255,255,255,.12); border-radius:var(--radius-sm); padding:7px 9px; color:var(--white); font-size:13.5px;
+  }
 
   /* ================= BUTTONS ================= */
   .btn{
@@ -1251,6 +1287,7 @@
       <button type="button" class="nav-link" data-view="payments">Payments</button>
       <button type="button" class="nav-link" data-view="employees">Employees</button>
       <button type="button" class="nav-link" data-view="schedule">Schedule</button>
+      <button type="button" class="nav-link" data-view="settings">Settings</button>
     </div>
     <span class="booking-badge" id="booking-badge" hidden>0</span>
     <button type="button" class="logout-btn" id="logout-btn" title="Log out" aria-label="Log out">⏻</button>
@@ -1266,6 +1303,8 @@
       <p class="section-label" style="margin:18px 0 4px; padding-left:14px; font-size:11px;">Team</p>
       <button type="button" class="sidebar-link" data-view="employees"><span class="icon">🧑‍🔧</span> Employees</button>
       <button type="button" class="sidebar-link" data-view="schedule"><span class="icon">🗓️</span> Schedule</button>
+      <p class="section-label" style="margin:18px 0 4px; padding-left:14px; font-size:11px;">Business</p>
+      <button type="button" class="sidebar-link" data-view="settings"><span class="icon">⚙️</span> Settings</button>
     </aside>
 
     <main class="main-content">
@@ -1526,6 +1565,147 @@
         </div>
       </section>
 
+      <!-- ===== SETTINGS VIEW (Owner only) ===== -->
+      <section class="view" id="view-settings">
+        <div class="panel">
+          <div class="subtabs" id="settings-subtabs">
+            <button type="button" class="subtab active" data-settab="business">Business Info</button>
+            <button type="button" class="subtab" data-settab="branding">Branding</button>
+            <button type="button" class="subtab" data-settab="services">Services &amp; Pricing</button>
+            <button type="button" class="subtab" data-settab="addons">Add-ons</button>
+            <button type="button" class="subtab" data-settab="booking">Booking Settings</button>
+            <button type="button" class="subtab" data-settab="payments">Payments</button>
+            <button type="button" class="subtab" data-settab="notifications">Notifications</button>
+          </div>
+
+          <!-- TAB 1: Business Info -->
+          <div class="settings-pane active" id="settab-business">
+            <div class="settings-grid">
+              <div class="field"><label for="set-biz-name">Business Name</label><input type="text" id="set-biz-name"></div>
+              <div class="field"><label for="set-biz-email">Email</label><input type="email" id="set-biz-email"></div>
+              <div class="field"><label for="set-biz-phone">Phone</label><input type="tel" id="set-biz-phone"></div>
+              <div class="field"><label for="set-biz-website">Website</label><input type="text" id="set-biz-website"></div>
+              <div class="field"><label for="set-biz-address">Address</label><input type="text" id="set-biz-address"></div>
+              <div class="field"><label for="set-biz-city">City</label><input type="text" id="set-biz-city"></div>
+              <div class="field"><label for="set-biz-state">State</label><input type="text" id="set-biz-state"></div>
+              <div class="field"><label for="set-biz-zip">ZIP</label><input type="text" id="set-biz-zip"></div>
+              <div class="field"><label for="set-biz-notif-email">Internal Notification Email</label><input type="email" id="set-biz-notif-email"></div>
+            </div>
+            <div class="modal-actions"><button type="button" class="btn btn-primary" id="set-biz-save">Save Business Info</button><span class="settings-save-status" id="set-biz-status"></span></div>
+          </div>
+
+          <!-- TAB 2: Branding -->
+          <div class="settings-pane" id="settab-branding">
+            <div class="settings-grid">
+              <div class="field"><label for="set-color-primary">Primary Color</label>
+                <div class="color-field"><input type="color" id="set-color-primary"><input type="text" id="set-color-primary-hex" maxlength="7"></div></div>
+              <div class="field"><label for="set-color-secondary">Secondary Color</label>
+                <div class="color-field"><input type="color" id="set-color-secondary"><input type="text" id="set-color-secondary-hex" maxlength="7"></div></div>
+              <div class="field"><label for="set-color-accent">Accent Color</label>
+                <div class="color-field"><input type="color" id="set-color-accent"><input type="text" id="set-color-accent-hex" maxlength="7"></div></div>
+              <div class="field"><label for="set-color-bg">Background Color</label>
+                <div class="color-field"><input type="color" id="set-color-bg"><input type="text" id="set-color-bg-hex" maxlength="7"></div></div>
+              <div class="field"><label for="set-logo-url">Logo URL</label><input type="text" id="set-logo-url" placeholder="https://..."></div>
+            </div>
+            <p class="modal-section-title">Live Preview</p>
+            <div id="branding-preview" class="branding-preview">
+              <div class="branding-preview-bar">
+                <span class="branding-preview-brand">Business Name</span>
+                <button type="button" class="branding-preview-btn">Book Now</button>
+              </div>
+            </div>
+            <div class="modal-actions"><button type="button" class="btn btn-primary" id="set-branding-save">Save &amp; Apply Branding</button><span class="settings-save-status" id="set-branding-status"></span></div>
+          </div>
+
+          <!-- TAB 3: Services & Pricing -->
+          <div class="settings-pane" id="settab-services">
+            <div class="table-scroll">
+              <table class="data-table" id="settings-services-table">
+                <thead><tr><th>Category</th><th>Package</th><th>Vehicle Type</th><th>Price</th><th>Active</th></tr></thead>
+                <tbody id="settings-services-tbody"></tbody>
+              </table>
+            </div>
+            <div class="modal-actions"><button type="button" class="btn btn-primary" id="set-services-save">Save Changes</button><span class="settings-save-status" id="set-services-status"></span></div>
+          </div>
+
+          <!-- TAB 4: Add-ons -->
+          <div class="settings-pane" id="settab-addons">
+            <div class="table-scroll">
+              <table class="data-table" id="settings-addons-table">
+                <thead><tr><th>Name</th><th>Price</th><th>Category</th><th>Description</th><th>Active</th><th></th></tr></thead>
+                <tbody id="settings-addons-tbody"></tbody>
+              </table>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+              <button type="button" class="btn btn-ghost" id="set-addon-add">+ Add New Add-on</button>
+              <div class="modal-actions" style="margin-top:0;"><button type="button" class="btn btn-primary" id="set-addons-save">Save Changes</button><span class="settings-save-status" id="set-addons-status"></span></div>
+            </div>
+          </div>
+
+          <!-- TAB 5: Booking Settings -->
+          <div class="settings-pane" id="settab-booking">
+            <div class="settings-grid">
+              <div class="field"><label for="set-deposit-pct">Deposit Percentage</label><input type="number" id="set-deposit-pct" min="0" max="100"></div>
+              <div class="field"><label for="set-cancel-hours">Cancellation Hours Notice</label><input type="number" id="set-cancel-hours" min="0"></div>
+              <div class="field"><label for="set-late-fee">Late Fee ($)</label><input type="number" id="set-late-fee" min="0" step="0.01"></div>
+              <div class="field"><label for="set-cancel-policy">Cancellation Policy Text</label><textarea id="set-cancel-policy" rows="4"></textarea></div>
+            </div>
+            <p class="modal-section-title">Available Days</p>
+            <div class="checkbox-row" id="set-available-days"></div>
+            <p class="modal-section-title">Available Time Slots</p>
+            <div class="checkbox-row" id="set-available-slots"></div>
+            <div class="modal-actions"><button type="button" class="btn btn-primary" id="set-booking-save">Save Booking Settings</button><span class="settings-save-status" id="set-booking-status"></span></div>
+          </div>
+
+          <!-- TAB 6: Payments -->
+          <div class="settings-pane" id="settab-payments">
+            <p class="modal-section-title">Square <span class="badge" id="set-square-status">Not connected</span></p>
+            <div class="settings-grid">
+              <div class="field"><label for="set-square-app-id">Square App ID</label><input type="text" id="set-square-app-id"></div>
+              <div class="field"><label for="set-square-location-id">Square Location ID</label><input type="text" id="set-square-location-id"></div>
+              <div class="field"><label for="set-square-token">Square Access Token</label>
+                <div class="color-field"><input type="password" id="set-square-token" autocomplete="off"><button type="button" class="btn btn-ghost btn-mini" id="set-square-token-toggle">Show</button></div></div>
+              <div class="field"><label for="set-square-env">Square Environment</label>
+                <select id="set-square-env"><option value="production">Production</option><option value="sandbox">Sandbox</option></select></div>
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="btn btn-ghost" id="set-square-test">Test Connection</button>
+              <button type="button" class="btn btn-primary" id="set-payments-save">Save Payment Settings</button>
+              <span class="settings-save-status" id="set-payments-status"></span>
+            </div>
+            <p class="modal-section-title" style="margin-top:24px; opacity:.5;">Stripe <span class="badge">Coming soon</span></p>
+            <div class="settings-grid" style="opacity:.4; pointer-events:none;">
+              <div class="field"><label>Stripe Public Key</label><input type="text" disabled></div>
+              <div class="field"><label>Stripe Secret Key</label><input type="password" disabled></div>
+            </div>
+          </div>
+
+          <!-- TAB 7: Notifications -->
+          <div class="settings-pane" id="settab-notifications">
+            <p class="modal-section-title">Resend <span class="badge" id="set-resend-status">Not connected</span></p>
+            <div class="settings-grid">
+              <div class="field"><label for="set-resend-from-email">From Email</label><input type="email" id="set-resend-from-email"></div>
+              <div class="field"><label for="set-resend-from-name">From Name</label><input type="text" id="set-resend-from-name"></div>
+              <div class="field"><label for="set-notif-email">Internal Notification Email</label><input type="email" id="set-notif-email"></div>
+            </div>
+            <p class="modal-section-title">Email Types</p>
+            <div class="settings-toggle-list" id="set-email-toggles">
+              <label class="invoice-tax-toggle no-print"><input type="checkbox" id="set-email-booking-confirmation" checked> Booking confirmation to customer</label>
+              <label class="invoice-tax-toggle no-print"><input type="checkbox" id="set-email-job-confirmed" checked> Job confirmed to customer</label>
+              <label class="invoice-tax-toggle no-print"><input type="checkbox" id="set-email-reminder-24h" checked> Reminder 24h before</label>
+              <label class="invoice-tax-toggle no-print"><input type="checkbox" id="set-email-job-completed" checked> Job completed + invoice</label>
+              <label class="invoice-tax-toggle no-print"><input type="checkbox" id="set-email-internal" checked> Internal notification on new booking</label>
+            </div>
+            <div class="modal-actions"><button type="button" class="btn btn-primary" id="set-notifications-save">Save Notification Settings</button><span class="settings-save-status" id="set-notifications-status"></span></div>
+            <p class="modal-section-title" style="margin-top:24px; opacity:.5;">Twilio <span class="badge">Coming soon</span></p>
+            <div class="settings-grid" style="opacity:.4; pointer-events:none;">
+              <div class="field"><label>Twilio Phone Number</label><input type="text" disabled></div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
     </main>
   </div>
 
@@ -1609,6 +1789,7 @@
     <div class="modal-actions">
       <button type="button" class="btn btn-ghost" id="modal-edit-job-btn">Edit Job</button>
       <button type="button" class="btn btn-ghost" id="modal-mark-completed">Mark as Completed</button>
+      <button type="button" class="btn btn-ghost" id="modal-send-reminder">Send Reminder</button>
       <button type="button" class="btn btn-ghost" id="modal-send-invoice">Send Invoice</button>
       <button type="button" class="btn btn-primary" id="modal-collect-payment">Collect Payment</button>
     </div>
@@ -2341,9 +2522,10 @@
   const SUPABASE_URL = 'https://xmhsehfdmiqbwhpqjgon.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtaHNlaGZkbWlxYndocHFqZ29uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzODU5NzQsImV4cCI6MjA5ODk2MTk3NH0.J2UOp-pgzP6ByvDBoHcocFAmarWdlDK8M31YgKrUNss';
   const SQUARE_FUNCTION_URL = SUPABASE_URL + '/functions/v1/square-payment';
+  const SEND_EMAIL_FUNCTION_URL = SUPABASE_URL + '/functions/v1/send-email';
 
   // ---------- Square ----------
-  const SQUARE_APP_ID = 'sq0idp-jVMn1EDrut74rDnsRGgzrQ';
+  const SQUARE_APP_ID = 'sq0idp-jVMn1EDrut74rDnsRGgZrQ';
   const SQUARE_LOCATION_ID = 'LEWG2XNWRA7BS';
 
   let db = null;
@@ -2630,7 +2812,7 @@
   const ROLE_COLOR = { Owner: '#FFAA00', Manager: '#104872', Technician: '#1D9E75', Contractor: 'rgba(255,255,255,.4)' };
 
   const ROLE_PERMISSIONS = {
-    Owner:      { views: ['calendar','jobs','proposals','customers','payments','employees','schedule'], canManageEmployees: true,  canCollectPayment: true,  canEditJobs: true,  canEditCustomers: true,  canOverridePrice: true,  canDelete: true,  mobileLayout: 'full' },
+    Owner:      { views: ['calendar','jobs','proposals','customers','payments','employees','schedule','settings'], canManageEmployees: true,  canCollectPayment: true,  canEditJobs: true,  canEditCustomers: true,  canOverridePrice: true,  canDelete: true,  mobileLayout: 'full' },
     Manager:    { views: ['calendar','jobs','proposals','customers','payments'], canManageEmployees: false, canCollectPayment: true,  canEditJobs: true,  canEditCustomers: true,  canOverridePrice: true,  canDelete: false, mobileLayout: 'full' },
     Technician: { views: ['calendar'], canManageEmployees: false, canCollectPayment: true,  canEditJobs: false, canEditCustomers: false, canOverridePrice: false, canDelete: false, mobileLayout: 'technician' },
     Contractor: { views: ['calendar'], canManageEmployees: false, canCollectPayment: false, canEditJobs: false, canEditCustomers: false, canOverridePrice: false, canDelete: false, mobileLayout: 'technician' }
@@ -3284,6 +3466,7 @@
     document.querySelectorAll('[data-view]').forEach(btn => btn.classList.toggle('active', btn.dataset.view === name));
     if (name === 'employees') renderEmployeesView();
     if (name === 'schedule') renderScheduleView();
+    if (name === 'settings') renderSettingsView();
   }
 
   document.querySelectorAll('[data-view]').forEach(btn => {
@@ -3784,13 +3967,25 @@
   document.getElementById('modal-mark-completed').addEventListener('click', () => {
     if (currentModalJobId !== null) updateJobStatus(currentModalJobId, 'Completed');
   });
-  document.getElementById('modal-send-invoice').addEventListener('click', () => {
+  document.getElementById('modal-send-reminder').addEventListener('click', async () => {
     const job = findJob(currentModalJobId);
-    if (job){
-      logJobActivity(job, `Invoice sent — to ${job.customer.email}`);
-      alert(`Invoice sent to ${job.customer.email}. (Email integration coming soon)`);
+    if (!job) return;
+    const ok = await triggerJobEmail(job, 'reminder_24h');
+    if (ok){
+      logJobActivity(job, `Reminder sent — to ${job.customer.email}`);
       renderJobActivityLog(job);
     }
+    showToast(ok ? 'Reminder email sent' : 'Failed to send reminder email', ok ? 'success' : 'error');
+  });
+  document.getElementById('modal-send-invoice').addEventListener('click', async () => {
+    const job = findJob(currentModalJobId);
+    if (!job) return;
+    const ok = await triggerJobEmail(job, 'job_completed');
+    if (ok){
+      logJobActivity(job, `Invoice sent — to ${job.customer.email}`);
+      renderJobActivityLog(job);
+    }
+    showToast(ok ? 'Invoice email sent' : 'Failed to send invoice email', ok ? 'success' : 'error');
   });
   document.getElementById('modal-collect-payment').addEventListener('click', () => {
     const job = findJob(currentModalJobId);
@@ -3803,11 +3998,59 @@
     if (currentModalJobId !== null) openInvoiceModal(currentModalJobId);
   });
 
+  // ================= EMAIL TRIGGERS (send-email Edge Function) =================
+  function jobToEmailData(job, extra){
+    const technicianNames = (job.assignedEmployeeIds || []).map(id => {
+      const emp = findEmployee(id);
+      return emp ? employeeFullName(emp) : null;
+    }).filter(Boolean).join(', ');
+    return Object.assign({
+      customerName: job.customer.name,
+      customerPhone: job.customer.phone,
+      customerEmail: job.customer.email,
+      service: job.service,
+      vehicleType: job.vehicleType,
+      vehicle: job.vehicle,
+      date: toInputDate(job.date),
+      time: job.time,
+      address: job.address,
+      technician: technicianNames || null,
+      total: job.total,
+      deposit: round2(job.total - balanceDue(job)),
+      balance: balanceDue(job),
+      addons: job.addons || [],
+      invoiceNumber: job.invoice ? job.invoice.number : null,
+      lineItems: [{ name: `${job.service} — ${job.vehicle}`, price: job.subtotal }].concat((job.addons || []).map(a => ({ name: a.name, price: a.price })))
+    }, extra || {});
+  }
+
+  // Non-blocking: never throws into the caller. Resolves true/false so
+  // callers can optionally toast on failure without ever blocking UI.
+  async function triggerJobEmail(job, action, extra){
+    try {
+      const res = await fetch(SEND_EMAIL_FUNCTION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + SUPABASE_ANON_KEY, apikey: SUPABASE_ANON_KEY },
+        body: JSON.stringify({ action, businessId: BUSINESS_ID, data: jobToEmailData(job, extra) })
+      });
+      const result = await res.json();
+      if (!res.ok || result.error){
+        console.warn('[send-email] "' + action + '" failed:', result.error || res.status);
+        return false;
+      }
+      return true;
+    } catch (err){
+      console.warn('[send-email] "' + action + '" request failed:', err);
+      return false;
+    }
+  }
+
   // ================= STATUS UPDATES (shared) =================
   function updateJobStatus(jobId, newStatus){
     const job = findJob(jobId);
     if (!job) return;
-    if (job.status !== newStatus) logJobActivity(job, `Status changed — ${job.status} → ${newStatus}`);
+    const statusChanged = job.status !== newStatus;
+    if (statusChanged) logJobActivity(job, `Status changed — ${job.status} → ${newStatus}`);
     job.status = newStatus;
     renderJobsListForDay();
     renderWeekView();
@@ -3815,6 +4058,12 @@
     renderPaymentsView();
     if (currentModalJobId === jobId){
       document.getElementById('modal-status-select').value = newStatus;
+    }
+    if (statusChanged && newStatus === 'Confirmed'){
+      triggerJobEmail(job, 'job_confirmed').then(ok => showToast(ok ? 'Confirmation email sent' : 'Job confirmed (email failed to send)', ok ? 'success' : 'error'));
+    }
+    if (statusChanged && newStatus === 'Completed'){
+      triggerJobEmail(job, 'job_completed').then(ok => showToast(ok ? 'Invoice email sent' : 'Job completed (invoice email failed to send)', ok ? 'success' : 'error'));
     }
   }
 
@@ -3880,8 +4129,11 @@
     if (sendInvoiceBtn){
       const job = findJob(Number(sendInvoiceBtn.dataset.jobId));
       if (job.invoice.status === 'Draft') job.invoice.status = 'Sent';
-      logJobActivity(job, `Invoice sent — to ${job.customer.email}`);
-      alert(`Invoice ${job.invoice.number} sent to ${job.customer.email}. (Resend integration coming soon)`);
+      triggerJobEmail(job, 'job_completed').then(ok => {
+        if (ok) logJobActivity(job, `Invoice sent — to ${job.customer.email}`);
+        showToast(ok ? `Invoice ${job.invoice.number} sent to ${job.customer.email}` : 'Failed to send invoice email', ok ? 'success' : 'error');
+        renderPaymentsView();
+      });
       renderPaymentsView();
       return;
     }
@@ -5377,6 +5629,355 @@
       employeeSubtab = tab.dataset.emptab;
       renderEmployeesGrid();
     });
+  });
+
+  // ================= SETTINGS VIEW (Owner only) =================
+  const BUSINESS_ID = (window.APP_CONFIG && window.APP_CONFIG.businessId) || 'altalux';
+  let settingsLoaded = false;
+  let settingsRow = null;
+  let settingsServicesDraft = [];
+  let settingsAddonsDraft = [];
+  const ALL_WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const ALL_TIME_SLOTS = ['8:00 AM','9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM','6:00 PM'];
+
+  function setSettingsStatus(id, msg, isError){
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = msg;
+    el.style.color = isError ? '#ff6b6b' : 'var(--gold)';
+    if (msg) setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 4000);
+  }
+
+  document.querySelectorAll('#settings-subtabs .subtab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('#settings-subtabs .subtab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.settings-pane').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('settab-' + tab.dataset.settab).classList.add('active');
+    });
+  });
+
+  async function renderSettingsView(){
+    if (!db){ setSettingsStatus('set-biz-status', 'Offline — cannot load settings.', true); return; }
+    try {
+      const [{ data: bizRows, error: bizErr }, { data: svcRows, error: svcErr }, { data: addonRows, error: addonErr }] = await Promise.all([
+        db.from('business_settings').select('*').eq('business_id', BUSINESS_ID).limit(1),
+        db.from('business_services').select('*').eq('business_id', BUSINESS_ID).order('category').order('package').order('vehicle_type'),
+        db.from('business_addons').select('*').eq('business_id', BUSINESS_ID).order('category').order('name')
+      ]);
+      if (bizErr) throw bizErr;
+      if (svcErr) throw svcErr;
+      if (addonErr) throw addonErr;
+      settingsRow = (bizRows && bizRows[0]) || null;
+      settingsServicesDraft = (svcRows || []).map(r => ({ ...r }));
+      settingsAddonsDraft = (addonRows || []).map(r => ({ ...r }));
+      settingsLoaded = true;
+      if (!settingsRow){
+        setSettingsStatus('set-biz-status', 'No business_settings row found for "' + BUSINESS_ID + '".', true);
+        return;
+      }
+      populateBusinessInfoTab(settingsRow);
+      populateBrandingTab(settingsRow);
+      renderServicesTable();
+      renderAddonsTable();
+      populateBookingTab(settingsRow);
+      populatePaymentsTab(settingsRow);
+      populateNotificationsTab(settingsRow);
+    } catch (err){
+      console.error('[Settings] load failed:', err);
+      setSettingsStatus('set-biz-status', 'Failed to load settings: ' + err.message, true);
+    }
+  }
+
+  // ---------- Tab 1: Business Info ----------
+  function populateBusinessInfoTab(s){
+    document.getElementById('set-biz-name').value = s.name || '';
+    document.getElementById('set-biz-email').value = s.email || '';
+    document.getElementById('set-biz-phone').value = s.phone || '';
+    document.getElementById('set-biz-website').value = s.website || '';
+    document.getElementById('set-biz-address').value = s.address || '';
+    document.getElementById('set-biz-city').value = s.city || '';
+    document.getElementById('set-biz-state').value = s.state || '';
+    document.getElementById('set-biz-zip').value = s.zip || '';
+    document.getElementById('set-biz-notif-email').value = s.notification_email || '';
+  }
+  document.getElementById('set-biz-save').addEventListener('click', async () => {
+    if (!db || !settingsRow) return;
+    const patch = {
+      name: document.getElementById('set-biz-name').value.trim(),
+      email: document.getElementById('set-biz-email').value.trim() || null,
+      phone: document.getElementById('set-biz-phone').value.trim() || null,
+      website: document.getElementById('set-biz-website').value.trim() || null,
+      address: document.getElementById('set-biz-address').value.trim() || null,
+      city: document.getElementById('set-biz-city').value.trim() || null,
+      state: document.getElementById('set-biz-state').value.trim() || null,
+      zip: document.getElementById('set-biz-zip').value.trim() || null,
+      notification_email: document.getElementById('set-biz-notif-email').value.trim() || null
+    };
+    try {
+      const { error } = await db.from('business_settings').update(patch).eq('business_id', BUSINESS_ID);
+      if (error) throw error;
+      Object.assign(settingsRow, patch);
+      setSettingsStatus('set-biz-status', 'Saved ✓');
+    } catch (err){ setSettingsStatus('set-biz-status', 'Save failed: ' + err.message, true); }
+  });
+
+  // ---------- Tab 2: Branding ----------
+  function syncColorPair(colorId, hexId){
+    const colorEl = document.getElementById(colorId), hexEl = document.getElementById(hexId);
+    colorEl.addEventListener('input', () => { hexEl.value = colorEl.value; updateBrandingPreview(); });
+    hexEl.addEventListener('input', () => { if (/^#[0-9a-fA-F]{6}$/.test(hexEl.value)){ colorEl.value = hexEl.value; updateBrandingPreview(); } });
+  }
+  syncColorPair('set-color-primary','set-color-primary-hex');
+  syncColorPair('set-color-secondary','set-color-secondary-hex');
+  syncColorPair('set-color-accent','set-color-accent-hex');
+  syncColorPair('set-color-bg','set-color-bg-hex');
+
+  function updateBrandingPreview(){
+    const preview = document.getElementById('branding-preview');
+    const primary = document.getElementById('set-color-primary-hex').value;
+    const secondary = document.getElementById('set-color-secondary-hex').value;
+    const accent = document.getElementById('set-color-accent-hex').value;
+    const bg = document.getElementById('set-color-bg-hex').value;
+    preview.style.setProperty('--brand-bg', bg);
+    preview.style.setProperty('--brand-secondary', secondary);
+    preview.style.setProperty('--brand-accent', accent);
+    preview.querySelector('.branding-preview-brand').textContent = document.getElementById('set-biz-name').value || 'Business Name';
+    preview.style.borderColor = primary;
+  }
+
+  function populateBrandingTab(s){
+    document.getElementById('set-color-primary').value = s.primary_color || '#104872';
+    document.getElementById('set-color-primary-hex').value = s.primary_color || '#104872';
+    document.getElementById('set-color-secondary').value = s.secondary_color || '#FF8C00';
+    document.getElementById('set-color-secondary-hex').value = s.secondary_color || '#FF8C00';
+    document.getElementById('set-color-accent').value = s.accent_color || '#FFAA00';
+    document.getElementById('set-color-accent-hex').value = s.accent_color || '#FFAA00';
+    document.getElementById('set-color-bg').value = s.background_color || '#0a1628';
+    document.getElementById('set-color-bg-hex').value = s.background_color || '#0a1628';
+    document.getElementById('set-logo-url').value = s.logo_url || '';
+    updateBrandingPreview();
+  }
+  document.getElementById('set-branding-save').addEventListener('click', async () => {
+    if (!db || !settingsRow) return;
+    const patch = {
+      primary_color: document.getElementById('set-color-primary-hex').value,
+      secondary_color: document.getElementById('set-color-secondary-hex').value,
+      accent_color: document.getElementById('set-color-accent-hex').value,
+      background_color: document.getElementById('set-color-bg-hex').value,
+      logo_url: document.getElementById('set-logo-url').value.trim() || null
+    };
+    try {
+      const { error } = await db.from('business_settings').update(patch).eq('business_id', BUSINESS_ID);
+      if (error) throw error;
+      Object.assign(settingsRow, patch);
+      const root = document.documentElement.style;
+      root.setProperty('--brand-primary', patch.primary_color); root.setProperty('--blue', patch.primary_color);
+      root.setProperty('--brand-secondary', patch.secondary_color); root.setProperty('--orange', patch.secondary_color);
+      root.setProperty('--brand-accent', patch.accent_color); root.setProperty('--gold', patch.accent_color);
+      root.setProperty('--brand-bg', patch.background_color); root.setProperty('--dark', patch.background_color);
+      setSettingsStatus('set-branding-status', 'Saved & applied ✓');
+    } catch (err){ setSettingsStatus('set-branding-status', 'Save failed: ' + err.message, true); }
+  });
+
+  // ---------- Tab 3: Services & Pricing ----------
+  function renderServicesTable(){
+    const tbody = document.getElementById('settings-services-tbody');
+    tbody.innerHTML = settingsServicesDraft.map((row, i) => `
+      <tr>
+        <td>${row.category}</td>
+        <td>${row.package || ''}</td>
+        <td>${row.vehicle_type}</td>
+        <td><input type="number" step="0.01" min="0" data-svc-idx="${i}" data-field="price" value="${Number(row.price).toFixed(2)}"></td>
+        <td><input type="checkbox" data-svc-idx="${i}" data-field="is_active" ${row.is_active !== false ? 'checked' : ''}></td>
+      </tr>
+    `).join('');
+    tbody.querySelectorAll('input[data-field="price"]').forEach(inp => {
+      inp.addEventListener('input', () => { settingsServicesDraft[inp.dataset.svcIdx].price = parseFloat(inp.value) || 0; });
+    });
+    tbody.querySelectorAll('input[data-field="is_active"]').forEach(inp => {
+      inp.addEventListener('change', () => { settingsServicesDraft[inp.dataset.svcIdx].is_active = inp.checked; });
+    });
+  }
+  document.getElementById('set-services-save').addEventListener('click', async () => {
+    if (!db) return;
+    try {
+      const updates = settingsServicesDraft.map(row => db.from('business_services').update({ price: row.price, is_active: row.is_active }).eq('id', row.id));
+      const results = await Promise.all(updates);
+      const failed = results.find(r => r.error);
+      if (failed) throw failed.error;
+      setSettingsStatus('set-services-status', 'Saved ✓ — booking widget will reflect new prices immediately.');
+    } catch (err){ setSettingsStatus('set-services-status', 'Save failed: ' + err.message, true); }
+  });
+
+  // ---------- Tab 4: Add-ons ----------
+  function renderAddonsTable(){
+    const tbody = document.getElementById('settings-addons-tbody');
+    tbody.innerHTML = settingsAddonsDraft.map((row, i) => `
+      <tr>
+        <td><input type="text" data-add-idx="${i}" data-field="name" value="${(row.name || '').replace(/"/g,'&quot;')}"></td>
+        <td><input type="number" step="0.01" min="0" data-add-idx="${i}" data-field="price" value="${Number(row.price).toFixed(2)}"></td>
+        <td><input type="text" data-add-idx="${i}" data-field="category" value="${(row.category || '').replace(/"/g,'&quot;')}"></td>
+        <td><input type="text" data-add-idx="${i}" data-field="description" value="${(row.description || '').replace(/"/g,'&quot;')}"></td>
+        <td><input type="checkbox" data-add-idx="${i}" data-field="is_active" ${row.is_active !== false ? 'checked' : ''}></td>
+        <td><button type="button" class="btn btn-ghost btn-mini" data-remove-idx="${i}">Remove</button></td>
+      </tr>
+    `).join('');
+    tbody.querySelectorAll('input[data-field]').forEach(inp => {
+      inp.addEventListener('input', () => {
+        const row = settingsAddonsDraft[inp.dataset.addIdx];
+        if (inp.dataset.field === 'price') row.price = parseFloat(inp.value) || 0;
+        else if (inp.dataset.field === 'is_active') row.is_active = inp.checked;
+        else row[inp.dataset.field] = inp.value;
+      });
+      if (inp.type === 'checkbox') inp.addEventListener('change', () => { settingsAddonsDraft[inp.dataset.addIdx].is_active = inp.checked; });
+    });
+    tbody.querySelectorAll('button[data-remove-idx]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const row = settingsAddonsDraft[btn.dataset.removeIdx];
+        if (row.id && !String(row.id).startsWith('new-')){
+          if (!confirm('Delete "' + row.name + '" permanently?')) return;
+          const { error } = await db.from('business_addons').delete().eq('id', row.id);
+          if (error){ setSettingsStatus('set-addons-status', 'Delete failed: ' + error.message, true); return; }
+        }
+        settingsAddonsDraft.splice(btn.dataset.removeIdx, 1);
+        renderAddonsTable();
+        setSettingsStatus('set-addons-status', 'Removed ✓');
+      });
+    });
+  }
+  document.getElementById('set-addon-add').addEventListener('click', () => {
+    settingsAddonsDraft.push({ id: 'new-' + Date.now(), business_id: BUSINESS_ID, name: '', price: 0, price_varies: false, description: '', category: 'interior', is_active: true });
+    renderAddonsTable();
+  });
+  document.getElementById('set-addons-save').addEventListener('click', async () => {
+    if (!db) return;
+    try {
+      const toInsert = settingsAddonsDraft.filter(r => String(r.id).startsWith('new-'));
+      const toUpdate = settingsAddonsDraft.filter(r => !String(r.id).startsWith('new-'));
+      if (toInsert.length){
+        const { error } = await db.from('business_addons').insert(toInsert.map(({ id, ...rest }) => rest));
+        if (error) throw error;
+      }
+      const updates = toUpdate.map(row => db.from('business_addons').update({ name: row.name, price: row.price, category: row.category, description: row.description || null, is_active: row.is_active }).eq('id', row.id));
+      const results = await Promise.all(updates);
+      const failed = results.find(r => r.error);
+      if (failed) throw failed.error;
+      setSettingsStatus('set-addons-status', 'Saved ✓');
+      renderSettingsView();
+    } catch (err){ setSettingsStatus('set-addons-status', 'Save failed: ' + err.message, true); }
+  });
+
+  // ---------- Tab 5: Booking Settings ----------
+  function populateBookingTab(s){
+    document.getElementById('set-deposit-pct').value = s.deposit_percentage != null ? s.deposit_percentage : 25;
+    document.getElementById('set-cancel-hours').value = s.cancellation_hours != null ? s.cancellation_hours : 72;
+    document.getElementById('set-late-fee').value = s.late_fee != null ? s.late_fee : 50;
+    document.getElementById('set-cancel-policy').value = s.cancellation_policy || '';
+    const activeDays = Array.isArray(s.available_days) ? s.available_days : ALL_WEEKDAYS.slice(1,7);
+    const activeSlots = Array.isArray(s.available_time_slots) ? s.available_time_slots : [];
+    document.getElementById('set-available-days').innerHTML = ALL_WEEKDAYS.map(d =>
+      `<label><input type="checkbox" value="${d}" ${activeDays.includes(d) ? 'checked' : ''}> ${d}</label>`).join('');
+    document.getElementById('set-available-slots').innerHTML = ALL_TIME_SLOTS.map(t =>
+      `<label><input type="checkbox" value="${t}" ${activeSlots.includes(t) ? 'checked' : ''}> ${t}</label>`).join('');
+  }
+  document.getElementById('set-booking-save').addEventListener('click', async () => {
+    if (!db || !settingsRow) return;
+    const days = Array.from(document.querySelectorAll('#set-available-days input:checked')).map(i => i.value);
+    const slots = Array.from(document.querySelectorAll('#set-available-slots input:checked')).map(i => i.value);
+    const patch = {
+      deposit_percentage: parseFloat(document.getElementById('set-deposit-pct').value) || 0,
+      cancellation_hours: parseInt(document.getElementById('set-cancel-hours').value, 10) || 0,
+      late_fee: parseFloat(document.getElementById('set-late-fee').value) || 0,
+      cancellation_policy: document.getElementById('set-cancel-policy').value.trim(),
+      available_days: days,
+      available_time_slots: slots
+    };
+    try {
+      const { error } = await db.from('business_settings').update(patch).eq('business_id', BUSINESS_ID);
+      if (error) throw error;
+      Object.assign(settingsRow, patch);
+      setSettingsStatus('set-booking-status', 'Saved ✓');
+    } catch (err){ setSettingsStatus('set-booking-status', 'Save failed: ' + err.message, true); }
+  });
+
+  // ---------- Tab 6: Payments ----------
+  function populatePaymentsTab(s){
+    document.getElementById('set-square-app-id').value = s.square_app_id || '';
+    document.getElementById('set-square-location-id').value = s.square_location_id || '';
+    document.getElementById('set-square-token').value = s.square_access_token || '';
+    document.getElementById('set-square-env').value = s.square_environment || 'production';
+    const statusBadge = document.getElementById('set-square-status');
+    const connected = !!(s.square_enabled && s.square_app_id && s.square_location_id);
+    statusBadge.textContent = connected ? 'Connected ✓' : 'Not connected';
+    statusBadge.style.color = connected ? '#1D9E75' : '';
+  }
+  document.getElementById('set-square-token-toggle').addEventListener('click', () => {
+    const input = document.getElementById('set-square-token');
+    const btn = document.getElementById('set-square-token-toggle');
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    btn.textContent = show ? 'Hide' : 'Show';
+  });
+  document.getElementById('set-square-test').addEventListener('click', () => {
+    setSettingsStatus('set-payments-status', 'Connection testing requires the multi-tenant Square Edge Function update (pending, not part of this pass).', true);
+  });
+  document.getElementById('set-payments-save').addEventListener('click', async () => {
+    if (!db || !settingsRow) return;
+    const patch = {
+      square_app_id: document.getElementById('set-square-app-id').value.trim() || null,
+      square_location_id: document.getElementById('set-square-location-id').value.trim() || null,
+      square_access_token: document.getElementById('set-square-token').value.trim() || null,
+      square_environment: document.getElementById('set-square-env').value,
+      square_enabled: !!(document.getElementById('set-square-app-id').value.trim() && document.getElementById('set-square-location-id').value.trim())
+    };
+    try {
+      const { error } = await db.from('business_settings').update(patch).eq('business_id', BUSINESS_ID);
+      if (error) throw error;
+      Object.assign(settingsRow, patch);
+      populatePaymentsTab(settingsRow);
+      setSettingsStatus('set-payments-status', 'Saved ✓');
+    } catch (err){ setSettingsStatus('set-payments-status', 'Save failed: ' + err.message, true); }
+  });
+
+  // ---------- Tab 7: Notifications ----------
+  function populateNotificationsTab(s){
+    document.getElementById('set-resend-from-email').value = s.resend_from_email || '';
+    document.getElementById('set-resend-from-name').value = s.resend_from_name || '';
+    document.getElementById('set-notif-email').value = s.notification_email || '';
+    const statusBadge = document.getElementById('set-resend-status');
+    statusBadge.textContent = s.resend_enabled ? 'Connected ✓' : 'Not connected';
+    statusBadge.style.color = s.resend_enabled ? '#1D9E75' : '';
+    const toggles = (s.email_toggles && typeof s.email_toggles === 'object') ? s.email_toggles : {};
+    document.getElementById('set-email-booking-confirmation').checked = toggles.booking_confirmation !== false;
+    document.getElementById('set-email-job-confirmed').checked = toggles.job_confirmed !== false;
+    document.getElementById('set-email-reminder-24h').checked = toggles.reminder_24h !== false;
+    document.getElementById('set-email-job-completed').checked = toggles.job_completed !== false;
+    document.getElementById('set-email-internal').checked = toggles.internal_notification !== false;
+  }
+  document.getElementById('set-notifications-save').addEventListener('click', async () => {
+    if (!db || !settingsRow) return;
+    const fromEmail = document.getElementById('set-resend-from-email').value.trim() || null;
+    const patch = {
+      resend_from_email: fromEmail,
+      resend_from_name: document.getElementById('set-resend-from-name').value.trim() || null,
+      notification_email: document.getElementById('set-notif-email').value.trim() || null,
+      resend_enabled: !!fromEmail,
+      email_toggles: {
+        booking_confirmation: document.getElementById('set-email-booking-confirmation').checked,
+        job_confirmed: document.getElementById('set-email-job-confirmed').checked,
+        reminder_24h: document.getElementById('set-email-reminder-24h').checked,
+        job_completed: document.getElementById('set-email-job-completed').checked,
+        internal_notification: document.getElementById('set-email-internal').checked
+      }
+    };
+    try {
+      const { error } = await db.from('business_settings').update(patch).eq('business_id', BUSINESS_ID);
+      if (error) throw error;
+      Object.assign(settingsRow, patch);
+      populateNotificationsTab(settingsRow);
+      setSettingsStatus('set-notifications-status', 'Saved ✓');
+    } catch (err){ setSettingsStatus('set-notifications-status', 'Save failed: ' + err.message, true); }
   });
 
   // ================= ADD/EDIT EMPLOYEE MODAL =================

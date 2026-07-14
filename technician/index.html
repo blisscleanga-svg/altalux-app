@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>AltaLux Mobile — Team App</title>
+<script src="/shared/config.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -804,6 +805,8 @@
   // ---------- Supabase ----------
   const SUPABASE_URL = 'https://xmhsehfdmiqbwhpqjgon.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtaHNlaGZkbWlxYndocHFqZ29uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzODU5NzQsImV4cCI6MjA5ODk2MTk3NH0.J2UOp-pgzP6ByvDBoHcocFAmarWdlDK8M31YgKrUNss';
+  const SEND_EMAIL_FUNCTION_URL = SUPABASE_URL + '/functions/v1/send-email';
+  const BUSINESS_ID = (window.APP_CONFIG && window.APP_CONFIG.businessId) || 'altalux';
   const SQUARE_FUNCTION_URL = SUPABASE_URL + '/functions/v1/square-payment';
   let db = null;
   try {
@@ -816,7 +819,7 @@
   }
 
   // ---------- Square ----------
-  const SQUARE_APP_ID = 'sq0idp-jVMn1EDrut74rDnsRGgzrQ';
+  const SQUARE_APP_ID = 'sq0idp-jVMn1EDrut74rDnsRGgZrQ';
   const SQUARE_LOCATION_ID = 'LEWG2XNWRA7BS';
 
   async function callSquareFunction(action, extra){
@@ -1592,7 +1595,37 @@
     syncJobStatusToSupabase(job, { start_time: job.startTime.toISOString() });
   });
 
-  document.getElementById('dj-complete-btn').addEventListener('click', () => {
+  // ---------- Job-completed email (non-blocking) ----------
+  async function triggerJobCompletedEmail(job){
+    try {
+      const data = {
+        customerName: job.customer.name,
+        customerEmail: job.customer.email,
+        service: job.service,
+        vehicleType: job.vehicleType,
+        vehicle: job.vehicle,
+        date: toInputDate(job.date),
+        address: job.address,
+        total: job.total,
+        deposit: round2(job.total - balanceDue(job)),
+        balance: balanceDue(job),
+        invoiceNumber: job.invoice ? job.invoice.number : null,
+        lineItems: [{ name: `${job.service} — ${job.vehicle}`, price: job.subtotal }].concat((job.addons || []).map(a => ({ name: a.name, price: a.price })))
+      };
+      const res = await fetch(SEND_EMAIL_FUNCTION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + SUPABASE_ANON_KEY, apikey: SUPABASE_ANON_KEY },
+        body: JSON.stringify({ action: 'job_completed', businessId: BUSINESS_ID, data })
+      });
+      const result = await res.json();
+      return res.ok && !result.error;
+    } catch (err){
+      console.warn('[send-email] "job_completed" request failed:', err);
+      return false;
+    }
+  }
+
+  document.getElementById('dj-complete-btn').addEventListener('click', async () => {
     const job = findJob(currentJobId);
     if (!job.photosBefore.length){
       alert('Please add at least 1 before photo before completing this job.');
@@ -1607,6 +1640,8 @@
     logJobActivity(job, 'Status changed — In Progress → Completed');
     syncJobStatusToSupabase(job, { end_time: job.endTime.toISOString() });
     populateJobDetail(job);
+    const ok = await triggerJobCompletedEmail(job);
+    showToast(ok ? 'Invoice sent to customer' : 'Job completed (invoice email failed to send)', ok ? 'success' : 'error');
   });
 
   document.getElementById('dj-request-adjustment-btn').addEventListener('click', () => {

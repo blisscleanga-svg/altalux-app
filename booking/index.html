@@ -1196,9 +1196,10 @@
   const SUPABASE_URL = 'https://xmhsehfdmiqbwhpqjgon.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtaHNlaGZkbWlxYndocHFqZ29uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzODU5NzQsImV4cCI6MjA5ODk2MTk3NH0.J2UOp-pgzP6ByvDBoHcocFAmarWdlDK8M31YgKrUNss';
   const SQUARE_FUNCTION_URL = SUPABASE_URL + '/functions/v1/square-payment';
+  const SEND_EMAIL_FUNCTION_URL = SUPABASE_URL + '/functions/v1/send-email';
 
   // ---------- Square ----------
-  const SQUARE_APP_ID = 'sq0idp-jVMn1EDrut74rDnsRGgzrQ';
+  const SQUARE_APP_ID = 'sq0idp-jVMn1EDrut74rDnsRGgZrQ';
   const SQUARE_LOCATION_ID = 'LEWG2XNWRA7BS';
 
   function isLocalPreview(){
@@ -1834,6 +1835,41 @@
     };
   }
 
+  // ---------- Post-booking email triggers (non-blocking) ----------
+  // Fire-and-forget: never awaited by the payment flow, never throws
+  // into the caller, and never delays showConfirmation(). A failed
+  // email must not look like a failed booking/payment to the customer.
+  function triggerBookingEmails(bookingPayload){
+    const balance = round2(bookingPayload.total - bookingPayload.deposit);
+    const commonData = {
+      customerName: bookingPayload.full_name,
+      customerPhone: bookingPayload.phone,
+      customerEmail: bookingPayload.email,
+      service: bookingPayload.category,
+      vehicleType: bookingPayload.vehicle_type,
+      vehicle: bookingPayload.vehicle,
+      date: bookingPayload.service_date,
+      time: bookingPayload.service_time,
+      address: bookingPayload.address,
+      total: bookingPayload.total,
+      deposit: bookingPayload.deposit,
+      balance: balance,
+      addons: bookingPayload.addons,
+      cancellationPolicy: "A 25% non-refundable deposit is required to confirm your booking. Cancellations or rescheduling with less than 72 hours notice will forfeit the deposit. Our technicians rely on scheduled appointments for their income. Please be aware of your arrival window — if your vehicle is not available within 15 minutes of technician arrival, a $50 late fee will apply."
+    };
+
+    function sendEmailAction(action){
+      fetch(SEND_EMAIL_FUNCTION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + SUPABASE_ANON_KEY, apikey: SUPABASE_ANON_KEY },
+        body: JSON.stringify({ action, businessId: 'altalux', data: commonData })
+      }).catch(err => console.warn('[send-email] "' + action + '" request failed (non-blocking):', err));
+    }
+
+    sendEmailAction('booking_confirmation');
+    sendEmailAction('internal_notification');
+  }
+
   // ---------- Square Web Payments SDK ----------
   let squarePaymentsInstance = null;
   let squareCard = null;
@@ -1900,9 +1936,11 @@
       });
 
       if (!db) throw new Error('Supabase client is not available.');
-      const { error } = await db.from('bookings').insert([buildBookingPayload(chargeResult.paymentId)]);
+      const bookingPayload = buildBookingPayload(chargeResult.paymentId);
+      const { error } = await db.from('bookings').insert([bookingPayload]);
       if (error) throw error;
 
+      triggerBookingEmails(bookingPayload);
       showConfirmation(true);
     } catch (err){
       console.error('Square payment failed:', err);
