@@ -18,7 +18,7 @@ INSERT INTO business_settings (
   '#104872', '#FF8C00', '#FFAA00', '#0a1628',
   25, 72, 50,
   'A 25% non-refundable deposit is required to confirm your booking. Cancellations or rescheduling with less than 72 hours notice will forfeit the deposit. Our technicians rely on scheduled appointments for their income. Please be aware of your arrival window — if your vehicle is not available within 15 minutes of technician arrival, a $50 late fee will apply.',
-  '/booking/', '/admin/', '/technician/',
+  'https://app.altaluxdetail.com/booking/', 'https://app.altaluxdetail.com/admin/', 'https://app.altaluxdetail.com/technician/',
   'sq0idp-jVMn1EDrut74rDnsRGgZrQ', 'LEWG2XNWRA7BS', 'production', true
 )
 ON CONFLICT (business_id) DO NOTHING;
