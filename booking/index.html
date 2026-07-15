@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Book Your Detail | AltaLux Mobile Detail</title>
+<script src="/shared/config.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -1128,17 +1129,17 @@
         <div class="summary-card" id="final-summary"><!-- injected by JS --></div>
 
         <div class="deposit-highlight">
-          <span>Deposit Due Today (25%)</span>
+          <span>Deposit Due Today (<span id="final-deposit-pct">25</span>%)</span>
           <strong id="final-deposit">$0.00</strong>
         </div>
 
         <div class="balance-box">
-          <span>Remaining Balance (75%)</span>
+          <span>Remaining Balance (<span id="final-balance-pct">75</span>%)</span>
           <strong id="final-balance">$0.00</strong>
           <small>Due on service day</small>
         </div>
 
-        <p class="policy-note">A 25% non-refundable deposit is required to confirm your booking. Cancellations or rescheduling with less than 72 hours notice will forfeit the deposit. Our technicians rely on scheduled appointments for their income. Please be aware of your arrival window — if your vehicle is not available within 15 minutes of technician arrival, a $50 late fee will apply.</p>
+        <p class="policy-note" id="cancellation-policy-text">A 25% non-refundable deposit is required to confirm your booking. Cancellations or rescheduling with less than 72 hours notice will forfeit the deposit. Our technicians rely on scheduled appointments for their income. Please be aware of your arrival window — if your vehicle is not available within 15 minutes of technician arrival, a $50 late fee will apply.</p>
 
         <div class="square-card-container" id="square-card-container"></div>
         <p class="step-error" id="square-card-error" style="display:none;"></p>
@@ -1161,7 +1162,7 @@
           <p class="step-subtitle" id="confirm-message"></p>
         </div>
         <div class="summary-card" id="confirm-summary"><!-- injected by JS --></div>
-        <p class="confirm-contact">Questions? Call us at <strong>(888) 853-0590</strong></p>
+        <p class="confirm-contact">Questions? Call us at <strong id="confirm-contact-phone">(888) 853-0590</strong></p>
       </section>
 
       <p class="step-error" id="step-error"></p>
@@ -1217,7 +1218,15 @@
   }
 
   // ---------- Data ----------
-  const CATEGORIES = {
+  // These start as `let` with the exact hardcoded catalog as a fallback
+  // (kept 100% intact below — same shape shared/config.js's own fallback
+  // uses) so the page renders instantly and never breaks even if Supabase
+  // is slow/unreachable. Once APP_CONFIG finishes loading real data from
+  // business_services/business_addons, syncFromAppConfig() (bottom of this
+  // script) rebuilds these into the exact same shape and re-renders —
+  // nothing that consumes CATEGORIES/ADDONS_INTERIOR/etc. below needed to
+  // change, only where the data originates.
+  let CATEGORIES = {
     full: {
       label: 'Full Detail',
       hasSubpackages: true,
@@ -1351,9 +1360,9 @@
     }
   };
 
-  const WAX_TIER_PRICES = { small: 50.00, mid: 60.00, large: 70.00 };
+  let WAX_TIER_PRICES = { small: 50.00, mid: 60.00, large: 70.00 };
 
-  const ADDONS_INTERIOR = [
+  let ADDONS_INTERIOR = [
     { key: 'pet_hair',      name: 'Pet Hair Removal',                        price: 50.00, plus: true, note: 'Final price may vary' },
     { key: 'leather_cond',  name: 'Leather Seat Conditioning',               price: 50.00 },
     { key: 'new_car_smell', name: 'New Car Smell Air Cabin Treatment',       price: 50.00 },
@@ -1361,18 +1370,110 @@
     { key: 'ozone',         name: 'Ozone Treatment',                         price: 125.00 }
   ];
 
-  const ADDONS_EXTERIOR = [
+  let ADDONS_EXTERIOR = [
     { key: 'sap_tar',     name: 'Sap/Tar Removal',        price: 75.00, plus: true, note: 'Final price may vary' },
     { key: 'black_trim',  name: 'Black Trim Restoration',  price: 125.00 }
   ];
 
-  const ALL_FIXED_ADDONS = ADDONS_INTERIOR.concat(ADDONS_EXTERIOR);
+  let ALL_FIXED_ADDONS = ADDONS_INTERIOR.concat(ADDONS_EXTERIOR);
 
   const TIME_SLOTS = ['8:00 AM','10:00 AM','12:00 PM','2:00 PM','4:00 PM'];
   const WEEKDAY_LABELS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const MONTH_LABELS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-  const DEPOSIT_RATE = 0.25;
+  let DEPOSIT_RATE = 0.25;
+  let DEPOSIT_PERCENT_LABEL = 25;
+
+  // ---------- Rebuild the catalog/addons/deposit from APP_CONFIG (real
+  // Supabase data) once it finishes loading, preserving the exact shape
+  // the rest of this file already knows how to render. ----------
+  function slugify(name){
+    return String(name).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  }
+  function buildCategoriesFromConfig(services){
+    if (!services || !services.length) return null;
+    const CATEGORY_LABELS = { full: 'Full Detail', interior: 'Interior Only', exterior: 'Exterior Only' };
+    const PACKAGE_LABELS = { essential: 'Essential Detail', premium: 'Premium Detail', interior: 'Interior Only', exterior: 'Exterior Only' };
+    const cats = {};
+    services.forEach(row => {
+      const catKey = row.category;
+      if (!cats[catKey]) cats[catKey] = { label: CATEGORY_LABELS[catKey] || catKey, hasSubpackages: false, packages: [] };
+      let pkg = cats[catKey].packages.find(p => p.key === row.package);
+      if (!pkg){
+        const items = row.included_items || {};
+        const minutes = row.duration_minutes;
+        pkg = {
+          key: row.package,
+          name: PACKAGE_LABELS[row.package] || row.package,
+          includesWax: !!items.includesWax,
+          vehicles: [],
+          description: row.description || '',
+          included: Array.isArray(items.included) ? items.included : [],
+          duration: minutes ? (Math.round((minutes / 60) * 10) / 10) + ' hours' : '3 hours',
+          note: items.note || null
+        };
+        cats[catKey].packages.push(pkg);
+      }
+      pkg.vehicles.push({ label: row.vehicle_type, price: Number(row.price), tier: (row.included_items || {}).tier || 'mid' });
+    });
+    Object.keys(cats).forEach(k => { cats[k].hasSubpackages = cats[k].packages.length > 1; });
+    return cats;
+  }
+  function buildAddonsFromConfig(addons){
+    if (!addons) return null;
+    const toItem = a => ({ key: slugify(a.name), name: a.name, price: Number(a.price), plus: !!a.price_varies, note: a.description || undefined });
+    return {
+      interior: addons.filter(a => a.category === 'interior').map(toItem),
+      exterior: addons.filter(a => a.category === 'exterior').map(toItem),
+      waxTiers: (() => {
+        const tiers = { small: 50.00, mid: 60.00, large: 70.00 };
+        addons.filter(a => a.category === 'machine_wax_tier').forEach(a => {
+          if (/small/i.test(a.name)) tiers.small = Number(a.price);
+          else if (/mid/i.test(a.name)) tiers.mid = Number(a.price);
+          else if (/large/i.test(a.name)) tiers.large = Number(a.price);
+        });
+        return tiers;
+      })()
+    };
+  }
+  function syncFromAppConfig(){
+    if (!window.APP_CONFIG || !window.APP_CONFIG.loaded) return;
+    const newCategories = buildCategoriesFromConfig(window.APP_CONFIG.services);
+    const newAddons = buildAddonsFromConfig(window.APP_CONFIG.addons);
+    if (newCategories) CATEGORIES = newCategories;
+    if (newAddons){
+      ADDONS_INTERIOR = newAddons.interior.length ? newAddons.interior : ADDONS_INTERIOR;
+      ADDONS_EXTERIOR = newAddons.exterior.length ? newAddons.exterior : ADDONS_EXTERIOR;
+      ALL_FIXED_ADDONS = ADDONS_INTERIOR.concat(ADDONS_EXTERIOR);
+      WAX_TIER_PRICES = newAddons.waxTiers;
+    }
+    if (window.APP_CONFIG.settings && window.APP_CONFIG.settings.deposit_percentage != null){
+      DEPOSIT_PERCENT_LABEL = window.APP_CONFIG.settings.deposit_percentage;
+      DEPOSIT_RATE = DEPOSIT_PERCENT_LABEL / 100;
+    }
+    if (window.APP_CONFIG.settings){
+      const policyEl = document.getElementById('cancellation-policy-text');
+      if (policyEl && window.APP_CONFIG.settings.cancellation_policy) policyEl.textContent = window.APP_CONFIG.settings.cancellation_policy;
+      const phoneEl = document.getElementById('confirm-contact-phone');
+      if (phoneEl && window.APP_CONFIG.settings.phone) phoneEl.textContent = window.APP_CONFIG.settings.phone;
+    }
+
+    // Re-sync state.package (a snapshot reference into the OLD CATEGORIES)
+    // to the freshly rebuilt data, preserving the user's current selection.
+    if (newCategories && CATEGORIES[state.category]){
+      const stillExists = CATEGORIES[state.category].packages.find(p => p.key === state.package.key);
+      state.package = stillExists || CATEGORIES[state.category].packages[0];
+    }
+
+    // Re-render whatever is already on screen (Step 1 renders synchronously
+    // on load with the fallback data, before this async update can arrive).
+    if (typeof renderPackageDetail === 'function') renderPackageDetail();
+    if (typeof renderVehicleChips === 'function') renderVehicleChips();
+    if (typeof renderAddons === 'function' && !addonsSection.hidden) renderAddons();
+    if (typeof refreshTotals === 'function') refreshTotals();
+    if (currentStep === 4 && typeof renderFinalSummary === 'function') renderFinalSummary();
+  }
+  document.addEventListener('appConfigLoaded', syncFromAppConfig);
 
   const state = {
     category: 'full',
@@ -1591,7 +1692,7 @@
       ${addonsHtml}
       <hr class="summary-divider">
       <div class="summary-line"><span>Subtotal</span><span>${formatCurrency(subtotal())}</span></div>
-      <div class="summary-line" style="color:var(--orange);font-weight:700;"><span>Deposit (25%)</span><span>${formatCurrency(depositAmount())}</span></div>
+      <div class="summary-line" style="color:var(--orange);font-weight:700;"><span>Deposit (${DEPOSIT_PERCENT_LABEL}%)</span><span>${formatCurrency(depositAmount())}</span></div>
     `;
   }
 
@@ -1779,6 +1880,8 @@
     document.getElementById('final-deposit').textContent = formatCurrency(depositAmount());
     document.getElementById('final-balance').textContent = formatCurrency(balanceAmount());
     document.getElementById('pay-btn-amount').textContent = formatCurrency(depositAmount());
+    document.getElementById('final-deposit-pct').textContent = DEPOSIT_PERCENT_LABEL;
+    document.getElementById('final-balance-pct').textContent = round2(100 - DEPOSIT_PERCENT_LABEL);
 
     payBtn.disabled = !canPay() || isLocalPreview();
   }
@@ -1855,7 +1958,7 @@
       deposit: bookingPayload.deposit,
       balance: balance,
       addons: bookingPayload.addons,
-      cancellationPolicy: "A 25% non-refundable deposit is required to confirm your booking. Cancellations or rescheduling with less than 72 hours notice will forfeit the deposit. Our technicians rely on scheduled appointments for their income. Please be aware of your arrival window — if your vehicle is not available within 15 minutes of technician arrival, a $50 late fee will apply."
+      cancellationPolicy: (window.APP_CONFIG && window.APP_CONFIG.settings && window.APP_CONFIG.settings.cancellation_policy) || "A 25% non-refundable deposit is required to confirm your booking. Cancellations or rescheduling with less than 72 hours notice will forfeit the deposit. Our technicians rely on scheduled appointments for their income. Please be aware of your arrival window — if your vehicle is not available within 15 minutes of technician arrival, a $50 late fee will apply."
     };
 
     function sendEmailAction(action){
