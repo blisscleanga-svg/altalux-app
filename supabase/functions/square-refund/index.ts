@@ -92,6 +92,14 @@ Deno.serve(async (req: Request) => {
     if (!amountCents || amountCents <= 0) {
       return jsonResponse({ error: 'amount_to_refund must be a positive number.' }, 400);
     }
+    // Validación de input (auditoría de seguridad 2026-07-15): el reembolso
+    // nunca puede superar el monto original del pago.
+    if (Number(amount_to_refund) > Number(invoicePayment.amount)) {
+      return jsonResponse({ error: 'El monto de reembolso no puede superar el pago original.' }, 400);
+    }
+    if (!reason || String(reason).trim().length < 3) {
+      return jsonResponse({ error: 'Se requiere una razón para el reembolso (mínimo 3 caracteres).' }, 400);
+    }
 
     let refundResult;
     let status = 'pending';
@@ -132,6 +140,20 @@ Deno.serve(async (req: Request) => {
         .update({ status: 'refunded' })
         .eq('id', payment_id);
       if (updateErr) console.error('[square-refund] Failed to mark invoice_payments as refunded:', updateErr);
+    }
+
+    // Auditoría (auditoría de seguridad 2026-07-15) — nunca bloquea la respuesta al cliente.
+    try {
+      const { error: auditErr } = await supabase.from('audit_log').insert([{
+        business_id: invoicePayment.business_id || 'altalux',
+        action: 'refund_issued',
+        entity_type: 'invoice_payment',
+        entity_id: payment_id,
+        metadata: { amount_refunded: amount_to_refund, reason, square_refund_id: refundId, status },
+      }]);
+      if (auditErr) console.error('[square-refund] audit_log insert failed:', auditErr);
+    } catch (auditErr) {
+      console.error('[square-refund] audit_log insert threw:', auditErr);
     }
 
     return jsonResponse({ success: true, refund_id: refundId, status });

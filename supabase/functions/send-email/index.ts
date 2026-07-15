@@ -291,6 +291,13 @@ Deno.serve(async (req: Request) => {
 
     const to = action === 'internal_notification' ? biz.notification_email : (data && data.customerEmail);
     if (!to) return jsonResponse({ error: `No recipient email available for action "${action}".` }, 400);
+    // Validación de input (auditoría de seguridad 2026-07-15). El resto de los
+    // campos interpolados en el HTML del email ya pasan por esc() más abajo
+    // (ver los builders BUILD_*), así que no hace falta sanitizar aquí también.
+    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!EMAIL_REGEX.test(to)) {
+      return jsonResponse({ error: `Invalid recipient email: "${to}".` }, 400);
+    }
 
     const fromName = biz.resend_from_name || biz.name;
     const from = `${fromName} <${biz.resend_from_email}>`;

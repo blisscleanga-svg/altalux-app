@@ -67,6 +67,25 @@ async function squareRequest(path: string, method: string, body?: unknown) {
   return data;
 }
 
+// ---- Auditoría (auditoría de seguridad 2026-07-15) — nunca bloquea el flujo de pago ----
+async function writeAuditLog(params: {
+  businessId?: string | null; action: string; entityType?: string; entityId?: string | null; metadata?: unknown;
+}) {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { error } = await supabase.from('audit_log').insert([{
+      business_id: params.businessId || 'altalux',
+      action: params.action,
+      entity_type: params.entityType || null,
+      entity_id: params.entityId || null,
+      metadata: params.metadata || null,
+    }]);
+    if (error) console.error('[square-payment] audit_log insert failed:', error);
+  } catch (err) {
+    console.error('[square-payment] audit_log insert threw:', err);
+  }
+}
+
 // ---- Records a completed payment against Supabase and returns the updated job ----
 async function recordPaymentInSupabase(params: {
   jobId: string; amount: number; method: string; reference?: string; notes?: string;
@@ -144,6 +163,13 @@ Deno.serve(async (req: Request) => {
       if (!sourceId || !amount || !jobId) {
         return jsonResponse({ error: 'sourceId, amount, and jobId are required.' }, 400);
       }
+      // Validación de input (auditoría de seguridad 2026-07-15) — amount en centavos.
+      if (typeof amount !== 'number' || !Number.isFinite(amount) || amount < 100 || amount > 100000000) {
+        return jsonResponse({ error: 'Monto inválido.' }, 400);
+      }
+      if (typeof sourceId !== 'string' || sourceId.length < 10) {
+        return jsonResponse({ error: 'Token de pago inválido.' }, 400);
+      }
 
       const result = await squareRequest('/payments', 'POST', {
         source_id: sourceId,
@@ -163,6 +189,14 @@ Deno.serve(async (req: Request) => {
         console.error('[square-payment] Square charge succeeded but Supabase recording failed:', recordErr);
       }
 
+      await writeAuditLog({
+        businessId: updatedJob?.business_id,
+        action: 'payment_collected',
+        entityType: 'job',
+        entityId: updatedJob?.id || null,
+        metadata: { amount: amount / 100, method: 'Square', square_payment_id: paymentId, job_number: jobId },
+      });
+
       return jsonResponse({ success: true, paymentId, job: updatedJob });
     }
 
@@ -171,7 +205,20 @@ Deno.serve(async (req: Request) => {
       if (!jobId || !amount || !method) {
         return jsonResponse({ error: 'jobId, amount, and method are required.' }, 400);
       }
+      // Validación de input (auditoría de seguridad 2026-07-15) — amount en dólares aquí.
+      if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) {
+        return jsonResponse({ error: 'Monto inválido.' }, 400);
+      }
       const updatedJob = await recordPaymentInSupabase({ jobId, amount, method, reference, notes });
+
+      await writeAuditLog({
+        businessId: updatedJob?.business_id,
+        action: 'payment_collected',
+        entityType: 'job',
+        entityId: updatedJob?.id || null,
+        metadata: { amount, method, reference: reference || null, job_number: jobId },
+      });
+
       return jsonResponse({ success: true, job: updatedJob });
     }
 
