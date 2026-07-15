@@ -105,6 +105,7 @@
   .app-header-top{ display:flex; justify-content:space-between; align-items:center; }
   .app-brand{ font-size:18px; font-weight:700; }
   .app-brand .lux{ color:var(--gold); }
+  .brand-logo-img{ height:44px; width:auto; display:block; }
   .clock-toggle{
     display:flex; align-items:center; gap:6px; border:1.5px solid var(--line); background:rgba(255,255,255,.05);
     color:var(--white); border-radius:999px; padding:8px 14px; font-size:12.5px; font-weight:700; cursor:pointer;
@@ -416,7 +417,8 @@
 <div id="app">
   <header class="app-header">
     <div class="app-header-top">
-      <span class="app-brand">ALTA<span class="lux">LUX</span></span>
+      <img class="brand-logo-img" id="brand-logo-img" src="" alt="AltaLux Mobile Detail" hidden>
+      <span class="app-brand" id="brand-name-text">ALTA<span class="lux">LUX</span></span>
       <button type="button" class="clock-toggle" id="clock-toggle-btn"><span class="clock-dot"></span><span id="clock-toggle-label">Clock In</span></button>
     </div>
     <div class="app-greeting" id="app-greeting">Good morning</div>
@@ -894,6 +896,23 @@
 <script>
 (function(){
   "use strict";
+
+  // Logo real del negocio si existe en business_settings; si no, se queda
+  // el logo de texto (fallback) — mismo patrón de config.js en las 3 apps.
+  function applyBrandLogo(){
+    if (!window.APP_CONFIG || !window.APP_CONFIG.loaded || !window.APP_CONFIG.settings) return;
+    const logoUrl = window.APP_CONFIG.settings.logo_url;
+    if (!logoUrl) return;
+    const logoImg = document.getElementById('brand-logo-img');
+    const logoText = document.getElementById('brand-name-text');
+    if (!logoImg || !logoText) return;
+    logoImg.src = logoUrl;
+    logoImg.alt = window.APP_CONFIG.settings.name || 'AltaLux Mobile Detail';
+    logoImg.hidden = false;
+    logoText.hidden = true;
+  }
+  document.addEventListener('appConfigLoaded', applyBrandLogo);
+  if (window.APP_CONFIG && window.APP_CONFIG.loaded) applyBrandLogo();
 
   // ---------- Supabase ----------
   const SUPABASE_URL = 'https://xmhsehfdmiqbwhpqjgon.supabase.co';

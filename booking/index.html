@@ -93,6 +93,12 @@
     background-clip:text;
     color:transparent;
   }
+  .brand-logo-img{
+    height:48px;
+    width:auto;
+    display:block;
+    margin:0 auto;
+  }
   .brand-tagline{
     margin:4px 0 0;
     font-size:11px;
@@ -959,7 +965,8 @@
   <div class="wrap">
 
     <div class="brand">
-      <h1 class="brand-name">ALTA<span class="lux">LUX</span></h1>
+      <img class="brand-logo-img" id="brand-logo-img" src="" alt="AltaLux Mobile Detail" hidden>
+      <h1 class="brand-name" id="brand-name-text">ALTA<span class="lux">LUX</span></h1>
       <p class="brand-tagline">Mobile Detail</p>
       <p class="brand-sub">Book your premium mobile detailing service in Roswell, GA. Secure your appointment with a 25% deposit.</p>
     </div>
@@ -1456,6 +1463,16 @@
       if (policyEl && window.APP_CONFIG.settings.cancellation_policy) policyEl.textContent = window.APP_CONFIG.settings.cancellation_policy;
       const phoneEl = document.getElementById('confirm-contact-phone');
       if (phoneEl && window.APP_CONFIG.settings.phone) phoneEl.textContent = window.APP_CONFIG.settings.phone;
+
+      // Logo real del negocio si existe; si no, se queda el logo de texto (fallback).
+      const logoImg = document.getElementById('brand-logo-img');
+      const logoText = document.getElementById('brand-name-text');
+      if (logoImg && logoText && window.APP_CONFIG.settings.logo_url){
+        logoImg.src = window.APP_CONFIG.settings.logo_url;
+        logoImg.alt = window.APP_CONFIG.settings.name || 'AltaLux Mobile Detail';
+        logoImg.hidden = false;
+        logoText.hidden = true;
+      }
     }
 
     // Re-sync state.package (a snapshot reference into the OLD CATEGORIES)

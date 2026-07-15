@@ -250,6 +250,12 @@
     background-clip:text;
     color:transparent;
   }
+  .brand-logo-img{
+    height:48px;
+    width:auto;
+    display:block;
+    flex-shrink:0;
+  }
   .navbar-nav{
     display:flex;
     gap:4px;
@@ -890,6 +896,7 @@
     background:linear-gradient(120deg,var(--gold),var(--orange));
     -webkit-background-clip:text; background-clip:text; color:transparent;
   }
+  .invoice-logo-img{ height:32px; width:auto; display:block; }
   .invoice-title-block{ text-align:right; }
   .invoice-title{ font-size:24px; font-weight:700; letter-spacing:3px; color:var(--gold); margin:0; }
   .invoice-meta{ font-size:12px; color:var(--ink-muted); margin-top:6px; line-height:1.6; }
@@ -1170,6 +1177,10 @@
       border-radius:0; padding:24px;
     }
     #invoice-modal-overlay .no-print{ display:none !important; }
+    /* El logo blanco es invisible en papel — al imprimir se fuerza de
+       vuelta el logo de texto (que sí tiene su propio color oscuro aquí). */
+    #invoice-modal-overlay .invoice-logo-img{ display:none !important; }
+    #invoice-modal-overlay .invoice-brand{ display:block !important; }
     #invoice-modal-overlay .invoice-brand,
     #invoice-modal-overlay .invoice-title,
     #invoice-modal-overlay .invoice-billto strong,
@@ -1332,7 +1343,8 @@
 <div id="dashboard" hidden>
 
   <nav class="navbar">
-    <span class="navbar-brand">ALTA<span class="lux">LUX</span></span>
+    <img class="brand-logo-img" id="brand-logo-img" src="" alt="AltaLux Mobile Detail" hidden>
+    <span class="navbar-brand" id="brand-name-text">ALTA<span class="lux">LUX</span></span>
     <div class="navbar-nav">
       <button type="button" class="nav-link active" data-view="calendar">Calendar</button>
       <button type="button" class="nav-link" data-view="jobs">Jobs</button>
@@ -1987,7 +1999,8 @@
 
     <div class="invoice-header">
       <div>
-        <div class="invoice-brand">ALTA<span class="lux">LUX</span></div>
+        <img class="invoice-logo-img" id="invoice-logo-img" src="" alt="AltaLux Mobile Detail" hidden>
+        <div class="invoice-brand" id="invoice-brand-text">ALTA<span class="lux">LUX</span></div>
         <div style="font-size:11px; letter-spacing:2px; color:var(--ink-faint); margin-top:2px;">MOBILE DETAIL</div>
       </div>
       <div class="invoice-title-block">
@@ -2598,6 +2611,23 @@
 <script>
 (function(){
   "use strict";
+
+  // Logo real del negocio si existe en business_settings; si no, se queda
+  // el logo de texto (fallback) — mismo patrón de config.js en las 3 apps.
+  function applyBrandLogo(){
+    if (!window.APP_CONFIG || !window.APP_CONFIG.loaded || !window.APP_CONFIG.settings) return;
+    const logoUrl = window.APP_CONFIG.settings.logo_url;
+    if (!logoUrl) return;
+    const logoImg = document.getElementById('brand-logo-img');
+    const logoText = document.getElementById('brand-name-text');
+    if (!logoImg || !logoText) return;
+    logoImg.src = logoUrl;
+    logoImg.alt = window.APP_CONFIG.settings.name || 'AltaLux Mobile Detail';
+    logoImg.hidden = false;
+    logoText.hidden = true;
+  }
+  document.addEventListener('appConfigLoaded', applyBrandLogo);
+  if (window.APP_CONFIG && window.APP_CONFIG.loaded) applyBrandLogo();
 
   const TAX_RATE = 0.06;
 
@@ -4729,6 +4759,19 @@
     currentInvoiceJobId = jobId;
     populateInvoiceModal(findJob(jobId));
     invoiceModalOverlay.hidden = false;
+
+    // Logo real en pantalla; el CSS de @media print lo oculta y vuelve
+    // a mostrar el logo de texto (el blanco es invisible en papel).
+    const logoUrl = window.APP_CONFIG && window.APP_CONFIG.settings && window.APP_CONFIG.settings.logo_url;
+    if (logoUrl){
+      const logoImg = document.getElementById('invoice-logo-img');
+      const logoText = document.getElementById('invoice-brand-text');
+      if (logoImg && logoText){
+        logoImg.src = logoUrl;
+        logoImg.hidden = false;
+        logoText.hidden = true;
+      }
+    }
   }
 
   function closeInvoiceModal(){

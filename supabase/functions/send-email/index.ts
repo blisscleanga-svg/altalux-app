@@ -57,6 +57,7 @@ interface BizSettings {
   name: string;
   phone: string | null;
   website: string | null;
+  logo_url: string | null;
   primary_color: string | null;
   secondary_color: string | null;
   resend_from_email: string | null;
@@ -71,7 +72,7 @@ async function getBizSettings(businessId: string): Promise<BizSettings> {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from('business_settings')
-    .select('business_id, name, phone, website, primary_color, secondary_color, resend_from_email, resend_from_name, notification_email, booking_url, admin_url, email_toggles')
+    .select('business_id, name, phone, website, logo_url, primary_color, secondary_color, resend_from_email, resend_from_name, notification_email, booking_url, admin_url, email_toggles')
     .eq('business_id', businessId)
     .single();
   if (error || !data) throw new Error(`No business_settings found for business_id "${businessId}".`);
@@ -111,7 +112,9 @@ function emailShell(biz: BizSettings, subject: string, bodyHtml: string): string
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background:#ffffff; border-radius:8px; overflow:hidden;">
         <tr>
           <td style="background:${primary}; padding:24px 28px;">
-            <span style="font-family:Arial, Helvetica, sans-serif; font-size:20px; font-weight:bold; color:#ffffff; letter-spacing:1px;">${esc(biz.name)}</span>
+            ${biz.logo_url
+              ? `<img src="${esc(biz.logo_url)}" alt="${esc(biz.name)}" width="140" style="display:block; height:auto; max-height:40px;">`
+              : `<span style="font-family:Arial, Helvetica, sans-serif; font-size:20px; font-weight:bold; color:#ffffff; letter-spacing:1px;">${esc(biz.name)}</span>`}
           </td>
         </tr>
         <tr>
