@@ -1854,6 +1854,31 @@
   </div>
 </div>
 
+<!-- ================= REFUND MODAL ================= -->
+<div class="modal-overlay" id="refund-modal-overlay" hidden>
+  <div class="modal-box" id="refund-modal-box" style="max-width:420px;">
+    <button type="button" class="modal-close" id="refund-modal-close" aria-label="Close">✕</button>
+    <h2 class="modal-title">Refund Payment</h2>
+    <div class="field" style="margin-top:16px;">
+      <label>Original Payment</label>
+      <div style="font-weight:700; font-size:18px; color:var(--white); padding:6px 0;" id="rfa-original-amount"></div>
+    </div>
+    <div class="field" style="margin-top:14px;">
+      <label for="rfa-amount">Amount to Refund</label>
+      <input type="number" id="rfa-amount" min="0" step="0.01">
+    </div>
+    <div class="field" style="margin-top:14px;">
+      <label for="rfa-reason">Reason (required)</label>
+      <textarea id="rfa-reason" placeholder="Why is this being refunded?"></textarea>
+    </div>
+    <p style="color:var(--danger); font-size:12.5px; min-height:16px; margin-top:6px;" id="rfa-error"></p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="rfa-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="rfa-confirm">Confirm Refund</button>
+    </div>
+  </div>
+</div>
+
 <!-- ================= RECORD PAYMENT MODAL ================= -->
 <div class="modal-overlay" id="record-payment-overlay" hidden>
   <div class="modal-box" id="record-payment-box">
@@ -2749,6 +2774,76 @@
   });
   document.getElementById('modal-status-badge').addEventListener('click', () => {
     if (currentModalJobId !== null) openStatusPicker(currentModalJobId);
+  });
+
+  // ---------- Refund modal (real Square refund, via square-refund Edge Function) ----------
+  let rfaCurrentPayment = null;
+  let rfaJobId = null;
+
+  async function openRefundModalAdmin(jobId){
+    const job = findJob(jobId);
+    if (!job || !db || !job.supabaseId){
+      alert('This job has no linked online record — nothing to refund via Square.');
+      return;
+    }
+    rfaJobId = jobId;
+    try {
+      const { data: invoices, error: invErr } = await db.from('invoices').select('id').eq('job_id', job.supabaseId).order('created_at', { ascending: false });
+      if (invErr) throw invErr;
+      if (!invoices || !invoices.length){ showToast('No invoice found for this job.', 'error'); return; }
+      const invoiceIds = invoices.map(i => i.id);
+      const { data: payments, error: payErr } = await db.from('invoice_payments').select('*').in('invoice_id', invoiceIds).eq('status', 'completed').order('created_at', { ascending: false }).limit(1);
+      if (payErr) throw payErr;
+      if (!payments || !payments.length){ showToast('No completed Square payment found to refund.', 'error'); return; }
+      rfaCurrentPayment = payments[0];
+      document.getElementById('rfa-original-amount').textContent = formatCurrency(rfaCurrentPayment.amount);
+      document.getElementById('rfa-amount').value = rfaCurrentPayment.amount;
+      document.getElementById('rfa-reason').value = '';
+      document.getElementById('rfa-error').textContent = '';
+      document.getElementById('refund-modal-overlay').hidden = false;
+    } catch (err){
+      console.error('[Refund] Failed to load payment info:', err);
+      showToast('Could not load payment info for refund.', 'error');
+    }
+  }
+  document.getElementById('refund-modal-close').addEventListener('click', () => { document.getElementById('refund-modal-overlay').hidden = true; });
+  document.getElementById('rfa-cancel').addEventListener('click', () => { document.getElementById('refund-modal-overlay').hidden = true; });
+  document.getElementById('rfa-confirm').addEventListener('click', async () => {
+    const amount = parseFloat(document.getElementById('rfa-amount').value);
+    const reason = document.getElementById('rfa-reason').value.trim();
+    const errorEl = document.getElementById('rfa-error');
+    errorEl.textContent = '';
+    if (!amount || amount <= 0){ errorEl.textContent = 'Please enter a valid refund amount.'; return; }
+    if (!reason){ errorEl.textContent = 'A reason is required.'; return; }
+    if (!rfaCurrentPayment){ errorEl.textContent = 'No payment selected.'; return; }
+
+    const btn = document.getElementById('rfa-confirm');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+    try {
+      const res = await fetch(SUPABASE_URL + '/functions/v1/square-refund', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + SUPABASE_ANON_KEY, apikey: SUPABASE_ANON_KEY },
+        body: JSON.stringify({ payment_id: rfaCurrentPayment.id, amount_to_refund: amount, reason })
+      });
+      const result = await res.json();
+      if (!res.ok || result.error) throw new Error(result.error || 'Refund failed.');
+      document.getElementById('refund-modal-overlay').hidden = true;
+      showToast('Refund processed successfully.', 'success');
+      const job = findJob(rfaJobId);
+      if (job){
+        job.paymentStatusOverride = 'Refunded';
+        logJobActivity(job, `Refund processed — ${formatCurrency(amount)} (${reason})`);
+        refreshAfterPaymentChange(job.id);
+      }
+    } catch (err){
+      console.error('[Refund] Failed:', err);
+      errorEl.textContent = err.message || 'Refund failed.';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
   });
 
   // ---------- New-entity data (Proposals / Events / standalone Customers) ----------
@@ -4247,11 +4342,7 @@
         alert('There is nothing to refund for this job yet.');
         return;
       }
-      if (confirm(`Refund ${formatCurrency(paid)} to ${job.customer.name}? This cannot be undone.`)){
-        job.paymentStatusOverride = 'Refunded';
-        refreshAfterPaymentChange(job.id);
-        alert('Refund processed. (Stripe refund integration coming soon)');
-      }
+      openRefundModalAdmin(job.id);
       return;
     }
     const proposalViewBtn = e.target.closest('.proposal-view-btn');
