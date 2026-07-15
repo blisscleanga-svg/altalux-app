@@ -38,36 +38,44 @@
     display:flex; align-items:center; justify-content:center; gap:8px;
     min-height:48px; border-radius:999px; border:none; cursor:pointer;
     font-family:'Rajdhani',sans-serif; font-weight:700; font-size:15.5px; letter-spacing:.3px;
-    padding:0 20px; transition:transform .15s ease, opacity .15s ease;
+    padding:0 20px; transition:all .2s ease;
   }
   .btn:active{ transform:scale(.97); }
-  .btn-primary{ background:linear-gradient(135deg,var(--gold),var(--orange)); color:var(--dark); }
+  .btn-primary{ background:var(--orange); color:#0a1628; }
+  .btn-primary:hover{ background:var(--gold); transform:translateY(-1px); }
   .btn-ghost{ background:rgba(255,255,255,.06); color:var(--white); border:1px solid var(--line); }
+  .btn-ghost:hover{ background:rgba(255,255,255,.1); }
   .btn-green{ background:var(--green); color:#06240f; }
+  .btn-green:hover{ filter:brightness(1.08); transform:translateY(-1px); }
   .btn-blue{ background:var(--blue); color:#fff; }
-  .btn-outline{ background:transparent; border:1.5px solid rgba(255,255,255,.25); color:var(--white); }
-  .btn-danger{ background:rgba(239,68,68,.14); color:var(--red); border:1px solid rgba(239,68,68,.35); }
+  .btn-blue:hover{ filter:brightness(1.15); transform:translateY(-1px); }
+  .btn-outline{ background:transparent; border:1.5px solid var(--blue); color:var(--white); }
+  .btn-outline:hover{ border-color:var(--orange); }
+  .btn-danger{ background:transparent; color:#f87171; border:1px solid #dc2626; }
+  .btn-danger:hover{ background:rgba(220,38,38,.12); }
   .btn-full{ width:100%; }
-  .btn:disabled{ opacity:.4; cursor:not-allowed; }
+  .btn:disabled{ opacity:.4; cursor:not-allowed; transform:none !important; }
   .btn-sm{ min-height:38px; font-size:13px; padding:0 14px; }
 
   .field{ display:flex; flex-direction:column; gap:6px; }
   .field label{ font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--ink-faint); }
   .field input, .field select, .field textarea{
-    background:rgba(255,255,255,.05); border:1.5px solid var(--line); border-radius:var(--radius-sm);
-    color:var(--white); padding:12px 14px; font-size:15px; min-height:46px;
+    background:#0d1f35; border:1px solid #1e3a5f; border-radius:8px;
+    color:var(--white); padding:12px 16px; font-size:15px; min-height:46px; transition:border-color .2s ease, box-shadow .2s ease;
   }
+  .field input::placeholder, .field textarea::placeholder{ color:#4a6080; }
   .field textarea{ min-height:80px; resize:vertical; }
-  .field input:focus, .field select:focus, .field textarea:focus{ outline:none; border-color:var(--gold); }
+  .field input:focus, .field select:focus, .field textarea:focus{ outline:none; border-color:var(--orange); box-shadow:0 0 0 2px rgba(255,140,0,.2); }
 
   .badge{
     display:inline-flex; align-items:center; font-size:11px; font-weight:700; text-transform:uppercase;
     letter-spacing:.4px; padding:4px 10px; border-radius:999px; color:#fff;
   }
-  .badge-pending{ background:var(--gray); }
+  .badge-pending{ background:#1a3a5c; color:#64b5f6; border:1px solid #104872; }
   .badge-confirmed{ background:var(--blue); }
-  .badge-inprogress{ background:var(--orange); color:var(--dark); }
-  .badge-completed{ background:var(--green); color:#06240f; }
+  .badge-inprogress{ background:#2d2a00; color:#FFAA00; border:1px solid #FF8C00; }
+  .badge-completed{ background:#1a3d2b; color:#4ade80; border:1px solid #16a34a; }
+  .badge-cancelled{ background:#3d1a1a; color:#f87171; border:1px solid #dc2626; }
   .badge-role-owner{ background:var(--gold); color:var(--dark); }
   .badge-role-manager{ background:var(--blue); }
   .badge-role-technician{ background:#1D9E75; }
@@ -124,11 +132,14 @@
   .job-card{
     background:rgba(255,255,255,.03); border:1px solid var(--line); border-left:4px solid var(--gray);
     border-radius:var(--radius-md); padding:14px; margin-bottom:12px; cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,.3); transition:transform .15s ease, box-shadow .15s ease;
   }
-  .job-card.status-pending{ border-left-color:var(--gray); }
+  .job-card:active{ transform:scale(.99); }
+  .job-card.status-pending{ border-left-color:#104872; }
   .job-card.status-confirmed{ border-left-color:var(--blue); }
-  .job-card.status-inprogress{ border-left-color:var(--orange); }
-  .job-card.status-completed{ border-left-color:var(--green); }
+  .job-card.status-inprogress{ border-left-color:#FF8C00; }
+  .job-card.status-completed{ border-left-color:#16a34a; }
+  .job-card.status-cancelled{ border-left-color:#dc2626; }
   .job-card-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
   .job-time{ font-size:19px; font-weight:700; font-family:'Rajdhani',sans-serif; color:var(--gold); }
   .job-customer{ font-size:16px; font-weight:700; margin-top:2px; }
@@ -305,7 +316,7 @@
 
   .list-card{
     background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:var(--radius-md);
-    padding:14px; margin-bottom:10px; cursor:pointer;
+    padding:14px; margin-bottom:10px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.3);
   }
   .list-card-title{ font-weight:700; font-size:14.5px; }
   .list-card-meta{ font-size:12px; color:var(--ink-faint); margin-top:3px; }
@@ -324,22 +335,54 @@
   ::-webkit-scrollbar{ width:0; height:0; }
 
   /* ================= TOASTS / LOADING ================= */
-  .toast-container{ position:fixed; top:12px; left:50%; transform:translateX(-50%); width:100%; max-width:400px; z-index:300; padding:0 12px; display:flex; flex-direction:column; gap:8px; pointer-events:none; }
+  .toast-container{
+    position:fixed; bottom:calc(84px + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%);
+    width:100%; max-width:400px; z-index:300; padding:0 12px; display:flex; flex-direction:column-reverse; gap:8px; pointer-events:none;
+  }
   .toast{
     background:rgba(15,25,45,.97); border:1px solid var(--line); border-left:4px solid var(--gold);
     border-radius:12px; padding:12px 14px; font-size:13px; color:#fff; box-shadow:0 10px 30px rgba(0,0,0,.4);
-    animation:toastIn .25s ease;
+    animation:toastIn .2s ease;
   }
   .toast-success{ border-left-color:var(--green); }
   .toast-error{ border-left-color:var(--red); }
-  @keyframes toastIn{ from{ opacity:0; transform:translateY(-10px); } to{ opacity:1; transform:translateY(0); } }
+  @keyframes toastIn{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:translateY(0); } }
   .loading-overlay{
     position:fixed; inset:0; max-width:430px; margin:0 auto; background:rgba(10,22,40,.92); z-index:400;
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
   }
-  .loading-spinner{ width:36px; height:36px; border:3px solid rgba(255,255,255,.2); border-top-color:var(--gold); border-radius:50%; animation:spin .8s linear infinite; }
+  .loading-spinner{ width:36px; height:36px; border:3px solid rgba(255,255,255,.2); border-top-color:var(--orange); border-radius:50%; animation:spin .8s linear infinite; }
   @keyframes spin{ to{ transform:rotate(360deg); } }
   .loading-text{ font-size:13px; color:var(--ink-muted); }
+
+  /* ================= CUSTOM DROPDOWN ================= */
+  .cdd{ position:relative; }
+  .cdd-trigger{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%;
+    background:#1a2a3a; border:1px solid var(--blue); border-radius:8px; color:var(--white);
+    padding:12px 16px; font-size:15px; font-family:'Inter',sans-serif; cursor:pointer; text-align:left;
+    min-height:46px; transition:border-color .2s ease;
+  }
+  .cdd-trigger:hover, .cdd.open .cdd-trigger{ border-color:var(--orange); }
+  .cdd-trigger .cdd-arrow{ flex-shrink:0; transition:transform .2s ease; color:var(--orange); }
+  .cdd.open .cdd-trigger .cdd-arrow{ transform:rotate(180deg); }
+  .cdd-trigger .cdd-value{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cdd-panel{
+    position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:60;
+    background:#0d1f35; border:1px solid var(--blue); border-radius:8px; max-height:260px; overflow-y:auto;
+    box-shadow:0 12px 30px rgba(0,0,0,.5); display:none; opacity:0; transform:translateY(-6px);
+    transition:opacity .2s ease, transform .2s ease;
+  }
+  .cdd.open .cdd-panel{ display:block; opacity:1; transform:translateY(0); animation:cddSlide .2s ease; }
+  @keyframes cddSlide{ from{ opacity:0; transform:translateY(-6px); } to{ opacity:1; transform:translateY(0); } }
+  .cdd-option{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 16px;
+    font-size:14.5px; color:var(--white); cursor:pointer;
+  }
+  .cdd-option:hover, .cdd-option.cdd-highlight{ background:var(--blue); }
+  .cdd-option .cdd-check{ color:var(--orange); opacity:0; flex-shrink:0; }
+  .cdd-option.cdd-selected .cdd-check{ opacity:1; }
+  .cdd-option.cdd-disabled{ opacity:.4; cursor:not-allowed; }
 </style>
 </head>
 <body>
@@ -510,7 +553,10 @@
         <div class="info-line" style="border:none; padding-top:0;"><span>Total</span><span class="financial-total" id="dj-total"></span></div>
         <div class="info-line"><span>Deposit Paid</span><span style="color:var(--green); font-weight:700;" id="dj-deposit"></span></div>
         <div class="info-line" style="border:none;"><span>Balance Due</span><span class="financial-balance" id="dj-balance"></span></div>
-        <div style="margin-top:8px;"><span class="badge" id="dj-payment-status-badge"></span></div>
+        <div style="margin-top:8px; display:flex; align-items:center; justify-content:space-between;">
+          <span class="badge" id="dj-payment-status-badge"></span>
+          <button type="button" class="btn btn-outline btn-sm hidden" id="dj-refund-btn">Refund</button>
+        </div>
       </div>
     </div>
 
@@ -557,6 +603,7 @@
     <button type="button" class="btn btn-blue btn-full-row hidden" id="dj-start-btn">Start Job</button>
     <button type="button" class="btn btn-green btn-full-row hidden" id="dj-complete-btn">Complete Job</button>
     <button type="button" class="btn btn-primary btn-full-row hidden" id="dj-collect-btn">Collect Payment</button>
+    <button type="button" class="btn btn-danger btn-full-row hidden" id="dj-cancel-job-btn">Cancel Job</button>
   </div>
 </div>
 
@@ -696,7 +743,31 @@
         <div class="summary-label">Balance Due</div>
         <div class="financial-total financial-balance" id="cp-balance-display" style="font-size:30px;"></div>
       </div>
-      <p class="addon-group-label" style="margin-top:0;">Payment Method</p>
+
+      <div class="collapsible-header" id="cp-adjust-header">
+        <span class="detail-section-title" style="margin:0;">Adjust Service &amp; Total</span>
+        <span class="chev">▾</span>
+      </div>
+      <div class="collapsible-body" id="cp-adjust-body">
+        <div class="field">
+          <label for="cp-service-select">Service Performed</label>
+          <select id="cp-service-select"></select>
+        </div>
+        <p class="addon-group-label">Additional Charges</p>
+        <div id="cp-fees-list"></div>
+        <button type="button" class="btn btn-ghost btn-sm" id="cp-add-fee-btn">+ Add Charge</button>
+        <div class="financial-box" style="margin-top:14px;">
+          <div class="info-line"><span>Base Price</span><span id="cp-summary-base"></span></div>
+          <div class="info-line"><span>Additional Charges</span><span id="cp-summary-fees"></span></div>
+          <div class="info-line" style="border:none;"><span>TOTAL TO COLLECT</span><span id="cp-summary-total" style="font-weight:700; color:var(--gold); font-size:18px;"></span></div>
+          <div class="field" style="margin-top:10px;">
+            <label for="cp-total-override">Override Total (optional)</label>
+            <input type="number" id="cp-total-override" min="0" step="0.01" placeholder="Leave blank to use total above">
+          </div>
+        </div>
+      </div>
+
+      <p class="addon-group-label">Payment Method</p>
       <div class="payment-method-grid" id="cp-method-grid"></div>
 
       <div id="cp-method-fields"></div>
@@ -725,6 +796,28 @@
         <button type="button" class="btn btn-ghost" id="cp-send-receipt">Send Receipt</button>
         <button type="button" class="btn btn-primary" id="cp-back-to-jobs">Back to Jobs</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= REFUND MODAL ================= -->
+<div class="modal-overlay hidden" id="refund-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h2 class="modal-sheet-title">Refund Payment</h2>
+    <div class="info-line"><span>Original Payment</span><span id="rf-original-amount" style="font-weight:700;"></span></div>
+    <div class="field" style="margin-top:14px;">
+      <label for="rf-amount">Amount to Refund</label>
+      <input type="number" id="rf-amount" min="0" step="0.01">
+    </div>
+    <div class="field" style="margin-top:14px;">
+      <label for="rf-reason">Reason (required)</label>
+      <textarea id="rf-reason" placeholder="Why is this being refunded?"></textarea>
+    </div>
+    <p class="login-error" id="rf-error" style="text-align:left;"></p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="rf-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="rf-confirm">Confirm Refund</button>
     </div>
   </div>
 </div>
@@ -938,7 +1031,7 @@
   const PAYMENT_METHODS = ['Stripe Link','Square Reader','Square Link','Cash','Zelle','Check','Other'];
   const PAYMENT_METHOD_ICON = { 'Stripe Link':'💳','Square Reader':'📶','Square Link':'🔗','Cash':'💵','Zelle':'⚡','Check':'🧾','Other':'✏️' };
 
-  const STATUS_SLUG = { 'Pending':'pending', 'Confirmed':'confirmed', 'In Progress':'inprogress', 'Completed':'completed' };
+  const STATUS_SLUG = { 'Pending':'pending', 'Confirmed':'confirmed', 'In Progress':'inprogress', 'Completed':'completed', 'Cancelled':'cancelled' };
 
   const ROLE_PERMISSIONS = {
     Owner:      { seeAllJobs:true,  editJobs:true,  reassign:true,  allPaymentMethods:true,  manageCustomers:true,  deleteCustomers:true,  viewFinancials:true,  tabs:['today','alljobs','customers','payments','profile'] },
@@ -970,7 +1063,7 @@
       date:new Date(TODAY), time:'8:00 AM',
       addons:[], subtotal:208.99, addonsTotal:0, total:208.99,
       status:'Confirmed', notes:'', assignedEmployeeIds:[2],
-      payments:[{ id:1, label:'Deposit', amount:52.25, method:'Stripe', date:new Date(TODAY), reference:'Online Booking' }],
+      payments:[{ id:1, label:'Deposit', amount:52.25, method:'Square', date:new Date(TODAY), reference:'Online Booking' }],
       priceOverride:null, depositOverride:null, auditLog:[],
       photosBefore:[], photosAfter:[], startTime:null, endTime:null
     },
@@ -984,7 +1077,7 @@
       date:new Date(TODAY), time:'12:00 PM',
       addons:[], subtotal:284.99, addonsTotal:0, total:284.99,
       status:'Confirmed', notes:'', assignedEmployeeIds:[2],
-      payments:[{ id:2, label:'Deposit', amount:71.25, method:'Stripe', date:new Date(TODAY), reference:'Online Booking' }],
+      payments:[{ id:2, label:'Deposit', amount:71.25, method:'Square', date:new Date(TODAY), reference:'Online Booking' }],
       priceOverride:null, depositOverride:null, auditLog:[],
       photosBefore:[], photosAfter:[], startTime:null, endTime:null
     },
@@ -998,7 +1091,7 @@
       date:new Date(TODAY), time:'3:00 PM',
       addons:[], subtotal:378.99, addonsTotal:0, total:378.99,
       status:'Pending', notes:'', assignedEmployeeIds:[2],
-      payments:[{ id:3, label:'Deposit', amount:94.75, method:'Stripe', date:new Date(TODAY), reference:'Online Booking' }],
+      payments:[{ id:3, label:'Deposit', amount:94.75, method:'Square', date:new Date(TODAY), reference:'Online Booking' }],
       priceOverride:null, depositOverride:null, auditLog:[],
       photosBefore:[], photosAfter:[], startTime:null, endTime:null
     }
@@ -1118,6 +1211,7 @@
     return {
       id: index + 1,
       supabaseId: row.id,
+      customerId: row.customer_id || null,
       jobNumber: padNum(row.job_number),
       customer: {
         name: (row.customers && row.customers.full_name) || '',
@@ -1323,6 +1417,7 @@
     clearLoginSession();
   }
   initLoginScreen();
+  enhanceAllDropdowns();
 
   // ================= APP ENTRY / HEADER =================
   function greetingForNow(){
@@ -1512,6 +1607,7 @@
     const payStatus = getPaymentStatus(job);
     statusBadge.textContent = payStatus;
     statusBadge.className = 'badge badge-' + (payStatus === 'Paid in Full' ? 'completed' : payStatus === 'Unpaid' ? 'pending' : 'inprogress');
+    document.getElementById('dj-refund-btn').classList.toggle('hidden', !(perms().viewFinancials && totalPaid(job) > 0 && job.supabaseId));
 
     const editSection = document.getElementById('dj-edit-section');
     editSection.hidden = !perms().editJobs;
@@ -1532,12 +1628,28 @@
     const startBtn = document.getElementById('dj-start-btn');
     const completeBtn = document.getElementById('dj-complete-btn');
     const collectBtn = document.getElementById('dj-collect-btn');
+    const cancelBtn = document.getElementById('dj-cancel-job-btn');
 
     startBtn.classList.toggle('hidden', job.status !== 'Confirmed');
     completeBtn.classList.toggle('hidden', job.status !== 'In Progress');
     const canCollect = (job.status === 'In Progress' || job.status === 'Completed') && perms().allPaymentMethods && balanceDue(job) > 0;
     collectBtn.classList.toggle('hidden', !canCollect);
+    const canCancel = perms().editJobs && (job.status === 'Pending' || job.status === 'Confirmed');
+    cancelBtn.classList.toggle('hidden', !canCancel);
   }
+
+  document.getElementById('dj-cancel-job-btn').addEventListener('click', () => {
+    const job = findJob(currentJobId);
+    if (!job) return;
+    if (!confirm(`Cancel job #${job.jobNumber} for ${job.customer.name}? This cannot be undone.`)) return;
+    const oldStatus = job.status;
+    job.status = 'Cancelled';
+    logJobActivity(job, `Status changed — ${oldStatus} → Cancelled`);
+    syncJobStatusToSupabase(job, {});
+    populateJobDetail(job);
+    refreshAllViews();
+    showToast('Job cancelled', 'success');
+  });
 
   function openJobDetail(jobId){
     currentJobId = jobId;
@@ -2012,6 +2124,96 @@
 
   const LOCKED_PAYMENT_METHODS = ['Stripe Link'];
 
+  // ---------- Adjust Service & Total panel ----------
+  let cpServiceRow = null; // selected business_services row (or null = keep job's original)
+  let cpFees = []; // [{ description, amount }]
+  let cpTotalManuallySet = false;
+
+  function cpCatalogServices(){
+    return (window.APP_CONFIG && Array.isArray(window.APP_CONFIG.services)) ? window.APP_CONFIG.services : [];
+  }
+
+  function cpBaseAmount(job){
+    if (cpServiceRow) return Number(cpServiceRow.price) || 0;
+    return job.subtotal || job.total || 0;
+  }
+
+  function cpFeesTotal(){
+    return cpFees.reduce((s, f) => s + (parseFloat(f.amount) || 0), 0);
+  }
+
+  function cpComputedTotal(job){
+    return round2(cpBaseAmount(job) + cpFeesTotal());
+  }
+
+  function cpEffectiveAmount(job){
+    const overrideInput = document.getElementById('cp-total-override');
+    const overrideVal = overrideInput ? parseFloat(overrideInput.value) : NaN;
+    if (!isNaN(overrideVal) && overrideVal > 0) return overrideVal;
+    if (cpServiceRow || cpFees.length) return cpComputedTotal(job);
+    return balanceDue(job);
+  }
+
+  function renderCpServiceSelect(job){
+    const sel = document.getElementById('cp-service-select');
+    const services = cpCatalogServices();
+    const options = ['<option value="">— Keep original service —</option>'].concat(
+      services.map(s => `<option value="${s.id}">${s.category} — ${s.package || ''} — ${s.vehicle_type} (${formatCurrency(s.price)})</option>`)
+    );
+    sel.innerHTML = options.join('');
+    sel.value = '';
+  }
+
+  function renderCpFeesList(){
+    const list = document.getElementById('cp-fees-list');
+    list.innerHTML = cpFees.map((f, i) => `
+      <div class="addon-check-item" data-fee-idx="${i}" style="justify-content:space-between; gap:8px;">
+        <input type="text" class="cp-fee-desc" data-idx="${i}" placeholder="Description" value="${(f.description || '').replace(/"/g,'&quot;')}" style="flex:2; background:transparent; border:none; color:var(--white); font-size:13.5px;">
+        <input type="number" class="cp-fee-amount" data-idx="${i}" placeholder="0.00" step="0.01" value="${f.amount || ''}" style="flex:1; background:transparent; border:none; color:var(--white); font-size:13.5px; text-align:right;">
+        <button type="button" class="cp-fee-remove" data-idx="${i}" style="background:none; border:none; color:var(--red); font-size:16px; cursor:pointer;">✕</button>
+      </div>
+    `).join('');
+    list.querySelectorAll('.cp-fee-desc').forEach(inp => inp.addEventListener('input', (e) => {
+      cpFees[Number(e.target.dataset.idx)].description = e.target.value;
+    }));
+    list.querySelectorAll('.cp-fee-amount').forEach(inp => inp.addEventListener('input', (e) => {
+      cpFees[Number(e.target.dataset.idx)].amount = parseFloat(e.target.value) || 0;
+      recalcCpSummary();
+    }));
+    list.querySelectorAll('.cp-fee-remove').forEach(btn => btn.addEventListener('click', (e) => {
+      cpFees.splice(Number(e.target.dataset.idx), 1);
+      renderCpFeesList();
+      recalcCpSummary();
+    }));
+  }
+
+  function recalcCpSummary(){
+    const job = findJob(currentJobId);
+    if (!job) return;
+    document.getElementById('cp-summary-base').textContent = formatCurrency(cpBaseAmount(job));
+    document.getElementById('cp-summary-fees').textContent = formatCurrency(cpFeesTotal());
+    document.getElementById('cp-summary-total').textContent = formatCurrency(cpComputedTotal(job));
+    if (cpSelectedMethod) renderMethodFields(cpSelectedMethod, job);
+  }
+
+  document.getElementById('cp-adjust-header').addEventListener('click', () => {
+    document.getElementById('cp-adjust-header').classList.toggle('open');
+    document.getElementById('cp-adjust-body').classList.toggle('open');
+  });
+  document.getElementById('cp-service-select').addEventListener('change', (e) => {
+    const services = cpCatalogServices();
+    cpServiceRow = e.target.value ? services.find(s => String(s.id) === e.target.value) : null;
+    recalcCpSummary();
+  });
+  document.getElementById('cp-add-fee-btn').addEventListener('click', () => {
+    cpFees.push({ description:'', amount:0 });
+    renderCpFeesList();
+    recalcCpSummary();
+  });
+  document.getElementById('cp-total-override').addEventListener('input', () => {
+    if (cpSelectedMethod) renderMethodFields(cpSelectedMethod, findJob(currentJobId));
+  });
+
   function renderPaymentMethodGrid(){
     const grid = document.getElementById('cp-method-grid');
     grid.innerHTML = PAYMENT_METHODS.map(m => {
@@ -2044,7 +2246,7 @@
 
   function updateCashChange(){
     const job = findJob(currentJobId);
-    const bal = balanceDue(job);
+    const bal = cpEffectiveAmount(job);
     const received = parseFloat(document.getElementById('cp-field-received').value) || 0;
     document.getElementById('cp-change-due').textContent = formatCurrency(Math.max(0, received - bal));
   }
@@ -2070,7 +2272,7 @@
 
   function renderMethodFields(method, job){
     const container = document.getElementById('cp-method-fields');
-    const bal = balanceDue(job);
+    const bal = cpEffectiveAmount(job);
     if (method === 'Square Reader'){
       container.innerHTML = `
         <div class="field"><label>Amount</label><input type="number" id="cp-field-amount" value="${bal.toFixed(2)}" step="0.01"></div>
@@ -2145,8 +2347,107 @@
     }
   }
 
+  // Records the invoice (with any service/fee adjustments made in this
+  // Collect Payment session) + the resulting invoice_payments row. Runs
+  // alongside recordSupabasePayment (the older flat `payments` table stays
+  // untouched/unaffected) — additive, not a replacement.
+  async function recordInvoiceAndPayment(job, amount, squarePaymentId){
+    if (!db || !job.supabaseId) return;
+    try {
+      const adjustments = cpFees.filter(f => f.description || f.amount).map(f => ({
+        description: f.description || 'Additional charge', amount: parseFloat(f.amount) || 0, type: 'fee'
+      }));
+      const { data: invoiceRow, error: invErr } = await db.from('invoices').insert([{
+        job_id: job.supabaseId,
+        customer_id: job.customerId || null,
+        service_id: cpServiceRow ? cpServiceRow.id : null,
+        original_service_name: job.service,
+        original_amount: job.subtotal || job.total,
+        adjustments,
+        final_amount: amount,
+        amount_paid: amount,
+        status: 'Paid',
+        business_id: BUSINESS_ID
+      }]).select().single();
+      if (invErr) throw invErr;
+
+      const { error: payErr } = await db.from('invoice_payments').insert([{
+        invoice_id: invoiceRow.id,
+        business_id: BUSINESS_ID,
+        square_payment_id: squarePaymentId || null,
+        amount,
+        status: 'completed'
+      }]);
+      if (payErr) throw payErr;
+    } catch (err){
+      console.error('[Supabase] Failed to record invoice/invoice_payment:', err);
+    }
+  }
+
+  // ================= REFUND MODAL =================
+  let rfCurrentInvoicePayment = null;
+
+  async function openRefundModal(){
+    const job = findJob(currentJobId);
+    if (!job || !db || !job.supabaseId) return;
+    try {
+      const { data: invoices, error: invErr } = await db.from('invoices').select('id').eq('job_id', job.supabaseId).order('created_at', { ascending: false });
+      if (invErr) throw invErr;
+      if (!invoices || !invoices.length){ showToast('No invoice found for this job.', 'error'); return; }
+      const invoiceIds = invoices.map(i => i.id);
+      const { data: payments, error: payErr } = await db.from('invoice_payments').select('*').in('invoice_id', invoiceIds).eq('status', 'completed').order('created_at', { ascending: false }).limit(1);
+      if (payErr) throw payErr;
+      if (!payments || !payments.length){ showToast('No completed Square payment found to refund.', 'error'); return; }
+      rfCurrentInvoicePayment = payments[0];
+      document.getElementById('rf-original-amount').textContent = formatCurrency(rfCurrentInvoicePayment.amount);
+      document.getElementById('rf-amount').value = rfCurrentInvoicePayment.amount;
+      document.getElementById('rf-reason').value = '';
+      document.getElementById('rf-error').textContent = '';
+      document.getElementById('refund-modal').classList.remove('hidden');
+    } catch (err){
+      console.error('[Refund] Failed to load payment info:', err);
+      showToast('Could not load payment info for refund.', 'error');
+    }
+  }
+  document.getElementById('dj-refund-btn').addEventListener('click', openRefundModal);
+  document.getElementById('rf-cancel').addEventListener('click', () => closeModal('refund-modal'));
+
+  document.getElementById('rf-confirm').addEventListener('click', async () => {
+    const amount = parseFloat(document.getElementById('rf-amount').value);
+    const reason = document.getElementById('rf-reason').value.trim();
+    const errorEl = document.getElementById('rf-error');
+    errorEl.textContent = '';
+    if (!amount || amount <= 0){ errorEl.textContent = 'Please enter a valid refund amount.'; return; }
+    if (!reason){ errorEl.textContent = 'A reason is required.'; return; }
+    if (!rfCurrentInvoicePayment){ errorEl.textContent = 'No payment selected.'; return; }
+
+    const btn = document.getElementById('rf-confirm');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+    try {
+      const res = await fetch(SUPABASE_URL + '/functions/v1/square-refund', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + SUPABASE_ANON_KEY, apikey: SUPABASE_ANON_KEY },
+        body: JSON.stringify({ payment_id: rfCurrentInvoicePayment.id, amount_to_refund: amount, reason })
+      });
+      const result = await res.json();
+      if (!res.ok || result.error) throw new Error(result.error || 'Refund failed.');
+      closeModal('refund-modal');
+      showToast('Refund processed successfully.', 'success');
+      const job = findJob(currentJobId);
+      if (job) logJobActivity(job, `Refund processed — ${formatCurrency(amount)} (${reason})`);
+    } catch (err){
+      console.error('[Refund] Failed:', err);
+      errorEl.textContent = err.message || 'Refund failed.';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  });
+
   async function handleSquareReaderCharge(job){
-    const amount = parseFloat(document.getElementById('cp-field-amount').value) || balanceDue(job);
+    const amount = parseFloat(document.getElementById('cp-field-amount').value) || cpEffectiveAmount(job);
     if (!amount || amount <= 0){ alert('Please enter a valid amount.'); return; }
     if (!cpSquareCard){ alert('The card form is not ready yet. Please wait a moment.'); return; }
 
@@ -2166,6 +2467,7 @@
       job.payments.push({ id: nextPaymentIdCounter++, label:'Balance', amount, method:'Square', date:new Date(), reference: chargeResult.paymentId || '' });
       logJobActivity(job, `Payment recorded — ${formatCurrency(amount)} via Square`);
       recordSupabasePayment(job, amount, 'Square', chargeResult.paymentId);
+      recordInvoiceAndPayment(job, amount, chargeResult.paymentId);
       showPaymentSuccess(job);
     } catch (err){
       console.error('[Square] Charge failed:', err);
@@ -2216,17 +2518,18 @@
   function handlePaymentSubmit(method, job){
     let amount, recordedMethod = method;
     if (method === 'Cash'){
-      amount = balanceDue(job);
+      amount = cpEffectiveAmount(job);
     } else if (method === 'Zelle' || method === 'Check'){
-      amount = balanceDue(job);
+      amount = cpEffectiveAmount(job);
     } else {
-      amount = parseFloat(document.getElementById('cp-field-amount').value) || balanceDue(job);
+      amount = parseFloat(document.getElementById('cp-field-amount').value) || cpEffectiveAmount(job);
     }
     if (!amount || amount <= 0){ alert('Please enter a valid amount.'); return; }
 
     job.payments.push({ id: nextPaymentIdCounter++, label:'Balance', amount, method: recordedMethod, date: new Date(), reference:'' });
     logJobActivity(job, `Payment recorded — ${formatCurrency(amount)} via ${recordedMethod}`);
     recordSupabasePayment(job, amount, recordedMethod, '');
+    recordInvoiceAndPayment(job, amount, null);
     showPaymentSuccess(job);
   }
 
@@ -2272,6 +2575,16 @@
     document.getElementById('cp-main-panel').classList.remove('hidden');
     document.getElementById('cp-success-panel').classList.add('hidden');
     document.getElementById('cp-balance-display').textContent = formatCurrency(balanceDue(job));
+
+    cpServiceRow = null;
+    cpFees = [];
+    document.getElementById('cp-adjust-header').classList.remove('open');
+    document.getElementById('cp-adjust-body').classList.remove('open');
+    document.getElementById('cp-total-override').value = '';
+    renderCpServiceSelect(job);
+    renderCpFeesList();
+    recalcCpSummary();
+
     cpSelectedMethod = currentUser.defaultPaymentMethod || 'Cash';
     if (LOCKED_PAYMENT_METHODS.includes(cpSelectedMethod)) cpSelectedMethod = 'Square Reader';
     renderPaymentMethodGrid();
@@ -2572,6 +2885,120 @@
     loginScreen.classList.remove('hidden');
     switchView('today');
   });
+
+  // ================= CUSTOM DROPDOWN (progressive enhancement) =================
+  // Wraps a native <select> with a custom-styled trigger+panel. The select
+  // stays in the DOM (visually hidden) as the single source of truth — every
+  // existing call site that reads/writes `.value`, listens for `change`, or
+  // repopulates `.innerHTML` with new <option>s keeps working unchanged.
+  function createDropdown(selectEl){
+    if (!selectEl || selectEl.dataset.cddEnhanced) return;
+    selectEl.dataset.cddEnhanced = '1';
+    selectEl.style.position = 'absolute';
+    selectEl.style.opacity = '0';
+    selectEl.style.pointerEvents = 'none';
+    selectEl.style.height = '1px';
+    selectEl.style.width = '1px';
+    selectEl.tabIndex = -1;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'cdd';
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'cdd-trigger';
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.innerHTML = '<span class="cdd-value"></span><svg class="cdd-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+    const panel = document.createElement('div');
+    panel.className = 'cdd-panel';
+    panel.setAttribute('role', 'listbox');
+    wrap.appendChild(trigger);
+    wrap.appendChild(panel);
+    selectEl.parentNode.insertBefore(wrap, selectEl.nextSibling);
+
+    let highlightIdx = -1;
+
+    function renderOptions(){
+      panel.innerHTML = '';
+      Array.from(selectEl.options).forEach((opt, i) => {
+        const row = document.createElement('div');
+        row.setAttribute('role', 'option');
+        row.className = 'cdd-option' + (opt.value === selectEl.value ? ' cdd-selected' : '') + (opt.disabled ? ' cdd-disabled' : '') + (i === highlightIdx ? ' cdd-highlight' : '');
+        row.innerHTML = `<span>${opt.textContent}</span><span class="cdd-check">✓</span>`;
+        if (!opt.disabled){
+          row.addEventListener('click', () => selectOption(i));
+        }
+        panel.appendChild(row);
+      });
+    }
+    function selectOption(i){
+      const opt = selectEl.options[i];
+      if (!opt || opt.disabled) return;
+      nativeValueSetter.call(selectEl, opt.value);
+      selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+      closePanel();
+      syncTrigger();
+    }
+    function syncTrigger(){
+      const selectedOpt = selectEl.options[selectEl.selectedIndex];
+      trigger.querySelector('.cdd-value').textContent = selectedOpt ? selectedOpt.textContent : '';
+      highlightIdx = selectEl.selectedIndex;
+      renderOptions();
+    }
+    function openPanel(){
+      document.querySelectorAll('.cdd.open').forEach(o => { if (o !== wrap) o.classList.remove('open'); });
+      wrap.classList.add('open');
+      trigger.setAttribute('aria-expanded', 'true');
+      renderOptions();
+    }
+    function closePanel(){
+      wrap.classList.remove('open');
+      trigger.setAttribute('aria-expanded', 'false');
+    }
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      wrap.classList.contains('open') ? closePanel() : openPanel();
+    });
+    trigger.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape'){ closePanel(); return; }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+        e.preventDefault();
+        if (!wrap.classList.contains('open')) { openPanel(); return; }
+        const dir = e.key === 'ArrowDown' ? 1 : -1;
+        let next = highlightIdx;
+        do { next = (next + dir + selectEl.options.length) % selectEl.options.length; }
+        while (selectEl.options[next].disabled && next !== highlightIdx);
+        highlightIdx = next;
+        renderOptions();
+      } else if (e.key === 'Enter' || e.key === ' '){
+        if (wrap.classList.contains('open')){ e.preventDefault(); selectOption(highlightIdx); }
+      }
+    });
+    document.addEventListener('click', (e) => { if (!wrap.contains(e.target)) closePanel(); });
+
+    // Repopulating the select's <option>s (existing pattern throughout this
+    // app, e.g. `sel.innerHTML = vehicles.map(...)`) is caught here so the
+    // custom panel always mirrors the real select without touching call sites.
+    new MutationObserver(syncTrigger).observe(selectEl, { childList: true });
+    selectEl.addEventListener('change', syncTrigger);
+
+    // Intercept `.value = x` (a plain property set, not a DOM mutation —
+    // MutationObserver alone would miss it) so the visible trigger text
+    // stays correct wherever existing code does `document.getElementById('x').value = y`.
+    const nativeValueSetter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+    const nativeValueGetter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').get;
+    Object.defineProperty(selectEl, 'value', {
+      configurable: true,
+      get(){ return nativeValueGetter.call(this); },
+      set(v){ nativeValueSetter.call(this, v); syncTrigger(); }
+    });
+
+    syncTrigger();
+  }
+
+  function enhanceAllDropdowns(root){
+    (root || document).querySelectorAll('select').forEach(sel => createDropdown(sel));
+  }
 
   console.log('[AltaLux] Data model initialized.');
 })();

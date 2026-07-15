@@ -117,20 +117,19 @@
   }
   .field input, .field select, .field textarea{
     font-family:'Inter',sans-serif;
-    background:rgba(255,255,255,.04);
-    border:1.5px solid rgba(255,255,255,.12);
-    border-radius:var(--radius-sm);
-    padding:11px 14px;
+    background:#0d1f35;
+    border:1px solid #1e3a5f;
+    border-radius:8px;
+    padding:12px 16px;
     color:var(--white);
     font-size:14.5px;
     outline:none;
     transition:all .2s ease;
   }
-  .field input::placeholder, .field textarea::placeholder{ color:rgba(255,255,255,.28); }
+  .field input::placeholder, .field textarea::placeholder{ color:#4a6080; }
   .field input:focus, .field select:focus, .field textarea:focus{
-    border-color:var(--gold);
-    background:rgba(255,255,255,.06);
-    box-shadow:0 0 0 3px rgba(255,170,0,.14);
+    border-color:var(--orange);
+    box-shadow:0 0 0 2px rgba(255,140,0,.2);
   }
   .field textarea{ resize:vertical; min-height:70px; font-family:'Inter',sans-serif; }
   .field select{ cursor:pointer; }
@@ -367,6 +366,7 @@
     border:1px solid var(--line);
     border-radius:var(--radius-md);
     padding:16px 18px;
+    box-shadow:0 2px 8px rgba(0,0,0,.3);
   }
   .stat-label{
     display:block;
@@ -395,6 +395,7 @@
     border-radius:var(--radius-lg);
     padding:20px;
     margin-bottom:22px;
+    box-shadow:0 2px 8px rgba(0,0,0,.3);
   }
   .section-title{
     font-size:17px;
@@ -591,10 +592,34 @@
     letter-spacing:.3px;
     white-space:nowrap;
   }
-  .badge-pending{ background:rgba(255,255,255,.14); color:var(--ink-muted); border:1px solid rgba(255,255,255,.22); }
+  .badge-pending{ background:#1a3a5c; color:#64b5f6; border:1px solid #104872; }
   .badge-confirmed{ background:var(--blue); color:#fff; }
-  .badge-inprogress{ background:var(--orange); color:var(--dark); }
-  .badge-completed{ background:var(--green); color:#06240f; }
+  .badge-inprogress{ background:#2d2a00; color:#FFAA00; border:1px solid #FF8C00; }
+  .badge-completed{ background:#1a3d2b; color:#4ade80; border:1px solid #16a34a; }
+  .badge-cancelled{ background:#3d1a1a; color:#f87171; border:1px solid #dc2626; }
+  .status-badge-clickable{ cursor:pointer; transition:opacity .15s ease; }
+  .status-badge-clickable:hover{ opacity:.8; }
+
+  /* ---- Status picker (bottom-sheet-style modal with cards) ---- */
+  .status-card{
+    display:flex; align-items:center; gap:14px; padding:16px; border-radius:12px; border:1.5px solid;
+    cursor:pointer; margin-bottom:10px; transition:transform .15s ease, opacity .2s ease; background:rgba(255,255,255,.02);
+  }
+  .status-card:hover{ transform:translateY(-1px); }
+  .status-card-icon{
+    font-size:19px; width:40px; height:40px; border-radius:50%; display:flex; align-items:center;
+    justify-content:center; flex-shrink:0; font-weight:700;
+  }
+  .status-card-body{ flex:1; }
+  .status-card-title{ font-weight:700; font-family:'Rajdhani',sans-serif; font-size:16px; color:var(--white); }
+  .status-card-desc{ font-size:12.5px; color:var(--ink-muted); margin-top:2px; }
+  .status-card-current{ opacity:.45; cursor:default; }
+  .status-card-current:hover{ transform:none; }
+  .status-card-pending{ border-color:#104872; } .status-card-pending .status-card-icon{ background:#1a3a5c; color:#64b5f6; }
+  .status-card-confirmed{ border-color:var(--blue); } .status-card-confirmed .status-card-icon{ background:var(--blue); color:#fff; }
+  .status-card-inprogress{ border-color:#FF8C00; } .status-card-inprogress .status-card-icon{ background:#2d2a00; color:#FFAA00; }
+  .status-card-completed{ border-color:#16a34a; } .status-card-completed .status-card-icon{ background:#1a3d2b; color:#4ade80; }
+  .status-card-cancelled{ border-color:#dc2626; } .status-card-cancelled .status-card-icon{ background:#3d1a1a; color:#f87171; }
 
   .badge-paymentstatus-depositpaid{ background:var(--orange); color:var(--dark); }
   .badge-paymentstatus-paidfull{ background:var(--green); color:#06240f; }
@@ -1196,7 +1221,7 @@
     font-size:13.5px;
     color:var(--white);
     box-shadow:0 12px 30px rgba(0,0,0,.5);
-    animation:toastIn .3s cubic-bezier(.34,1.56,.64,1);
+    animation:toastIn .2s ease;
   }
   .toast.toast-error{ border-left-color:var(--danger); }
   .toast.toast-success{ border-left-color:var(--green); }
@@ -1240,6 +1265,35 @@
   @media (min-width:520px){ .booking-request-meta{ grid-template-columns:repeat(4,1fr); } }
   .booking-request-meta strong{ display:block; color:var(--white); font-weight:600; }
   .booking-request-actions{ display:flex; gap:8px; flex-wrap:wrap; padding-top:6px; border-top:1px solid rgba(255,255,255,.06); }
+
+  /* ================= CUSTOM DROPDOWN ================= */
+  .cdd{ position:relative; }
+  .cdd-trigger{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%;
+    background:#1a2a3a; border:1px solid var(--blue); border-radius:8px; color:var(--white);
+    padding:12px 16px; font-size:14.5px; font-family:'Inter',sans-serif; cursor:pointer; text-align:left;
+    min-height:44px; transition:border-color .2s ease;
+  }
+  .cdd-trigger:hover, .cdd.open .cdd-trigger{ border-color:var(--orange); }
+  .cdd-trigger .cdd-arrow{ flex-shrink:0; transition:transform .2s ease; color:var(--orange); }
+  .cdd.open .cdd-trigger .cdd-arrow{ transform:rotate(180deg); }
+  .cdd-trigger .cdd-value{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cdd-panel{
+    position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:60;
+    background:#0d1f35; border:1px solid var(--blue); border-radius:8px; max-height:260px; overflow-y:auto;
+    box-shadow:0 12px 30px rgba(0,0,0,.5); display:none; opacity:0; transform:translateY(-6px);
+    transition:opacity .2s ease, transform .2s ease;
+  }
+  .cdd.open .cdd-panel{ display:block; opacity:1; transform:translateY(0); animation:cddSlide .2s ease; }
+  @keyframes cddSlide{ from{ opacity:0; transform:translateY(-6px); } to{ opacity:1; transform:translateY(0); } }
+  .cdd-option{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 16px;
+    font-size:13.5px; color:var(--white); cursor:pointer;
+  }
+  .cdd-option:hover, .cdd-option.cdd-highlight{ background:var(--blue); }
+  .cdd-option .cdd-check{ color:var(--orange); opacity:0; flex-shrink:0; }
+  .cdd-option.cdd-selected .cdd-check{ opacity:1; }
+  .cdd-option.cdd-disabled{ opacity:.4; cursor:not-allowed; }
 </style>
 </head>
 <body>
@@ -1765,13 +1819,8 @@
 
     <hr class="summary-divider">
     <div class="field">
-      <label for="modal-status-select">Status</label>
-      <select id="modal-status-select">
-        <option value="Pending">Pending</option>
-        <option value="Confirmed">Confirmed</option>
-        <option value="In Progress">In Progress</option>
-        <option value="Completed">Completed</option>
-      </select>
+      <label>Status</label>
+      <span class="badge status-badge-clickable" id="modal-status-badge" data-job-id-target="modal"></span>
     </div>
     <div class="field" style="margin-top:14px;">
       <label for="modal-notes">Notes</label>
@@ -1793,6 +1842,15 @@
       <button type="button" class="btn btn-ghost" id="modal-send-invoice">Send Invoice</button>
       <button type="button" class="btn btn-primary" id="modal-collect-payment">Collect Payment</button>
     </div>
+  </div>
+</div>
+
+<!-- ================= STATUS PICKER MODAL ================= -->
+<div class="modal-overlay" id="status-picker-overlay" hidden>
+  <div class="modal-box" id="status-picker-box" style="max-width:420px;">
+    <button type="button" class="modal-close" id="status-picker-close" aria-label="Close">✕</button>
+    <h2 class="modal-title">Update Status</h2>
+    <div id="status-picker-cards" style="margin-top:16px;"></div>
   </div>
 </div>
 
@@ -2543,8 +2601,15 @@
   const WEEKDAY_LONG = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const MONTH_LABELS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-  const STATUS_OPTIONS = ['Pending','Confirmed','In Progress','Completed'];
-  const STATUS_SLUG = { 'Pending':'pending', 'Confirmed':'confirmed', 'In Progress':'inprogress', 'Completed':'completed' };
+  const STATUS_OPTIONS = ['Pending','Confirmed','In Progress','Completed','Cancelled'];
+  const STATUS_SLUG = { 'Pending':'pending', 'Confirmed':'confirmed', 'In Progress':'inprogress', 'Completed':'completed', 'Cancelled':'cancelled' };
+  const STATUS_META = {
+    'Pending':     { icon:'○', desc:'Waiting to be scheduled or confirmed.', color:'pending' },
+    'Confirmed':   { icon:'✓', desc:'Job is confirmed and on the schedule.', color:'confirmed' },
+    'In Progress': { icon:'▶', desc:'Technician is currently on site working.', color:'inprogress' },
+    'Completed':   { icon:'✓', desc:'The work has been finished successfully.', color:'completed' },
+    'Cancelled':   { icon:'✕', desc:'This job has been cancelled.', color:'cancelled' }
+  };
 
   const PAYMENT_STATUS_SLUG = { 'Deposit Paid':'depositpaid', 'Paid in Full':'paidfull', 'Unpaid':'unpaid', 'Refunded':'refunded' };
   const INVOICE_STATUS_SLUG = { 'Draft':'draft', 'Sent':'sent', 'Paid':'paid', 'Overdue':'overdue' };
@@ -2597,7 +2662,7 @@
       priceOverride: null, auditLog: [],
       depositOverride: null,
       payments: [
-        { id:1, label:'Deposit', amount:52.25, method:'Stripe', date:new Date(TODAY), reference:'Online Booking', notes:'', recordedBy:'Online Booking' }
+        { id:1, label:'Deposit', amount:52.25, method:'Square', date:new Date(TODAY), reference:'Online Booking', notes:'', recordedBy:'Online Booking' }
       ],
       invoice: { number:'INV-001', status:'Sent', issueDate:new Date(TODAY), dueDate:new Date(TODAY), taxEnabled:false }
     },
@@ -2614,7 +2679,7 @@
       priceOverride: null, auditLog: [],
       depositOverride: null,
       payments: [
-        { id:2, label:'Deposit', amount:71.25, method:'Stripe', date:new Date(TODAY), reference:'Online Booking', notes:'', recordedBy:'Online Booking' },
+        { id:2, label:'Deposit', amount:71.25, method:'Square', date:new Date(TODAY), reference:'Online Booking', notes:'', recordedBy:'Online Booking' },
         { id:3, label:'Balance', amount:213.74, method:'Cash', date:new Date(TODAY), reference:'', notes:'', recordedBy:'Admin' }
       ],
       invoice: { number:'INV-002', status:'Sent', issueDate:new Date(TODAY), dueDate:new Date(TODAY), taxEnabled:false }
@@ -2632,7 +2697,7 @@
       priceOverride: null, auditLog: [],
       depositOverride: null,
       payments: [
-        { id:4, label:'Deposit', amount:94.75, method:'Stripe', date:new Date(TODAY), reference:'Online Booking', notes:'', recordedBy:'Online Booking' }
+        { id:4, label:'Deposit', amount:94.75, method:'Square', date:new Date(TODAY), reference:'Online Booking', notes:'', recordedBy:'Online Booking' }
       ],
       invoice: { number:'INV-003', status:'Draft', issueDate:new Date(TODAY), dueDate:new Date(TODAY), taxEnabled:false }
     }
@@ -2642,6 +2707,49 @@
   function renderStatusBadge(job){
     return `<span class="badge badge-${STATUS_SLUG[job.status]}">${job.status}</span>`;
   }
+  function setStatusBadgeEl(el, status){
+    if (!el) return;
+    el.textContent = status;
+    el.className = 'badge status-badge-clickable badge-' + STATUS_SLUG[status];
+  }
+
+  // ---------- Status picker (bottom-sheet-style modal with cards) ----------
+  let statusPickerJobId = null;
+  function openStatusPicker(jobId){
+    const job = findJob(jobId);
+    if (!job) return;
+    statusPickerJobId = jobId;
+    const cards = document.getElementById('status-picker-cards');
+    cards.innerHTML = STATUS_OPTIONS.map(s => {
+      const meta = STATUS_META[s];
+      const isCurrent = s === job.status;
+      return `
+        <div class="status-card status-card-${meta.color} ${isCurrent ? 'status-card-current' : ''}" data-status="${s}">
+          <span class="status-card-icon">${meta.icon}</span>
+          <div class="status-card-body">
+            <div class="status-card-title">${s}${isCurrent ? ' — Current' : ''}</div>
+            <div class="status-card-desc">${meta.desc}</div>
+          </div>
+        </div>`;
+    }).join('');
+    cards.querySelectorAll('.status-card').forEach(card => {
+      if (card.classList.contains('status-card-current')) return;
+      card.addEventListener('click', () => {
+        updateJobStatus(statusPickerJobId, card.dataset.status);
+        document.getElementById('status-picker-overlay').hidden = true;
+      });
+    });
+    document.getElementById('status-picker-overlay').hidden = false;
+  }
+  document.getElementById('status-picker-close').addEventListener('click', () => {
+    document.getElementById('status-picker-overlay').hidden = true;
+  });
+  document.getElementById('status-picker-overlay').addEventListener('click', (e) => {
+    if (e.target.id === 'status-picker-overlay') e.target.hidden = true;
+  });
+  document.getElementById('modal-status-badge').addEventListener('click', () => {
+    if (currentModalJobId !== null) openStatusPicker(currentModalJobId);
+  });
 
   // ---------- New-entity data (Proposals / Events / standalone Customers) ----------
   const PROPOSALS = [];
@@ -3254,7 +3362,7 @@
     logJobActivity(job, `Original booking preserved — ${b.fullName}, ${formatCurrency(b.total)}, requested ${formatShortDate(b.serviceDate)} ${b.serviceTime}`);
     if (b.deposit > 0){
       job.payments.push({
-        id: nextPaymentId++, label: 'Deposit', amount: b.deposit, method: 'Stripe',
+        id: nextPaymentId++, label: 'Deposit', amount: b.deposit, method: 'Square',
         date: new Date(TODAY), reference: 'Online Booking', notes: '', recordedBy: 'Online Booking'
       });
     }
@@ -3935,7 +4043,7 @@
       (job.priceOverride ? ` <span class="override-note-icon" title="Price overridden — ${job.priceOverride.reason}. Original: ${formatCurrency(job.priceOverride.originalTotal)}">📝</span>` : '');
     document.getElementById('modal-deposit').textContent = formatCurrency(getDepositAmount(job));
     document.getElementById('modal-balance').textContent = formatCurrency(balanceDue(job));
-    document.getElementById('modal-status-select').value = job.status;
+    setStatusBadgeEl(document.getElementById('modal-status-badge'), job.status);
     document.getElementById('modal-notes').value = job.notes || '';
     renderPaymentHistorySection(job);
     renderAssignToList('modal-assign-list', job.assignedEmployeeIds || []);
@@ -3988,8 +4096,7 @@
     showToast(ok ? 'Invoice email sent' : 'Failed to send invoice email', ok ? 'success' : 'error');
   });
   document.getElementById('modal-collect-payment').addEventListener('click', () => {
-    const job = findJob(currentModalJobId);
-    if (job) alert(`Collecting balance of ${formatCurrency(balanceDue(job))} from ${job.customer.name}. (Stripe integration coming soon)`);
+    if (currentModalJobId !== null) openRecordPaymentModal(currentModalJobId);
   });
   document.getElementById('modal-record-payment-btn').addEventListener('click', () => {
     if (currentModalJobId !== null) openRecordPaymentModal(currentModalJobId);
@@ -4057,8 +4164,9 @@
     renderJobsTable();
     renderPaymentsView();
     if (currentModalJobId === jobId){
-      document.getElementById('modal-status-select').value = newStatus;
+      setStatusBadgeEl(document.getElementById('modal-status-badge'), newStatus);
     }
+    if (statusChanged) showToast(`Status updated to ${newStatus}`, 'success');
     if (statusChanged && newStatus === 'Confirmed'){
       triggerJobEmail(job, 'job_confirmed').then(ok => showToast(ok ? 'Confirmation email sent' : 'Job confirmed (email failed to send)', ok ? 'success' : 'error'));
     }
@@ -4094,13 +4202,7 @@
     }
     const editBtn = e.target.closest('.job-editstatus-btn');
     if (editBtn){
-      const jobId = Number(editBtn.dataset.jobId);
-      const job = findJob(jobId);
-      document.querySelectorAll(`.status-display[data-job-id="${jobId}"]`).forEach(el => {
-        el.innerHTML = `<select class="status-select" data-job-id="${jobId}">
-          ${STATUS_OPTIONS.map(s => `<option value="${s}" ${s === job.status ? 'selected' : ''}>${s}</option>`).join('')}
-        </select>`;
-      });
+      openStatusPicker(Number(editBtn.dataset.jobId));
       return;
     }
     const viewJobsBtn = e.target.closest('.customer-viewjobs-btn');
@@ -4165,6 +4267,7 @@
         el.innerHTML = `<select class="proposal-status-select" data-proposal-id="${pid}">
           ${PROPOSAL_STATUS_OPTIONS.map(s => `<option value="${s}" ${s === p.status ? 'selected' : ''}>${s}</option>`).join('')}
         </select>`;
+        enhanceAllDropdowns(el);
       });
       return;
     }
@@ -4212,12 +4315,6 @@
   });
 
   document.addEventListener('change', (e) => {
-    if (e.target.matches('.status-select')){
-      updateJobStatus(Number(e.target.dataset.jobId), e.target.value);
-    }
-    if (e.target.id === 'modal-status-select' && currentModalJobId !== null){
-      updateJobStatus(currentModalJobId, e.target.value);
-    }
     if (e.target.matches('.proposal-status-select')){
       const pid = Number(e.target.dataset.proposalId);
       findProposal(pid).status = e.target.value;
@@ -6517,6 +6614,122 @@
     }
     clearLoginSession();
   })();
+
+  // ================= CUSTOM DROPDOWN (progressive enhancement) =================
+  // Wraps a native <select> with a custom-styled trigger+panel. The select
+  // stays in the DOM (visually hidden) as the single source of truth — every
+  // existing call site that reads/writes `.value`, listens for `change`, or
+  // repopulates `.innerHTML` with new <option>s keeps working unchanged.
+  // NOTE: `.status-select` (job status, per-row in the Jobs table) is
+  // deliberately excluded here — it's replaced by the bottom-sheet status
+  // picker instead of a dropdown (see the status-change redesign below).
+  function createDropdown(selectEl){
+    if (!selectEl || selectEl.dataset.cddEnhanced) return;
+    selectEl.dataset.cddEnhanced = '1';
+    selectEl.style.position = 'absolute';
+    selectEl.style.opacity = '0';
+    selectEl.style.pointerEvents = 'none';
+    selectEl.style.height = '1px';
+    selectEl.style.width = '1px';
+    selectEl.tabIndex = -1;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'cdd';
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'cdd-trigger';
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.innerHTML = '<span class="cdd-value"></span><svg class="cdd-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+    const panel = document.createElement('div');
+    panel.className = 'cdd-panel';
+    panel.setAttribute('role', 'listbox');
+    wrap.appendChild(trigger);
+    wrap.appendChild(panel);
+    selectEl.parentNode.insertBefore(wrap, selectEl.nextSibling);
+
+    let highlightIdx = -1;
+
+    function renderOptions(){
+      panel.innerHTML = '';
+      Array.from(selectEl.options).forEach((opt, i) => {
+        const row = document.createElement('div');
+        row.setAttribute('role', 'option');
+        row.className = 'cdd-option' + (opt.value === selectEl.value ? ' cdd-selected' : '') + (opt.disabled ? ' cdd-disabled' : '') + (i === highlightIdx ? ' cdd-highlight' : '');
+        row.innerHTML = `<span>${opt.textContent}</span><span class="cdd-check">✓</span>`;
+        if (!opt.disabled){
+          row.addEventListener('click', () => selectOption(i));
+        }
+        panel.appendChild(row);
+      });
+    }
+    function selectOption(i){
+      const opt = selectEl.options[i];
+      if (!opt || opt.disabled) return;
+      nativeValueSetter.call(selectEl, opt.value);
+      selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+      closePanel();
+      syncTrigger();
+    }
+    function syncTrigger(){
+      const selectedOpt = selectEl.options[selectEl.selectedIndex];
+      trigger.querySelector('.cdd-value').textContent = selectedOpt ? selectedOpt.textContent : '';
+      highlightIdx = selectEl.selectedIndex;
+      renderOptions();
+    }
+    function openPanel(){
+      document.querySelectorAll('.cdd.open').forEach(o => { if (o !== wrap) o.classList.remove('open'); });
+      wrap.classList.add('open');
+      trigger.setAttribute('aria-expanded', 'true');
+      renderOptions();
+    }
+    function closePanel(){
+      wrap.classList.remove('open');
+      trigger.setAttribute('aria-expanded', 'false');
+    }
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      wrap.classList.contains('open') ? closePanel() : openPanel();
+    });
+    trigger.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape'){ closePanel(); return; }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+        e.preventDefault();
+        if (!wrap.classList.contains('open')) { openPanel(); return; }
+        const dir = e.key === 'ArrowDown' ? 1 : -1;
+        let next = highlightIdx;
+        do { next = (next + dir + selectEl.options.length) % selectEl.options.length; }
+        while (selectEl.options[next].disabled && next !== highlightIdx);
+        highlightIdx = next;
+        renderOptions();
+      } else if (e.key === 'Enter' || e.key === ' '){
+        if (wrap.classList.contains('open')){ e.preventDefault(); selectOption(highlightIdx); }
+      }
+    });
+    document.addEventListener('click', (e) => { if (!wrap.contains(e.target)) closePanel(); });
+
+    new MutationObserver(syncTrigger).observe(selectEl, { childList: true });
+    selectEl.addEventListener('change', syncTrigger);
+
+    const nativeValueSetter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+    const nativeValueGetter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').get;
+    Object.defineProperty(selectEl, 'value', {
+      configurable: true,
+      get(){ return nativeValueGetter.call(this); },
+      set(v){ nativeValueSetter.call(this, v); syncTrigger(); }
+    });
+
+    syncTrigger();
+  }
+
+  function enhanceAllDropdowns(root){
+    (root || document).querySelectorAll('select').forEach(sel => {
+      if (sel.classList.contains('status-select')) return; // handled by the status bottom-sheet instead
+      createDropdown(sel);
+    });
+  }
+
+  enhanceAllDropdowns();
 })();
 </script>
 
