@@ -3323,7 +3323,8 @@
       total: Number(row.total) || 0, deposit: Number(row.deposit) || 0,
       addons: row.addons || [],
       receiveReminders: !!row.receive_reminders, receiveOffers: !!row.receive_offers,
-      status: row.status || 'Pending'
+      status: row.status || 'Pending',
+      squarePaymentId: row.square_payment_id || null
     };
   }
 
@@ -3494,9 +3495,49 @@
 
     b.status = 'Converted';
 
+    // Bug fix (2026-07-15): this used to only sync the booking's status —
+    // the job/customer/deposit were never written to Supabase, only kept
+    // in this tab's in-memory JOBS array. On reload the job vanished while
+    // the booking stayed permanently marked Converted, hiding it forever.
+    // See admin/index.html's manual "+ Job" path (attemptSupabaseWrite)
+    // for the pattern this now follows.
     let synced = false;
     try {
       if (!db) throw new Error('Supabase client unavailable');
+
+      const { data: custData, error: custErr } = await db
+        .from('customers')
+        .insert([{ full_name: b.fullName, phone: b.phone, email: b.email, address: b.address }])
+        .select()
+        .single();
+      if (custErr) throw custErr;
+
+      const depositAmount = b.deposit > 0 ? b.deposit : 0;
+      const { data: jobData, error: jobErr } = await db
+        .from('jobs')
+        .insert([{
+          customer_id: custData.id,
+          category: b.category, package: b.package,
+          service_date: toInputDate(b.serviceDate), service_time: b.serviceTime,
+          subtotal: b.subtotal, addons_total: b.addonsTotal, total: b.total,
+          deposit: depositAmount, balance_due: round2(b.total - depositAmount),
+          payment_status: depositAmount > 0 ? 'Deposit Paid' : 'Unpaid',
+          status: 'Confirmed', notes: ''
+        }])
+        .select()
+        .single();
+      if (jobErr) throw jobErr;
+      job.supabaseId = jobData.id;
+
+      if (depositAmount > 0){
+        const { error: payErr } = await db.from('payments').insert([{
+          job_id: jobData.id, customer_id: custData.id, amount: depositAmount,
+          payment_method: 'Square', payment_type: 'Deposit',
+          reference_number: b.squarePaymentId || null
+        }]);
+        if (payErr) throw payErr;
+      }
+
       if (b.supabaseId){
         const { error } = await db.from('bookings').update({ status: 'Converted' }).eq('id', b.supabaseId);
         if (error) throw error;
