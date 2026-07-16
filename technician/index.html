@@ -1309,7 +1309,7 @@
     }
   }
 
-  async function loadTodaysJobsFromSupabase(){
+  async function loadWeekJobsFromSupabase(){
     if (!db){
       console.log('[Supabase] Client unavailable — using sample data.');
       return;
@@ -1317,7 +1317,17 @@
     showLoading('Loading your dashboard...');
     try {
       currentUser.supabaseId = await resolveEmployeeSupabaseId();
-      let query = db.from('jobs').select('*, customers(*), job_addons(*)').eq('service_date', toInputDate(TODAY));
+      // Bug encontrado 2026-07-15: esto antes traía SOLO el día de hoy
+      // (.eq('service_date', TODAY)), pero la vista "All Jobs" ya filtraba
+      // una ventana de 7 días hacia adelante sobre este mismo array en
+      // memoria — cualquier job que no fuera exactamente hoy quedaba
+      // invisible en toda la app. Se amplía el fetch a la misma ventana
+      // de 7 días que la UI ya usa, para que ambas coincidan de verdad.
+      const weekEnd = new Date(TODAY);
+      weekEnd.setDate(weekEnd.getDate() + 7);
+      let query = db.from('jobs').select('*, customers(*), job_addons(*)')
+        .gte('service_date', toInputDate(TODAY))
+        .lte('service_date', toInputDate(weekEnd));
       if (!perms().seeAllJobs && currentUser.supabaseId){
         query = query.eq('assigned_to', currentUser.supabaseId);
       }
@@ -1328,7 +1338,7 @@
         data.forEach((row, i) => JOBS.push(mapJobRow(row, i)));
         console.log(`[Supabase] Loaded ${data.length} job(s) from database.`);
       } else {
-        console.log('[Supabase] No jobs in database for today — keeping sample data.');
+        console.log('[Supabase] No jobs in database for the next 7 days — keeping sample data.');
       }
     } catch (err){
       console.error('[Supabase] Failed to load jobs, falling back to sample data:', err);
@@ -1355,7 +1365,7 @@
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'jobs' }, (payload) => {
           if (currentUser && currentUser.supabaseId && payload.new.assigned_to === currentUser.supabaseId){
             showToast('New job assigned!', 'success');
-            loadTodaysJobsFromSupabase().then(refreshAllViews);
+            loadWeekJobsFromSupabase().then(refreshAllViews);
           }
         })
         .subscribe();
@@ -1518,7 +1528,7 @@
     tickClock();
     setInterval(tickClock, 1000);
     applyRolePermissionsUI();
-    await loadTodaysJobsFromSupabase();
+    await loadWeekJobsFromSupabase();
     seedCustomerProfilesFromJobs();
     setupRealtimeJobsSubscription();
     switchView('today');
