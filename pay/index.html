@@ -30,13 +30,17 @@
   .doc{ background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 2px 14px rgba(16,30,45,.08); }
 
   /* ---------- Header ---------- */
+  /* Fondo blanco: el logo a color tiene texto "ALTA" en azul oscuro,
+     invisible sobre un fondo azul oscuro. El logo a color está pensado
+     para fondos claros — se cambia el header en vez del logo. */
   .doc-header{
-    background:var(--brand-primary); padding:28px 28px 24px;
+    background:#ffffff; border-bottom:3px solid var(--brand-primary); padding:28px 28px 24px;
     display:flex; flex-direction:column; align-items:center; text-align:center; gap:10px;
   }
-  .doc-logo{ height:56px; width:auto; }
-  .doc-header-contact{ color:#cfe0ee; font-size:12.5px; letter-spacing:.3px; }
-  .doc-header-contact a{ color:#ffffff; text-decoration:none; }
+  .doc-logo{ height:80px; width:auto; object-fit:contain; }
+  .doc-header-contact{ color:#4a5568; font-size:12.5px; letter-spacing:.3px; }
+  .doc-header-contact a{ color:var(--brand-primary); text-decoration:none; }
+  .doc-header-sep{ color:var(--brand-primary); }
 
   /* ---------- Meta ---------- */
   .doc-body{ padding:26px 28px 30px; }
@@ -166,7 +170,7 @@
   <div class="doc" id="doc" hidden>
     <div class="doc-header">
       <img class="doc-logo" id="doc-logo" src="../brand/altalux-logo-color.png" alt="AltaLux Mobile Detail">
-      <div class="doc-header-contact" id="doc-header-contact">Roswell, GA &nbsp;|&nbsp; <a href="https://altaluxdetail.com">altaluxdetail.com</a> &nbsp;|&nbsp; <a href="mailto:contact@altaluxdetail.com">contact@altaluxdetail.com</a></div>
+      <div class="doc-header-contact" id="doc-header-contact">Roswell, GA <span class="doc-header-sep">&nbsp;|&nbsp;</span> <a href="https://altaluxdetail.com">altaluxdetail.com</a> <span class="doc-header-sep">&nbsp;|&nbsp;</span> <a href="mailto:contact@altaluxdetail.com">contact@altaluxdetail.com</a></div>
     </div>
 
     <div class="doc-body">
