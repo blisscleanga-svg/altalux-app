@@ -188,7 +188,11 @@ Deno.serve(async (req: Request) => {
 
         const result = await squareRequest('/payments', 'POST', {
           source_id: sourceId,
-          idempotency_key: `${invoice.id}-${Date.now()}`,
+          // Bug 2026-07-16: invoice.id (36) + '-' + Date.now() (13) = 50
+          // caracteres — Square exige idempotency_key de máximo 45. Por
+          // eso el pago nunca pasaba ("Field must not be greater than 45
+          // length"). Mismo patrón ya usado en el resto del archivo.
+          idempotency_key: crypto.randomUUID(),
           amount_money: { amount: amountInCents, currency: 'USD' },
           location_id: SQUARE_LOCATION_ID,
           note: `AltaLux Invoice INV-${new Date(invoice.created_at).getFullYear()}-${String(invoice.invoice_number).padStart(4, '0')}`,
