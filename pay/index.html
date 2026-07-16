@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoice & Payment | AltaLux Mobile Detail</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --brand-primary:#104872;
+    --brand-secondary:#FF8C00;
+    --brand-accent:#FFAA00;
+    --ink:#1a2530;
+    --ink-muted:#5b6b7a;
+    --line:#e2e6ea;
+    --bg:#f4f6f8;
+    --green:#1D9E75;
+    --red:#d64545;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; padding:0; background:var(--bg); color:var(--ink);
+    font-family:'Inter', Arial, sans-serif; font-size:15px; line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1, h2, h3, .brand-word{ font-family:'Rajdhani', sans-serif; font-weight:700; }
+  .page-wrap{ max-width:800px; margin:0 auto; padding:24px 16px 60px; }
+  .doc{ background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 2px 14px rgba(16,30,45,.08); }
+
+  /* ---------- Header ---------- */
+  .doc-header{
+    background:var(--brand-primary); padding:28px 28px 24px;
+    display:flex; flex-direction:column; align-items:center; text-align:center; gap:10px;
+  }
+  .doc-logo{ height:56px; width:auto; }
+  .doc-header-contact{ color:#cfe0ee; font-size:12.5px; letter-spacing:.3px; }
+  .doc-header-contact a{ color:#ffffff; text-decoration:none; }
+
+  /* ---------- Meta ---------- */
+  .doc-body{ padding:26px 28px 30px; }
+  .doc-meta{
+    display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:14px;
+    padding-bottom:18px; margin-bottom:18px; border-bottom:1px solid var(--line);
+  }
+  .doc-meta-left h2{ margin:0 0 4px; font-size:22px; letter-spacing:1px; color:var(--brand-primary); }
+  .doc-meta-left .inv-number{ color:var(--ink-muted); font-size:13px; }
+  .doc-meta-right{ text-align:right; font-size:13px; color:var(--ink-muted); }
+  .doc-meta-right .due{ font-weight:600; color:var(--ink); }
+  .status-badge{
+    display:inline-block; padding:5px 14px; border-radius:999px; font-family:'Rajdhani',sans-serif;
+    font-weight:700; font-size:12.5px; letter-spacing:1px; text-transform:uppercase; margin-top:6px;
+  }
+  .status-badge.pending{ background:#fff4dc; color:#a06600; }
+  .status-badge.paid{ background:#e2f6ee; color:var(--green); }
+
+  .doc-section{ margin-bottom:22px; }
+  .doc-section-title{
+    font-family:'Rajdhani',sans-serif; font-weight:700; font-size:12.5px; letter-spacing:1.5px;
+    text-transform:uppercase; color:var(--ink-muted); margin:0 0 8px;
+  }
+  .billto-name{ font-weight:600; font-size:15.5px; }
+  .billto-line{ color:var(--ink-muted); font-size:13.5px; margin-top:2px; }
+
+  table.line-items{ width:100%; border-collapse:collapse; font-size:14px; }
+  table.line-items td{ padding:9px 0; border-bottom:1px solid var(--line); }
+  table.line-items td:last-child{ text-align:right; white-space:nowrap; }
+  table.line-items tr.total td{
+    border-bottom:none; border-top:2px solid var(--ink); padding-top:14px;
+    font-family:'Rajdhani',sans-serif; font-weight:700; font-size:19px; color:var(--brand-primary);
+  }
+  .adj-desc{ color:var(--ink-muted); }
+
+  .comment-box{
+    background:#f7f9fb; border-left:3px solid var(--brand-secondary); border-radius:0 6px 6px 0;
+    padding:12px 16px; font-size:13.5px; color:var(--ink); margin-top:6px;
+  }
+
+  /* ---------- Payment ---------- */
+  .pay-section{ border-top:2px dashed var(--line); padding-top:22px; margin-top:6px; }
+  #square-card-container{
+    border:1.5px solid var(--line); border-radius:8px; padding:14px; min-height:56px; margin-bottom:14px;
+  }
+  #card-error{ display:none; color:var(--red); font-size:13px; margin-bottom:12px; }
+  .pay-btn{
+    width:100%; padding:15px; border:none; border-radius:8px; cursor:pointer;
+    background:var(--brand-secondary); color:#1a1a1a; font-family:'Rajdhani',sans-serif;
+    font-weight:700; font-size:17px; letter-spacing:.5px; display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .pay-btn:disabled{ opacity:.6; cursor:not-allowed; }
+  .btn-spinner{
+    width:16px; height:16px; border:2px solid rgba(0,0,0,.25); border-top-color:#1a1a1a;
+    border-radius:50%; display:inline-block; animation:spin .7s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  /* ---------- Paid confirmation ---------- */
+  .paid-block{ text-align:center; padding:10px 0 4px; }
+  .paid-check{
+    width:56px; height:56px; border-radius:50%; background:#e2f6ee; color:var(--green);
+    display:flex; align-items:center; justify-content:center; margin:0 auto 14px; font-size:28px;
+  }
+  .paid-block h2{ color:var(--green); margin:0 0 6px; }
+  .paid-block p{ color:var(--ink-muted); margin:2px 0; }
+  .review-link{
+    display:inline-block; margin-top:16px; padding:11px 22px; border-radius:8px;
+    background:var(--brand-primary); color:#fff; text-decoration:none; font-family:'Rajdhani',sans-serif;
+    font-weight:700; letter-spacing:.5px;
+  }
+
+  .doc-footer{
+    text-align:center; padding:18px 20px; color:var(--ink-muted); font-size:12px; border-top:1px solid var(--line);
+  }
+
+  /* ---------- Skeleton ---------- */
+  #skeleton-loader{ padding:40px 28px; }
+  .sk-header{ height:110px; border-radius:10px; background:linear-gradient(90deg,#e8ebee,#f4f6f8,#e8ebee); background-size:200% 100%; animation:sk 1.4s infinite; margin-bottom:22px; }
+  .sk-line{ height:14px; border-radius:4px; background:linear-gradient(90deg,#e8ebee,#f4f6f8,#e8ebee); background-size:200% 100%; animation:sk 1.4s infinite; margin-bottom:10px; }
+  .sk-line.short{ width:40%; }
+  @keyframes sk{ 0%{ background-position:200% 0; } 100%{ background-position:-200% 0; } }
+
+  /* ---------- Error screen ---------- */
+  #error-screen{ display:none; text-align:center; padding:60px 24px; }
+  #error-screen .error-icon{ font-size:40px; margin-bottom:14px; }
+  #error-screen h2{ margin:0 0 8px; color:var(--ink); }
+  #error-screen p{ color:var(--ink-muted); margin:4px 0; }
+  #error-screen a{ color:var(--brand-primary); font-weight:600; }
+
+  @media (max-width:520px){
+    .doc-meta{ flex-direction:column; }
+    .doc-meta-right{ text-align:left; }
+  }
+
+  @media print{
+    body{ background:#fff; }
+    .page-wrap{ padding:0; max-width:100%; }
+    .doc{ box-shadow:none; border-radius:0; }
+    #square-card-container, .pay-btn, .pay-section, .no-print{ display:none !important; }
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-wrap">
+
+  <!-- Skeleton (visible mientras carga) -->
+  <div id="skeleton-loader">
+    <div class="sk-header"></div>
+    <div class="sk-line"></div>
+    <div class="sk-line"></div>
+    <div class="sk-line short"></div>
+  </div>
+
+  <!-- Pantalla de error -->
+  <div id="error-screen">
+    <div class="error-icon">⚠️</div>
+    <h2>Link Not Valid</h2>
+    <p>This payment link is invalid, has expired, or has already been used.</p>
+    <p>Please contact AltaLux Mobile Detail for assistance.</p>
+    <p><a href="https://altaluxdetail.com">altaluxdetail.com</a></p>
+  </div>
+
+  <!-- Documento (oculto hasta tener datos) -->
+  <div class="doc" id="doc" hidden>
+    <div class="doc-header">
+      <img class="doc-logo" id="doc-logo" src="../brand/altalux-logo-color.png" alt="AltaLux Mobile Detail">
+      <div class="doc-header-contact" id="doc-header-contact">Roswell, GA &nbsp;|&nbsp; <a href="https://altaluxdetail.com">altaluxdetail.com</a> &nbsp;|&nbsp; <a href="mailto:contact@altaluxdetail.com">contact@altaluxdetail.com</a></div>
+    </div>
+
+    <div class="doc-body">
+      <div class="doc-meta">
+        <div class="doc-meta-left">
+          <h2>INVOICE</h2>
+          <div class="inv-number" id="inv-number">—</div>
+          <span class="status-badge" id="status-badge">—</span>
+        </div>
+        <div class="doc-meta-right">
+          <div>Issue date: <span id="inv-issue-date">—</span></div>
+          <div class="due">Due: <span id="inv-due-date">Upon receipt</span></div>
+        </div>
+      </div>
+
+      <div class="doc-section" id="billto-section">
+        <p class="doc-section-title">Billed To</p>
+        <div class="billto-name" id="bt-name">—</div>
+        <div class="billto-line" id="bt-email"></div>
+        <div class="billto-line" id="bt-phone"></div>
+        <div class="billto-line" id="bt-address"></div>
+      </div>
+
+      <div class="doc-section" id="vehicle-section" hidden>
+        <p class="doc-section-title">Vehicle</p>
+        <div class="billto-line" id="veh-line">—</div>
+      </div>
+
+      <div class="doc-section">
+        <p class="doc-section-title">Details</p>
+        <table class="line-items" id="line-items-table"></table>
+      </div>
+
+      <div class="doc-section no-print" id="comment-section" hidden>
+        <p class="doc-section-title">Note</p>
+        <div class="comment-box" id="comment-text"></div>
+      </div>
+
+      <!-- Sección de pago — solo si status != Paid -->
+      <div class="pay-section no-print" id="pay-section" hidden>
+        <p class="doc-section-title">Complete Your Payment</p>
+        <div id="square-card-container"></div>
+        <p id="card-error"></p>
+        <button type="button" class="pay-btn" id="pay-btn">Pay <span id="pay-btn-amount"></span></button>
+      </div>
+
+      <!-- Confirmación de pago — solo si status == Paid -->
+      <div class="paid-block no-print" id="paid-block" hidden>
+        <div class="paid-check">✓</div>
+        <h2>Payment Received</h2>
+        <p id="paid-date-line"></p>
+        <p id="paid-amount-line"></p>
+        <a class="review-link" id="review-link" href="#" target="_blank" rel="noopener" hidden>Leave us a Google Review →</a>
+      </div>
+    </div>
+
+    <div class="doc-footer">
+      AltaLux Mobile Detail &nbsp;·&nbsp; Roswell, GA &nbsp;·&nbsp; altaluxdetail.com<br>
+      Thank you for your business!
+    </div>
+  </div>
+
+</div>
+
+<script src="../shared/config.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var SUPABASE_URL = 'https://xmhsehfdmiqbwhpqjgon.supabase.co';
+  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtaHNlaGZkbWlxYndocHFqZ29uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzODU5NzQsImV4cCI6MjA5ODk2MTk3NH0.J2UOp-pgzP6ByvDBoHcocFAmarWdlDK8M31YgKrUNss';
+  var SQUARE_FUNCTION_URL = SUPABASE_URL + '/functions/v1/square-payment';
+  var SQUARE_APP_ID = 'sq0idp-jVMn1EDrut74rDnsRGgZrQ';
+  var SQUARE_LOCATION_ID = 'LEWG2XNWRA7BS';
+
+  var skeleton = document.getElementById('skeleton-loader');
+  var errorScreen = document.getElementById('error-screen');
+  var doc = document.getElementById('doc');
+
+  function showError(){
+    skeleton.hidden = true;
+    doc.hidden = true;
+    errorScreen.style.display = 'block';
+  }
+
+  function fmtCurrency(n){
+    return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
+  }
+  function fmtDate(d){
+    if (!d) return '—';
+    var dt = new Date(d.length <= 10 ? d + 'T00:00:00' : d);
+    if (isNaN(dt.getTime())) return String(d);
+    return dt.toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+  }
+  function esc(s){
+    return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  async function restGet(path){
+    var res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY }
+    });
+    if (!res.ok) throw new Error('REST error ' + res.status);
+    return res.json();
+  }
+
+  function renderLineItems(inv){
+    var rows = '';
+    var baseLabel = inv.original_service_name || (inv.job_category ? inv.job_category + (inv.job_package && inv.job_package !== inv.job_category ? ' — ' + inv.job_package : '') : 'Service');
+    rows += '<tr><td>' + esc(baseLabel) + '</td><td>' + fmtCurrency(inv.original_amount) + '</td></tr>';
+    (inv.adjustments || []).forEach(function(a){
+      var sign = a.type === 'discount' ? -1 : 1;
+      rows += '<tr><td class="adj-desc">' + esc(a.description || (a.type === 'discount' ? 'Discount' : 'Additional charge')) + '</td><td>' + (sign < 0 ? '-' : '') + fmtCurrency(Math.abs(a.amount)) + '</td></tr>';
+    });
+    rows += '<tr class="total"><td>TOTAL DUE</td><td>' + fmtCurrency(inv.final_amount) + '</td></tr>';
+    document.getElementById('line-items-table').innerHTML = rows;
+  }
+
+  function renderInvoice(inv){
+    document.getElementById('doc-logo').alt = 'AltaLux Mobile Detail';
+    document.getElementById('inv-number').textContent = inv.invoice_display_number || '—';
+    document.getElementById('inv-issue-date').textContent = fmtDate(inv.created_at);
+    document.getElementById('inv-due-date').textContent = inv.due_by ? fmtDate(inv.due_by) : 'Upon receipt';
+
+    var badge = document.getElementById('status-badge');
+    var isPaid = inv.status === 'Paid';
+    badge.textContent = isPaid ? 'PAID' : 'PENDING';
+    badge.className = 'status-badge ' + (isPaid ? 'paid' : 'pending');
+
+    document.getElementById('bt-name').textContent = inv.customer_name || '—';
+    document.getElementById('bt-email').textContent = inv.customer_email || '';
+    document.getElementById('bt-phone').textContent = inv.customer_phone || '';
+    document.getElementById('bt-address').textContent = inv.service_address || '';
+
+    if (inv.vehicle_year || inv.vehicle_make || inv.vehicle_model){
+      document.getElementById('vehicle-section').hidden = false;
+      var vehParts = [inv.vehicle_year, inv.vehicle_make, inv.vehicle_model].filter(Boolean).join(' ');
+      document.getElementById('veh-line').textContent = vehParts + (inv.vehicle_color ? ' — ' + inv.vehicle_color : '');
+    }
+
+    renderLineItems(inv);
+
+    if (inv.title){
+      var h2 = doc.querySelector('.doc-meta-left h2');
+      h2.textContent = inv.title.toUpperCase();
+    }
+    if (inv.comment){
+      document.getElementById('comment-section').hidden = false;
+      document.getElementById('comment-text').textContent = inv.comment;
+    }
+
+    skeleton.hidden = true;
+    doc.hidden = false;
+
+    if (isPaid){
+      showPaidConfirmation(inv);
+    } else {
+      document.getElementById('pay-section').hidden = false;
+      document.getElementById('pay-btn-amount').textContent = fmtCurrency(inv.final_amount);
+      loadSquareAndInit(inv);
+    }
+  }
+
+  function showPaidConfirmation(inv){
+    document.getElementById('paid-block').hidden = false;
+    document.getElementById('paid-date-line').textContent = inv.paid_at ? ('Paid on ' + fmtDate(inv.paid_at)) : '';
+    document.getElementById('paid-amount-line').textContent = 'Amount: ' + fmtCurrency(inv.amount_paid || inv.final_amount);
+  }
+
+  // ---------- Square SDK: solo se carga si la factura sigue pendiente ----------
+  var squarePaymentsInstance = null;
+  var squareCard = null;
+
+  function loadSquareScript(){
+    return new Promise(function(resolve, reject){
+      if (window.Square){ resolve(); return; }
+      var s = document.createElement('script');
+      s.src = 'https://web.squarecdn.com/v1/square.js';
+      s.onload = resolve;
+      s.onerror = function(){ reject(new Error('Failed to load Square SDK.')); };
+      document.head.appendChild(s);
+    });
+  }
+
+  async function loadSquareAndInit(inv){
+    try {
+      await loadSquareScript();
+      squarePaymentsInstance = Square.payments(SQUARE_APP_ID, SQUARE_LOCATION_ID);
+      squareCard = await squarePaymentsInstance.card();
+      await squareCard.attach('#square-card-container');
+    } catch (err){
+      console.error('Square init failed:', err);
+      var cardErr = document.getElementById('card-error');
+      cardErr.textContent = 'Unable to load the payment form. Please refresh or contact us.';
+      cardErr.style.display = 'block';
+    }
+
+    document.getElementById('pay-btn').addEventListener('click', function(){
+      handlePay(inv);
+    });
+  }
+
+  async function handlePay(inv){
+    var btn = document.getElementById('pay-btn');
+    var cardErr = document.getElementById('card-error');
+    cardErr.style.display = 'none';
+
+    if (!squareCard){
+      cardErr.textContent = 'The payment form is still loading — please wait a moment.';
+      cardErr.style.display = 'block';
+      return;
+    }
+
+    var originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="btn-spinner"></span> Processing...';
+
+    try {
+      var tokenResult = await squareCard.tokenize();
+      if (tokenResult.status !== 'OK'){
+        throw new Error((tokenResult.errors && tokenResult.errors[0] && tokenResult.errors[0].message) || 'Card was declined. Please check your details and try again.');
+      }
+
+      var res = await fetch(SQUARE_FUNCTION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, apikey: SUPABASE_ANON_KEY },
+        body: JSON.stringify({ action: 'charge', sourceId: tokenResult.token, publicToken: inv.public_token })
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Payment failed.');
+
+      // Transición a confirmación sin recargar la página.
+      document.getElementById('pay-section').hidden = true;
+      var badge = document.getElementById('status-badge');
+      badge.textContent = 'PAID';
+      badge.className = 'status-badge paid';
+      showPaidConfirmation({ paid_at: new Date().toISOString(), amount_paid: data.amount_paid || inv.final_amount });
+
+      fetch(SUPABASE_URL + '/functions/v1/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + SUPABASE_ANON_KEY, apikey: SUPABASE_ANON_KEY },
+        body: JSON.stringify({
+          action: 'payment_receipt',
+          businessId: (window.APP_CONFIG && window.APP_CONFIG.businessId) || 'altalux',
+          data: {
+            customerName: inv.customer_name, customerEmail: inv.customer_email,
+            invoiceNumber: inv.invoice_display_number, service: inv.original_service_name || inv.job_category,
+            vehicleYear: inv.vehicle_year, vehicleMake: inv.vehicle_make, vehicleModel: inv.vehicle_model,
+            amountPaid: data.amount_paid || inv.final_amount, paidAt: new Date().toISOString(),
+            squarePaymentId: data.paymentId, publicToken: inv.public_token
+          }
+        })
+      }).catch(function(e){ console.error('payment_receipt email failed:', e); });
+    } catch (err){
+      console.error('Payment failed:', err);
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+      cardErr.textContent = err.message || 'Something went wrong. Please try again.';
+      cardErr.style.display = 'block';
+    }
+  }
+
+  // ---------- Arranque ----------
+  var params = new URLSearchParams(window.location.search);
+  var token = params.get('token');
+
+  if (!token){
+    showError();
+  } else {
+    restGet('invoices_public?public_token=eq.' + encodeURIComponent(token) + '&select=*')
+      .then(function(rows){
+        if (!rows || !rows.length){ showError(); return; }
+        renderInvoice(rows[0]);
+      })
+      .catch(function(err){ console.error(err); showError(); });
+  }
+
+  document.addEventListener('appConfigLoaded', function(){
+    if (window.APP_CONFIG && window.APP_CONFIG.settings){
+      var reviewUrl = window.APP_CONFIG.settings.google_review_url;
+      if (reviewUrl){
+        var link = document.getElementById('review-link');
+        link.href = reviewUrl;
+        link.hidden = false;
+      }
+    }
+  });
+})();
+</script>
+</body>
+</html>

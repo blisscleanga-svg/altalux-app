@@ -237,12 +237,74 @@ function buildInternalNotification(biz: BizSettings, d: any) {
   return { subject, html: emailShell(biz, subject, body) };
 }
 
+// ---------- pay/ — link de pago del invoice ----------
+function payUrl(biz: BizSettings, token: string): string {
+  const base = (biz.booking_url || biz.admin_url || 'https://app.altaluxdetail.com/booking/').replace(/\/(booking|admin|technician)\/?$/, '');
+  return base + '/pay/?token=' + encodeURIComponent(token);
+}
+
+function vehicleLine(d: any): string {
+  return [d.vehicleYear, d.vehicleMake, d.vehicleModel].filter(Boolean).join(' ');
+}
+
+function buildInvoiceLink(biz: BizSettings, d: any) {
+  const subject = `💳 Your invoice is ready — ${biz.name}`;
+  const url = payUrl(biz, d.publicToken);
+  const body = `
+    <p style="font-weight:bold; font-size:18px; margin:0 0 4px; color:${biz.primary_color || '#104872'};">Your Invoice Is Ready</p>
+    ${d.service ? `<p style="margin:0 0 16px; color:${biz.secondary_color || '#FF8C00'}; font-weight:600;">${esc(d.service)}</p>` : ''}
+    <p>Hi ${esc(d.customerName)},</p>
+    <p>Your invoice for your recent detailing service is ready for payment.</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f9fb; border-radius:8px; margin:16px 0;">
+      <tr><td style="padding:16px 18px; font-size:14px; line-height:1.9;">
+        <strong>Invoice:</strong> ${esc(d.invoiceNumber)}<br>
+        ${d.service ? `<strong>Service:</strong> ${esc(d.service)}<br>` : ''}
+        ${vehicleLine(d) ? `<strong>Vehicle:</strong> ${esc(vehicleLine(d))}<br>` : ''}
+        <strong>Total:</strong> ${fmtCurrency(d.total)}<br>
+        <strong>Due By:</strong> ${d.dueBy ? fmtDate(d.dueBy) : 'Upon receipt'}
+      </td></tr>
+    </table>
+    ${d.comment ? `<p style="background:#fff8ec; border-left:3px solid ${biz.secondary_color || '#FF8C00'}; padding:10px 14px; font-size:13.5px; margin:16px 0;">${esc(d.comment)}</p>` : ''}
+    <p style="text-align:center; margin:26px 0;">
+      <a href="${esc(url)}" style="background:${biz.secondary_color || '#FF8C00'}; color:#ffffff; padding:14px 28px; border-radius:8px; text-decoration:none; display:inline-block; font-weight:bold;">View &amp; Pay Invoice →</a>
+    </p>
+    <p style="font-size:12.5px; color:#666;">If you have already paid, please disregard this message.</p>
+  `;
+  return { subject, html: emailShell(biz, subject, body) };
+}
+
+function buildPaymentReceipt(biz: BizSettings, d: any) {
+  const subject = `✅ Payment Confirmed — ${biz.name}`;
+  const url = payUrl(biz, d.publicToken);
+  const body = `
+    <p style="font-weight:bold; font-size:18px; margin:0 0 4px; color:#1D9E75;">Payment Received!</p>
+    <p style="margin:0 0 16px; color:${biz.secondary_color || '#FF8C00'}; font-weight:600;">Thank you for choosing ${esc(biz.name)}</p>
+    <p>Hi ${esc(d.customerName)}, we have successfully received your payment.</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f9fb; border-radius:8px; margin:16px 0;">
+      <tr><td style="padding:16px 18px; font-size:14px; line-height:1.9;">
+        <strong>Invoice:</strong> ${esc(d.invoiceNumber)}<br>
+        ${d.service ? `<strong>Service:</strong> ${esc(d.service)}<br>` : ''}
+        ${vehicleLine(d) ? `<strong>Vehicle:</strong> ${esc(vehicleLine(d))}<br>` : ''}
+        <strong>Amount Paid:</strong> ${fmtCurrency(d.amountPaid)}<br>
+        <strong>Date:</strong> ${fmtDate(d.paidAt)}<br>
+        ${d.squarePaymentId ? `<strong>Reference:</strong> ${esc(d.squarePaymentId)}` : ''}
+      </td></tr>
+    </table>
+    <p style="text-align:center; margin:22px 0;">
+      <a href="${esc(url)}" style="background:${biz.primary_color || '#104872'}; color:#ffffff; padding:12px 24px; border-radius:8px; text-decoration:none; display:inline-block; font-weight:bold;">View Receipt</a>
+    </p>
+  `;
+  return { subject, html: emailShell(biz, subject, body) };
+}
+
 const BUILDERS: Record<string, (biz: BizSettings, d: any) => { subject: string; html: string }> = {
   booking_confirmation: buildBookingConfirmation,
   job_confirmed: buildJobConfirmed,
   reminder_24h: buildReminder24h,
   job_completed: buildJobCompleted,
   internal_notification: buildInternalNotification,
+  invoice_link: buildInvoiceLink,
+  payment_receipt: buildPaymentReceipt,
 };
 
 const TOGGLE_KEY: Record<string, string> = {
@@ -251,6 +313,8 @@ const TOGGLE_KEY: Record<string, string> = {
   reminder_24h: 'reminder_24h',
   job_completed: 'job_completed',
   internal_notification: 'internal_notification',
+  invoice_link: 'invoice_link',
+  payment_receipt: 'payment_receipt',
 };
 
 async function sendViaResend(to: string, from: string, subject: string, html: string) {

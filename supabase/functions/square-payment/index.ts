@@ -159,7 +159,68 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === 'charge') {
-      const { sourceId, amount, jobId } = body;
+      const { sourceId, publicToken } = body;
+      const { amount, jobId } = body;
+
+      // ---- Pago público vía /pay/ (link de invoice) ----
+      // El monto SIEMPRE sale de Supabase (invoice.final_amount), nunca del
+      // cliente — esto es lo único que distingue este modo del de abajo.
+      // No toca ni comparte código con el flujo de depósitos/balance existente.
+      if (publicToken) {
+        if (!sourceId || typeof sourceId !== 'string' || sourceId.length < 10) {
+          return jsonResponse({ error: 'Token de pago inválido.' }, 400);
+        }
+
+        const supabase = getSupabaseAdmin();
+        const { data: invoice, error: invErr } = await supabase
+          .from('invoices')
+          .select('id, final_amount, status, sent_at, invoice_number, created_at, business_id')
+          .eq('public_token', publicToken)
+          .single();
+        if (invErr || !invoice) return jsonResponse({ error: 'Invoice not found.' }, 404);
+        if (invoice.status === 'Paid') return jsonResponse({ error: 'Invoice already paid.' }, 409);
+        if (!invoice.sent_at) return jsonResponse({ error: 'Invoice not available for payment.' }, 403);
+
+        const amountInCents = Math.round(Number(invoice.final_amount) * 100);
+        if (!amountInCents || amountInCents <= 0) {
+          return jsonResponse({ error: 'Invalid invoice amount.' }, 400);
+        }
+
+        const result = await squareRequest('/payments', 'POST', {
+          source_id: sourceId,
+          idempotency_key: `${invoice.id}-${Date.now()}`,
+          amount_money: { amount: amountInCents, currency: 'USD' },
+          location_id: SQUARE_LOCATION_ID,
+          note: `AltaLux Invoice INV-${new Date(invoice.created_at).getFullYear()}-${String(invoice.invoice_number).padStart(4, '0')}`,
+        });
+
+        const paymentId = result.payment?.id;
+
+        const { error: updInvErr } = await supabase
+          .from('invoices')
+          .update({ status: 'Paid', paid_at: new Date().toISOString(), amount_paid: invoice.final_amount })
+          .eq('id', invoice.id);
+        if (updInvErr) console.error('[square-payment] Failed to mark invoice paid:', updInvErr);
+
+        const { error: invPayErr } = await supabase.from('invoice_payments').insert([{
+          invoice_id: invoice.id, business_id: invoice.business_id,
+          square_payment_id: paymentId, amount: invoice.final_amount, status: 'completed',
+        }]);
+        if (invPayErr) console.error('[square-payment] Failed to insert invoice_payments:', invPayErr);
+
+        await writeAuditLog({
+          businessId: invoice.business_id,
+          action: 'payment_collected',
+          entityType: 'invoice',
+          entityId: invoice.id,
+          metadata: { amount: invoice.final_amount, square_payment_id: paymentId, source: 'pay_link' },
+        });
+
+        const invoiceDisplayNumber = `INV-${new Date(invoice.created_at).getFullYear()}-${String(invoice.invoice_number).padStart(4, '0')}`;
+        return jsonResponse({ success: true, paymentId, invoice_number: invoiceDisplayNumber, amount_paid: invoice.final_amount });
+      }
+
+      // ---- flujo existente (depósitos de booking / balance en persona) — sin cambios ----
       if (!sourceId || !amount || !jobId) {
         return jsonResponse({ error: 'sourceId, amount, and jobId are required.' }, 400);
       }
