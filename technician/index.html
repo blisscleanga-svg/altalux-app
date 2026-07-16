@@ -284,6 +284,10 @@
   .square-card-box{ background:#fff; border-radius:var(--radius-sm); padding:14px; margin-bottom:10px; min-height:80px; }
   .square-link-result{ display:flex; gap:8px; margin-top:10px; }
   .square-link-result input{ flex:1; }
+  .modal-back-btn{
+    background:none; border:none; color:var(--gold); font-weight:700; font-size:15px;
+    cursor:pointer; padding:4px 0; text-align:left;
+  }
 
   .success-screen{ text-align:center; padding:20px 4px; }
   .success-check{
@@ -486,9 +490,6 @@
       <div class="field" style="margin-bottom:20px;">
         <label for="profile-default-payment-select">Default Payment Method</label>
         <select id="profile-default-payment-select">
-          <option value="Square Reader">Square Reader</option>
-          <option value="Square Link">Square Link</option>
-          <option value="Stripe Link" disabled>Stripe Link (Coming Soon)</option>
           <option value="Cash">Cash</option>
           <option value="Zelle">Zelle</option>
           <option value="Check">Check</option>
@@ -779,6 +780,35 @@
 
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost btn-full" id="cp-cancel">Cancel</button>
+      </div>
+    </div>
+
+    <!-- ===== Submenú de Square ===== -->
+    <div id="cp-square-panel" class="hidden">
+      <button type="button" class="modal-back-btn" id="cp-square-back">← Square</button>
+      <div class="payment-method-grid" id="cp-square-submenu" style="margin-top:10px;"></div>
+      <div id="cp-square-fields"></div>
+    </div>
+
+    <!-- ===== Send Payable Invoice (deployment panel) ===== -->
+    <div id="cp-invoice-panel" class="hidden">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <button type="button" class="modal-back-btn" id="cp-invoice-back">← Send Payable Invoice</button>
+        <button type="button" class="btn btn-primary btn-sm" id="cp-invoice-send-top-btn">SEND</button>
+      </div>
+      <p class="addon-group-label" style="margin-top:14px;">Payment Request</p>
+      <div class="payment-method-grid" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="payment-method-btn selected" id="cp-invoice-channel-email"><span class="pm-name">Email</span></div>
+        <div class="payment-method-btn locked" data-locked="1"><span class="pm-name">SMS<span class="pm-coming-soon">Coming soon</span></span></div>
+        <div class="payment-method-btn locked" data-locked="1"><span class="pm-name">Both<span class="pm-coming-soon">Coming soon</span></span></div>
+      </div>
+      <button type="button" class="btn btn-ghost btn-full" id="cp-invoice-preview-btn" style="margin-top:12px;">👁 Preview Invoice</button>
+      <p class="addon-group-label" style="margin-top:16px;">Recipient</p>
+      <div class="field"><label for="cp-invoice-email">Email</label><input type="email" id="cp-invoice-email"></div>
+      <div class="field" style="margin-top:10px;"><label for="cp-invoice-phone">Phone</label><input type="tel" id="cp-invoice-phone" disabled></div>
+      <p class="login-error" id="cp-invoice-error" style="text-align:left;"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-primary btn-full" id="cp-invoice-send-btn">Send Invoice</button>
       </div>
     </div>
 
@@ -1086,8 +1116,9 @@
   function machineWaxPrice(vehicleTypeLabel){ return MACHINE_WAX_TIERS[machineWaxTier(vehicleTypeLabel)]; }
   const ALL_FLAT_ADDONS = ADDONS_INTERIOR.concat(ADDONS_EXTERIOR);
 
-  const PAYMENT_METHODS = ['Stripe Link','Square Reader','Square Link','Cash','Zelle','Check','Other'];
-  const PAYMENT_METHOD_ICON = { 'Stripe Link':'💳','Square Reader':'📶','Square Link':'🔗','Cash':'💵','Zelle':'⚡','Check':'🧾','Other':'✏️' };
+  const PAYMENT_METHODS = ['Square','Cash','Zelle','Check','Other'];
+  const SQUARE_SUBMENU_METHODS = ['Square Reader','Send Payable Invoice','Payment Form'];
+  const PAYMENT_METHOD_ICON = { 'Square':'💳','Square Reader':'📶','Send Payable Invoice':'📤','Payment Form':'🔒','Cash':'💵','Zelle':'⚡','Check':'🧾','Other':'✏️' };
 
   const STATUS_SLUG = { 'Pending':'pending', 'Confirmed':'confirmed', 'In Progress':'inprogress', 'Completed':'completed', 'Cancelled':'cancelled' };
 
@@ -1777,35 +1808,6 @@
   });
 
   // ---------- Job-completed email (non-blocking) ----------
-  async function triggerJobCompletedEmail(job){
-    try {
-      const data = {
-        customerName: job.customer.name,
-        customerEmail: job.customer.email,
-        service: job.service,
-        vehicleType: job.vehicleType,
-        vehicle: job.vehicle,
-        date: toInputDate(job.date),
-        address: job.address,
-        total: job.total,
-        deposit: round2(job.total - balanceDue(job)),
-        balance: balanceDue(job),
-        invoiceNumber: job.invoice ? job.invoice.number : null,
-        lineItems: [{ name: `${job.service} — ${job.vehicle}`, price: job.subtotal }].concat((job.addons || []).map(a => ({ name: a.name, price: a.price })))
-      };
-      const res = await fetch(SEND_EMAIL_FUNCTION_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + SUPABASE_ANON_KEY, apikey: SUPABASE_ANON_KEY },
-        body: JSON.stringify({ action: 'job_completed', businessId: BUSINESS_ID, data })
-      });
-      const result = await res.json();
-      return res.ok && !result.error;
-    } catch (err){
-      console.warn('[send-email] "job_completed" request failed:', err);
-      return false;
-    }
-  }
-
   document.getElementById('dj-complete-btn').addEventListener('click', async () => {
     const job = findJob(currentJobId);
     if (!job.photosBefore.length){
@@ -1821,8 +1823,10 @@
     logJobActivity(job, 'Status changed — In Progress → Completed');
     syncJobStatusToSupabase(job, { end_time: job.endTime.toISOString() });
     populateJobDetail(job);
-    const ok = await triggerJobCompletedEmail(job);
-    showToast(ok ? 'Invoice sent to customer' : 'Job completed (invoice email failed to send)', ok ? 'success' : 'error');
+    // Fix 2026-07-16: ya no se manda ningún email/invoice automático al
+    // completar — el envío ahora es siempre manual (Send Payable Invoice /
+    // Resend Receipt).
+    showToast('Job marked as completed', 'success');
   });
 
   document.getElementById('dj-request-adjustment-btn').addEventListener('click', () => {
@@ -2191,7 +2195,7 @@
   // ================= COLLECT PAYMENT MODAL =================
   let cpSelectedMethod = null;
 
-  const LOCKED_PAYMENT_METHODS = ['Stripe Link'];
+  const LOCKED_PAYMENT_METHODS = ['Payment Form'];
 
   // ---------- Adjust Service & Total panel ----------
   let cpServiceRow = null; // selected business_services row (or null = keep job's original)
@@ -2283,21 +2287,33 @@
     if (cpSelectedMethod) renderMethodFields(cpSelectedMethod, findJob(currentJobId));
   });
 
+  // ---- Navegación entre paneles del modal (2 pasos, estilo Urable) ----
+  function showCpPanel(name){
+    document.getElementById('cp-main-panel').classList.toggle('hidden', name !== 'main');
+    document.getElementById('cp-square-panel').classList.toggle('hidden', name !== 'square');
+    document.getElementById('cp-invoice-panel').classList.toggle('hidden', name !== 'invoice');
+  }
+
   function renderPaymentMethodGrid(){
     const grid = document.getElementById('cp-method-grid');
     grid.innerHTML = PAYMENT_METHODS.map(m => {
-      const locked = LOCKED_PAYMENT_METHODS.includes(m);
+      const isSquare = m === 'Square';
       return `
-      <div class="payment-method-btn ${m === cpSelectedMethod ? 'selected' : ''} ${locked ? 'locked' : ''}" data-method="${m}" ${locked ? 'data-locked="1"' : ''}>
-        ${!locked ? `<span class="pm-star ${currentUser.defaultPaymentMethod === m ? 'is-default' : ''}" data-star="${m}">★</span>` : ''}
-        <span class="pm-icon">${locked ? '🔒' : PAYMENT_METHOD_ICON[m]}</span>
-        <span class="pm-name">${m}${locked ? '<span class="pm-coming-soon">Coming Soon</span>' : ''}</span>
+      <div class="payment-method-btn ${!isSquare && m === cpSelectedMethod ? 'selected' : ''}" data-method="${m}">
+        ${!isSquare ? `<span class="pm-star ${currentUser.defaultPaymentMethod === m ? 'is-default' : ''}" data-star="${m}">★</span>` : ''}
+        <span class="pm-icon">${PAYMENT_METHOD_ICON[m]}</span>
+        <span class="pm-name">${m}</span>
       </div>
     `;
     }).join('');
     grid.querySelectorAll('.payment-method-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        if (e.target.closest('.pm-star') || btn.dataset.locked) return;
+        if (e.target.closest('.pm-star')) return;
+        if (btn.dataset.method === 'Square'){
+          renderSquareSubmenu();
+          showCpPanel('square');
+          return;
+        }
         cpSelectedMethod = btn.dataset.method;
         renderPaymentMethodGrid();
         renderMethodFields(cpSelectedMethod, findJob(currentJobId));
@@ -2312,6 +2328,141 @@
       });
     });
   }
+
+  function renderSquareSubmenu(){
+    const grid = document.getElementById('cp-square-submenu');
+    document.getElementById('cp-square-fields').innerHTML = '';
+    grid.innerHTML = SQUARE_SUBMENU_METHODS.map(m => {
+      const locked = LOCKED_PAYMENT_METHODS.includes(m);
+      return `
+      <div class="payment-method-btn ${locked ? 'locked' : ''}" data-square-method="${m}" ${locked ? 'data-locked="1"' : ''}>
+        <span class="pm-icon">${locked ? '🔒' : PAYMENT_METHOD_ICON[m]}</span>
+        <span class="pm-name">${m}${locked ? '<span class="pm-coming-soon">Coming Soon</span>' : ''}</span>
+      </div>
+    `;
+    }).join('');
+    grid.querySelectorAll('.payment-method-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.dataset.locked) return;
+        const method = btn.dataset.squareMethod;
+        const job = findJob(currentJobId);
+        if (method === 'Square Reader'){
+          renderSquareReaderFields(job);
+        } else if (method === 'Send Payable Invoice'){
+          openInvoicePanel(job);
+        }
+      });
+    });
+  }
+
+  function renderSquareReaderFields(job){
+    const bal = cpEffectiveAmount(job);
+    const container = document.getElementById('cp-square-fields');
+    container.innerHTML = `
+      <div class="field"><label>Amount</label><input type="number" id="cp-field-amount" value="${bal.toFixed(2)}" step="0.01"></div>
+      <div class="square-card-box" id="cp-square-card-container"></div>
+      <p style="font-size:11.5px; color:var(--red); margin:0 0 10px; display:none;" id="cp-square-card-error"></p>
+      <button type="button" class="btn btn-primary btn-full" id="cp-submit-btn">Charge with Square</button>
+    `;
+    ensureCpSquareCard();
+    document.getElementById('cp-submit-btn').addEventListener('click', () => handleSquareReaderCharge(job));
+  }
+
+  document.getElementById('cp-square-back').addEventListener('click', () => showCpPanel('main'));
+  document.getElementById('cp-invoice-back').addEventListener('click', () => showCpPanel('square'));
+
+  function openInvoicePanel(job){
+    document.getElementById('cp-invoice-email').value = (job.customer && job.customer.email) || '';
+    document.getElementById('cp-invoice-phone').value = (job.customer && job.customer.phone) || '';
+    document.getElementById('cp-invoice-error').textContent = '';
+    showCpPanel('invoice');
+  }
+
+  document.getElementById('cp-invoice-preview-btn').addEventListener('click', () => {
+    const job = findJob(currentJobId);
+    const token = job && job.invoice && job.invoice.publicToken;
+    if (token){
+      window.open('https://app.altaluxdetail.com/pay/?token=' + encodeURIComponent(token), '_blank');
+    } else {
+      showToast('Send the invoice first to generate a preview link.', 'error');
+    }
+  });
+
+  async function sendPayableInvoiceTech(job, amount, recipientEmail){
+    if (!db) throw new Error('Supabase client unavailable — cannot send.');
+    if (!job.supabaseId || !job.customerId) throw new Error('This job is not fully synced to the database yet.');
+    if (!recipientEmail) throw new Error('An email is required to send the invoice.');
+
+    const publicToken = crypto.randomUUID();
+    const { data: existing } = await db.from('invoices').select('id')
+      .eq('job_id', job.supabaseId).order('created_at', { ascending: false }).limit(1);
+
+    const payload = {
+      job_id: job.supabaseId, customer_id: job.customerId,
+      status: 'Sent', original_amount: amount, original_service_name: job.service,
+      adjustments: [], final_amount: amount,
+      public_token: publicToken, sent_at: new Date().toISOString()
+    };
+
+    let invRow;
+    if (existing && existing.length){
+      const { data, error } = await db.from('invoices').update(payload).eq('id', existing[0].id).select().single();
+      if (error) throw error;
+      invRow = data;
+    } else {
+      const { data, error } = await db.from('invoices').insert([payload]).select().single();
+      if (error) throw error;
+      invRow = data;
+    }
+
+    const invoiceDisplayNumber = 'INV-' + new Date(invRow.created_at).getFullYear() + '-' + String(invRow.invoice_number).padStart(4, '0');
+
+    const res = await fetch(SEND_EMAIL_FUNCTION_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + SUPABASE_ANON_KEY, apikey: SUPABASE_ANON_KEY },
+      body: JSON.stringify({
+        action: 'invoice_link', businessId: BUSINESS_ID,
+        data: {
+          customerName: job.customer.name, customerEmail: recipientEmail,
+          invoiceNumber: invoiceDisplayNumber, service: job.service,
+          total: amount, publicToken
+        }
+      })
+    });
+    const result = await res.json();
+    if (!res.ok || result.error) throw new Error(result.error || 'Failed to send invoice email.');
+
+    job.invoice = job.invoice || {};
+    job.invoice.number = invoiceDisplayNumber;
+    job.invoice.status = 'Sent';
+    job.invoice.publicToken = publicToken;
+    logJobActivity(job, `Invoice sent — ${invoiceDisplayNumber} to ${recipientEmail}`);
+    return invoiceDisplayNumber;
+  }
+
+  async function submitCpInvoice(){
+    const job = findJob(currentJobId);
+    if (!job) return;
+    const email = document.getElementById('cp-invoice-email').value.trim();
+    const errorEl = document.getElementById('cp-invoice-error');
+    errorEl.textContent = '';
+
+    const amount = cpEffectiveAmount(job);
+    const btns = [document.getElementById('cp-invoice-send-btn'), document.getElementById('cp-invoice-send-top-btn')];
+    btns.forEach(b => { b.disabled = true; });
+    try {
+      const invoiceDisplayNumber = await sendPayableInvoiceTech(job, amount, email);
+      showToast(`Invoice ${invoiceDisplayNumber} sent to ${email}`, 'success');
+      closeModal('collect-payment-modal');
+    } catch (err){
+      console.error('[Send Payable Invoice] failed:', err);
+      errorEl.textContent = err.message || 'Failed to send invoice.';
+    } finally {
+      btns.forEach(b => { b.disabled = false; });
+    }
+  }
+  document.getElementById('cp-invoice-send-btn').addEventListener('click', submitCpInvoice);
+  document.getElementById('cp-invoice-send-top-btn').addEventListener('click', submitCpInvoice);
 
   function updateCashChange(){
     const job = findJob(currentJobId);
@@ -2342,28 +2493,7 @@
   function renderMethodFields(method, job){
     const container = document.getElementById('cp-method-fields');
     const bal = cpEffectiveAmount(job);
-    if (method === 'Square Reader'){
-      container.innerHTML = `
-        <div class="field"><label>Amount</label><input type="number" id="cp-field-amount" value="${bal.toFixed(2)}" step="0.01"></div>
-        <div class="square-card-box" id="cp-square-card-container"></div>
-        <p style="font-size:11.5px; color:var(--red); margin:0 0 10px; display:none;" id="cp-square-card-error"></p>
-        <button type="button" class="btn btn-primary btn-full" id="cp-submit-btn">Charge with Square</button>
-      `;
-      ensureCpSquareCard();
-    } else if (method === 'Square Link'){
-      container.innerHTML = `
-        <div class="field"><label>Customer Email</label><input type="email" id="cp-field-email" value="${job.customer.email}"></div>
-        <div class="field" style="margin-top:12px;"><label>Amount</label><input type="number" id="cp-field-amount" value="${bal.toFixed(2)}" step="0.01"></div>
-        <button type="button" class="btn btn-primary btn-full" id="cp-submit-btn" style="margin-top:16px;">Generate Square Payment Link</button>
-        <div class="square-link-result hidden" id="cp-square-link-result">
-          <input type="text" id="cp-square-link-url" readonly>
-        </div>
-        <div style="display:flex; gap:8px; margin-top:10px;" id="cp-square-link-actions" class="hidden">
-          <button type="button" class="btn btn-ghost" id="cp-square-link-copy" style="flex:1;">Copy Link</button>
-          <button type="button" class="btn btn-ghost" id="cp-square-link-sms" style="flex:1;">Text to Customer</button>
-        </div>
-      `;
-    } else if (method === 'Cash'){
+    if (method === 'Cash'){
       container.innerHTML = `
         <div class="field"><label>Amount Received</label><input type="number" id="cp-field-received" value="${bal.toFixed(2)}" step="0.01"></div>
         <div class="info-line" style="margin-top:10px;"><span>Change Due</span><span id="cp-change-due" style="font-weight:700;">$0.00</span></div>
@@ -2389,13 +2519,7 @@
         <button type="button" class="btn btn-primary btn-full" id="cp-submit-btn" style="margin-top:16px;">Record Payment</button>
       `;
     }
-    if (method === 'Square Link'){
-      document.getElementById('cp-submit-btn').addEventListener('click', () => handleSquareLinkGenerate(job));
-    } else if (method === 'Square Reader'){
-      document.getElementById('cp-submit-btn').addEventListener('click', () => handleSquareReaderCharge(job));
-    } else {
-      document.getElementById('cp-submit-btn').addEventListener('click', () => handlePaymentSubmit(method, job));
-    }
+    document.getElementById('cp-submit-btn').addEventListener('click', () => handlePaymentSubmit(method, job));
   }
 
   async function recordSupabasePayment(job, amount, method, reference){
@@ -2643,42 +2767,6 @@
     }
   }
 
-  async function handleSquareLinkGenerate(job){
-    const amount = parseFloat(document.getElementById('cp-field-amount').value) || balanceDue(job);
-    if (!amount || amount <= 0){ alert('Please enter a valid amount.'); return; }
-    const email = document.getElementById('cp-field-email').value.trim();
-    const btn = document.getElementById('cp-submit-btn');
-    const originalText = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = 'Generating...';
-    try {
-      const result = await callSquareFunction('create_link', {
-        amount: Math.round(amount * 100), jobId: job.jobNumber, customerEmail: email,
-        description: `Job #${job.jobNumber} — ${job.service}`
-      });
-      if (!result.url) throw new Error('Could not create a Square payment link.');
-      document.getElementById('cp-square-link-url').value = result.url;
-      document.getElementById('cp-square-link-result').classList.remove('hidden');
-      document.getElementById('cp-square-link-actions').classList.remove('hidden');
-
-      document.getElementById('cp-square-link-copy').addEventListener('click', async () => {
-        try { await navigator.clipboard.writeText(result.url); showToast('Link copied.', 'success'); }
-        catch (e){ document.getElementById('cp-square-link-url').select(); document.execCommand('copy'); }
-      });
-      document.getElementById('cp-square-link-sms').addEventListener('click', () => {
-        const message = `Hi ${job.customer.name.split(' ')[0]}, your AltaLux detail is complete!\nPlease pay your balance of ${formatCurrency(amount)} here: ${result.url}\nThank you! — AltaLux Mobile Detail`;
-        const phoneDigits = (job.customer.phone || '').replace(/[^\d+]/g, '');
-        window.location.href = `sms:${phoneDigits}?&body=${encodeURIComponent(message)}`;
-      });
-    } catch (err){
-      console.error('[Square] Link creation failed:', err);
-      showToast('Could not generate a Square payment link.', 'error');
-    } finally {
-      btn.disabled = false;
-      btn.textContent = originalText;
-    }
-  }
-
   function handlePaymentSubmit(method, job){
     let amount, recordedMethod = method;
     if (method === 'Cash'){
@@ -2750,9 +2838,10 @@
     recalcCpSummary();
 
     cpSelectedMethod = currentUser.defaultPaymentMethod || 'Cash';
-    if (LOCKED_PAYMENT_METHODS.includes(cpSelectedMethod)) cpSelectedMethod = 'Square Reader';
+    if (!PAYMENT_METHODS.includes(cpSelectedMethod) || cpSelectedMethod === 'Square') cpSelectedMethod = 'Cash';
     renderPaymentMethodGrid();
     renderMethodFields(cpSelectedMethod, job);
+    showCpPanel('main');
     document.getElementById('collect-payment-modal').classList.remove('hidden');
   }
   document.getElementById('dj-collect-btn').addEventListener('click', openCollectPaymentModal);
