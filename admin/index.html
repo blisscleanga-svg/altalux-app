@@ -255,6 +255,7 @@
     width:auto;
     display:block;
     flex-shrink:0;
+    margin-right:12px;
   }
   .navbar-nav{
     display:flex;
@@ -339,7 +340,10 @@
     color:var(--white);
     border:1px solid rgba(255,170,0,.3);
   }
-  .sidebar-link .icon{ font-size:16px; }
+  /* Iconos SVG del menú lateral (reemplazan los emojis) — heredan color via currentColor */
+  .sidebar-link .icon{ display:flex; align-items:center; justify-content:center; flex-shrink:0; opacity:.75; }
+  .sidebar-link .icon svg{ display:block; }
+  .sidebar-link:hover .icon, .sidebar-link.active .icon{ opacity:1; }
 
   .main-content{
     flex:1;
@@ -1366,16 +1370,16 @@
 
   <div class="app-body">
     <aside class="sidebar">
-      <button type="button" class="sidebar-link active" data-view="calendar"><span class="icon">📅</span> Calendar</button>
-      <button type="button" class="sidebar-link" data-view="jobs"><span class="icon">🧾</span> Jobs</button>
-      <button type="button" class="sidebar-link" data-view="proposals"><span class="icon">📋</span> Proposals</button>
-      <button type="button" class="sidebar-link" data-view="customers"><span class="icon">👥</span> Customers</button>
-      <button type="button" class="sidebar-link" data-view="payments"><span class="icon">💳</span> Payments</button>
+      <button type="button" class="sidebar-link active" data-view="calendar"><span class="icon"></span> Calendar</button>
+      <button type="button" class="sidebar-link" data-view="jobs"><span class="icon"></span> Jobs</button>
+      <button type="button" class="sidebar-link" data-view="proposals"><span class="icon"></span> Proposals</button>
+      <button type="button" class="sidebar-link" data-view="customers"><span class="icon"></span> Customers</button>
+      <button type="button" class="sidebar-link" data-view="payments"><span class="icon"></span> Payments</button>
       <p class="section-label" style="margin:18px 0 4px; padding-left:14px; font-size:11px;">Team</p>
-      <button type="button" class="sidebar-link" data-view="employees"><span class="icon">🧑‍🔧</span> Employees</button>
-      <button type="button" class="sidebar-link" data-view="schedule"><span class="icon">🗓️</span> Schedule</button>
+      <button type="button" class="sidebar-link" data-view="employees"><span class="icon"></span> Employees</button>
+      <button type="button" class="sidebar-link" data-view="schedule"><span class="icon"></span> Schedule</button>
       <p class="section-label" style="margin:18px 0 4px; padding-left:14px; font-size:11px;">Business</p>
-      <button type="button" class="sidebar-link" data-view="settings"><span class="icon">⚙️</span> Settings</button>
+      <button type="button" class="sidebar-link" data-view="settings"><span class="icon"></span> Settings</button>
     </aside>
 
     <main class="main-content">
@@ -2716,6 +2720,55 @@
   }
   document.addEventListener('appConfigLoaded', applyBrandLogo);
   if (window.APP_CONFIG && window.APP_CONFIG.loaded) applyBrandLogo();
+
+  // Función para obtener iconos SVG del menú lateral (reemplaza los emojis)
+  function getNavIcon(name){
+    const icons = {
+      calendar: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>`,
+      jobs: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+      </svg>`,
+      proposals: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>`,
+      customers: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>`,
+      payments: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+        <line x1="1" y1="10" x2="23" y2="10"/>
+      </svg>`,
+      employees: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>`,
+      schedule: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+      </svg>`,
+      settings: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>`
+    };
+    return icons[name] || '';
+  }
+  document.querySelectorAll('.sidebar-link[data-view]').forEach(btn => {
+    const iconEl = btn.querySelector('.icon');
+    if (iconEl) iconEl.innerHTML = getNavIcon(btn.dataset.view);
+  });
 
   const TAX_RATE = 0.06;
 

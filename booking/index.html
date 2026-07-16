@@ -94,18 +94,16 @@
     color:transparent;
   }
   .brand-logo-img{
-    height:48px;
+    height:96px;
     width:auto;
+    max-width:240px;
     display:block;
     margin:0 auto;
+    object-fit:contain;
+    filter:drop-shadow(0 2px 8px rgba(0,0,0,.3));
   }
-  .brand-tagline{
-    margin:4px 0 0;
-    font-size:11px;
-    letter-spacing:4px;
-    text-transform:uppercase;
-    color:var(--gold);
-    font-weight:600;
+  @media (max-width:480px){
+    .brand-logo-img{ height:auto; width:60vw; }
   }
   .brand-sub{
     margin:10px auto 0;
@@ -967,7 +965,6 @@
     <div class="brand">
       <img class="brand-logo-img" id="brand-logo-img" src="" alt="AltaLux Mobile Detail" hidden>
       <h1 class="brand-name" id="brand-name-text">ALTA<span class="lux">LUX</span></h1>
-      <p class="brand-tagline">Mobile Detail</p>
       <p class="brand-sub">Book your premium mobile detailing service in Roswell, GA. Secure your appointment with a 25% deposit.</p>
     </div>
 
