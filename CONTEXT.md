@@ -1,5 +1,5 @@
 # AltaLux App — Contexto del Proyecto
-> Última actualización: 2026-07-13
+> Última actualización: 2026-07-17
 
 ## ¿Qué es esto?
 App de field service para AltaLux Mobile Detail (Roswell, GA).
@@ -75,6 +75,9 @@ App mobile-optimized para el equipo de campo.
 - Registro de `start_time` / `end_time` al iniciar/terminar un job (sincronizado a Supabase).
 - Alertas realtime de jobs asignados.
 
+## Fixes recientes
+- **2026-07-17:** `technician/index.html` — el panel de detalle de job (`#job-detail-screen`) se ocultaba con `transform:translateX(100%)`, relativo a su propio ancho (máx. 430px). En viewports más anchos que 430px (laptop/tablet) esto solo lo desplazaba 430px sin sacarlo de la pantalla, dejando un panel vacío visible junto al login. Corregido a `translateX(100vw)` (mueve el ancho completo del viewport, sin cambiar el comportamiento en móvil). Commit `b13d164`.
+
 ## Seguridad — cambios importantes (2026-07-10 y 2026-07-13)
 - Se eliminó el modelo de contraseñas en texto plano (`employees.password`); cada empleado usa una cuenta real de Supabase Auth.
 - Se eliminó la cuenta maestra de Supabase Auth que antes estaba embebida en el código fuente de `admin/index.html` (visible por "Ver código fuente", con acceso completo de lectura/escritura a la DB).
@@ -87,6 +90,9 @@ App mobile-optimized para el equipo de campo.
 - [ ] Fase 6: adaptar multi-tenant para BlissClean
 - [ ] Confirmar que Hostinger sirve la última versión del sitio tras cada fix
 - [ ] Mover el Personal Access Token de GitHub fuera de un archivo de texto plano
+- [ ] El deploy a Hostinger sigue siendo manual vía zip (`C:\Users\ledua\OneDrive\Escritorio\Altaluxapp\altalux-hostinger-YYYY-MM-DD.zip`), no automático desde git — cada fix en el repo requiere generar y subir un zip nuevo aparte. Confirmado el 2026-07-17: el zip del 2026-07-15 estaba al día con el repo salvo por el fix de `job-detail-screen` de esa misma fecha (17).
+- [ ] Se encontró `token subapse.txt` en texto plano en esa misma carpeta de OneDrive (`Altaluxapp/`) — mover/eliminar igual que el PAT de GitHub, no debería vivir como archivo de texto sin cifrar.
+- [ ] Esa carpeta de OneDrive tiene varias copias de deploy (`altalux-deploy`, `altalux-deploy-2026-07-15`, `Nueva carpeta`) — vale la pena consolidar para no confundir cuál es la vigente.
 
 ## Estructura de Carpetas
 ```
