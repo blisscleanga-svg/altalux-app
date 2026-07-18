@@ -566,6 +566,154 @@
   .chip-confirmed{ background:var(--blue); color:#fff; }
   .chip-inprogress{ background:var(--orange); color:var(--dark); }
   .chip-completed{ background:var(--green); color:#06240f; }
+  .chip-cancelled{ background:rgba(255,103,103,.25); color:#ffb3b3; }
+
+  /* ================= CALENDAR TABS + REVENUE BAR ================= */
+  .cal-tabs-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:12px;
+    margin-bottom:14px;
+  }
+  .cal-tabs{
+    display:flex;
+    gap:6px;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  .cal-tab{
+    flex:none;
+    padding:8px 16px;
+    min-height:36px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,.12);
+    background:rgba(255,255,255,.03);
+    color:var(--ink-muted);
+    font-size:13px;
+    font-weight:700;
+    cursor:pointer;
+    transition:all .2s ease;
+    white-space:nowrap;
+  }
+  .cal-tab:hover{ border-color:var(--gold); color:var(--white); }
+  .cal-tab.active{
+    background:linear-gradient(135deg,var(--gold),var(--orange));
+    color:var(--dark);
+    border-color:transparent;
+  }
+  .cal-revenue-bar{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:var(--radius-sm);
+    padding:10px 14px;
+    margin-bottom:18px;
+  }
+  .cal-period-label{ font-weight:700; font-size:14px; flex:none; }
+  .cal-period-revenue{
+    margin-left:auto;
+    font-weight:700;
+    font-size:13.5px;
+    color:var(--gold);
+  }
+  @media (max-width:560px){
+    .cal-revenue-bar{ flex-direction:column; align-items:flex-start; gap:6px; }
+    .cal-period-revenue{ margin-left:0; }
+  }
+
+  .calview{ display:none; }
+  .calview.active{ display:block; }
+
+  /* ================= AGENDA VIEW ================= */
+  .agenda-day-group{ margin-bottom:22px; }
+  .agenda-day-group:last-child{ margin-bottom:0; }
+  .agenda-day-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding-bottom:8px;
+    margin-bottom:10px;
+    border-bottom:1px solid rgba(255,255,255,.1);
+  }
+  .agenda-day-title{ font-weight:700; font-size:14.5px; }
+  .agenda-day-revenue{ font-weight:700; font-size:13.5px; color:var(--gold); }
+
+  /* ================= MONTH VIEW ================= */
+  .month-grid{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    gap:4px;
+  }
+  .month-weekday-label{
+    text-align:center;
+    font-size:10.5px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    font-weight:600;
+    padding-bottom:6px;
+  }
+  .month-cell{
+    background:var(--dark-2);
+    border:1px solid rgba(255,255,255,.06);
+    border-radius:8px;
+    min-height:64px;
+    padding:6px;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    cursor:pointer;
+    text-align:left;
+    color:var(--white);
+    transition:all .2s ease;
+  }
+  .month-cell:hover{ border-color:var(--gold); }
+  .month-cell.empty{ visibility:hidden; cursor:default; }
+  .month-cell.is-today .month-cell-num{ color:var(--gold); font-weight:700; }
+  .month-cell-num{ font-size:12.5px; font-weight:600; }
+  .month-pills{ display:flex; flex-direction:column; gap:2px; }
+  .month-pill{
+    font-size:9.5px;
+    font-weight:700;
+    padding:2px 5px;
+    border-radius:4px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .month-pill-more{ font-size:9.5px; color:var(--ink-faint); font-weight:600; }
+  .month-dots{ display:none; gap:3px; }
+  .month-dot{ width:6px; height:6px; border-radius:50%; }
+  @media (max-width:640px){
+    .month-cell{ min-height:44px; }
+    .month-pills{ display:none; }
+    .month-dots{ display:flex; }
+  }
+
+  /* ================= DAY VIEW ================= */
+  .day-allday-row{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+  .day-timeline-row{
+    display:flex;
+    gap:14px;
+    padding:12px 0;
+    border-bottom:1px solid rgba(255,255,255,.06);
+  }
+  .day-timeline-row:last-child{ border-bottom:none; }
+  .day-timeline-time{
+    flex:none;
+    width:64px;
+    font-size:12px;
+    font-weight:700;
+    color:var(--ink-faint);
+    padding-top:2px;
+  }
+  .day-timeline-content{ flex:1; min-width:0; display:flex; flex-direction:column; gap:10px; }
+  .day-timeline-empty{ color:var(--ink-faint); font-size:12.5px; }
 
   /* ================= JOB CARDS ================= */
   .empty-state{
@@ -591,6 +739,25 @@
     align-items:flex-start;
     gap:10px;
   }
+  .job-card-top-right{ display:flex; align-items:center; gap:8px; }
+  .tech-avatar{
+    width:26px; height:26px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:10.5px;
+    font-weight:700;
+    color:var(--dark);
+    flex:none;
+  }
+  .balance-due-pos{ color:var(--danger) !important; }
+  .balance-due-zero{ color:var(--green) !important; }
+  .job-card[data-status="pending"]{ border-left:3px solid #90a4ae; }
+  .job-card[data-status="confirmed"]{ border-left:3px solid var(--blue-light); }
+  .job-card[data-status="inprogress"]{ border-left:3px solid var(--orange); }
+  .job-card[data-status="completed"]{ border-left:3px solid var(--green); }
+  .job-card[data-status="cancelled"]{ border-left:3px solid var(--danger); opacity:.7; }
   .job-number{
     font-size:12px;
     color:var(--ink-faint);
@@ -1419,19 +1586,19 @@
       <div class="stats-bar">
         <div class="stat-card">
           <span class="stat-label">Today's Revenue</span>
-          <span class="stat-value">$0.00</span>
+          <span class="stat-value" id="kpi-today-revenue">$0.00</span>
         </div>
         <div class="stat-card">
           <span class="stat-label">This Week</span>
-          <span class="stat-value">$0.00</span>
+          <span class="stat-value" id="kpi-week-revenue">$0.00</span>
         </div>
         <div class="stat-card">
           <span class="stat-label">Jobs Today</span>
-          <span class="stat-value">0</span>
+          <span class="stat-value" id="kpi-jobs-today">0</span>
         </div>
         <div class="stat-card">
           <span class="stat-label">Pending</span>
-          <span class="stat-value">0</span>
+          <span class="stat-value" id="kpi-pending">0</span>
         </div>
       </div>
 
@@ -1455,8 +1622,13 @@
         </div>
 
         <div class="panel">
-          <div class="week-view-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-            <h3 class="section-title" style="margin:0;">Week of <span id="week-range-label"></span></h3>
+          <div class="cal-tabs-row">
+            <div class="cal-tabs" id="cal-view-tabs">
+              <button type="button" class="cal-tab active" data-calview="agenda">Agenda</button>
+              <button type="button" class="cal-tab" data-calview="week">Week</button>
+              <button type="button" class="cal-tab" data-calview="month">Month</button>
+              <button type="button" class="cal-tab" data-calview="day">Day</button>
+            </div>
             <div class="filter-field">
               <label>Filter by Employee</label>
               <select id="calendar-employee-filter">
@@ -1464,19 +1636,24 @@
               </select>
             </div>
           </div>
-          <div class="table-scroll">
-            <div class="week-grid" id="week-grid"></div>
+
+          <div class="cal-revenue-bar">
+            <button type="button" class="cal-nav" id="cal-period-prev" aria-label="Previous period">‹</button>
+            <button type="button" class="btn-mini" id="cal-period-today">Today</button>
+            <span class="cal-period-label" id="cal-period-label"></span>
+            <button type="button" class="cal-nav" id="cal-period-next" aria-label="Next period">›</button>
+            <span class="cal-period-revenue" id="cal-period-revenue"></span>
           </div>
-        </div>
 
-        <div class="panel">
-          <h3 class="section-title">Jobs for <span id="selected-day-label"></span></h3>
-          <div id="jobs-list"></div>
-        </div>
+          <div id="calview-agenda" class="calview active"></div>
 
-        <div class="panel">
-          <h3 class="section-title">Events for <span id="selected-day-label-events"></span></h3>
-          <div id="events-list"></div>
+          <div id="calview-week" class="calview">
+            <div class="table-scroll"><div class="week-grid" id="week-grid"></div></div>
+          </div>
+
+          <div id="calview-month" class="calview"></div>
+
+          <div id="calview-day" class="calview"></div>
         </div>
       </section>
 
@@ -1868,6 +2045,15 @@
     <div class="modal-actions" style="margin-top:10px;">
       <button type="button" class="btn btn-ghost" id="modal-record-payment-btn">+ Record Payment</button>
       <button type="button" class="btn btn-ghost" id="modal-view-invoice-btn">View Invoice</button>
+    </div>
+
+    <div class="field share-payment-panel" id="modal-share-payment-panel" hidden style="margin-top:14px;">
+      <label>Share Payment Link</label>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <input type="text" id="modal-share-payment-input" readonly style="flex:1; min-width:180px;">
+        <button type="button" class="btn-mini" id="modal-share-payment-copy">Copy Link</button>
+        <button type="button" class="btn-mini" id="modal-share-payment-share" hidden>Share</button>
+      </div>
     </div>
 
     <hr class="summary-divider">
@@ -3384,6 +3570,7 @@
   const state = {
     selectedDate: new Date(TODAY),
     calendarViewDate: new Date(TODAY.getFullYear(), TODAY.getMonth(), 1),
+    calendarView: 'agenda',
     customerFilterEmail: null,
     paymentsFilters: { dateFrom:null, dateTo:null, status:'', customer:'', method:'' }
   };
@@ -4277,10 +4464,7 @@
       if (isSameDay(cellDate, state.selectedDate)) btn.classList.add('selected');
       btn.addEventListener('click', () => {
         state.selectedDate = cellDate;
-        renderMiniCalendar();
-        renderWeekView();
-        renderJobsListForDay();
-        renderEventsListForDay();
+        renderCalendarViews();
       });
       calGrid.appendChild(btn);
     }
@@ -4295,11 +4479,142 @@
     renderMiniCalendar();
   });
 
+  // ================= CALENDAR TABS (Agenda/Week/Month/Day) =================
+  document.querySelectorAll('#cal-view-tabs .cal-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.calendarView = btn.dataset.calview;
+      document.querySelectorAll('#cal-view-tabs .cal-tab').forEach(b => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('.calview').forEach(v => v.classList.toggle('active', v.id === `calview-${state.calendarView}`));
+      renderCalendarViews();
+    });
+  });
+
+  document.getElementById('cal-period-prev').addEventListener('click', () => shiftCalendarPeriod(-1));
+  document.getElementById('cal-period-next').addEventListener('click', () => shiftCalendarPeriod(1));
+  document.getElementById('cal-period-today').addEventListener('click', () => {
+    state.selectedDate = new Date(TODAY);
+    state.calendarViewDate = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
+    renderCalendarViews();
+  });
+  document.getElementById('calendar-employee-filter').addEventListener('change', () => renderCalendarViews());
+
+  // Navega el periodo mostrado según la pestaña activa: ±7 días para
+  // Agenda/Week (mantiene la alineación de lunes), ±1 mes para Month,
+  // ±1 día para Day.
+  function shiftCalendarPeriod(dir){
+    const view = state.calendarView;
+    if (view === 'month'){
+      state.calendarViewDate = new Date(state.calendarViewDate.getFullYear(), state.calendarViewDate.getMonth() + dir, 1);
+      const lastDay = new Date(state.calendarViewDate.getFullYear(), state.calendarViewDate.getMonth() + 1, 0).getDate();
+      state.selectedDate = new Date(state.calendarViewDate.getFullYear(), state.calendarViewDate.getMonth(), Math.min(state.selectedDate.getDate(), lastDay));
+    } else if (view === 'day'){
+      const d = new Date(state.selectedDate);
+      d.setDate(d.getDate() + dir);
+      state.selectedDate = d;
+    } else {
+      const d = new Date(state.selectedDate);
+      d.setDate(d.getDate() + dir * 7);
+      state.selectedDate = d;
+    }
+    renderCalendarViews();
+  }
+
+  function getCalendarPeriodRange(){
+    const view = state.calendarView;
+    if (view === 'month'){
+      const year = state.calendarViewDate.getFullYear();
+      const month = state.calendarViewDate.getMonth();
+      return { start: new Date(year, month, 1), end: new Date(year, month + 1, 0) };
+    }
+    if (view === 'day'){
+      return { start: new Date(state.selectedDate), end: new Date(state.selectedDate) };
+    }
+    const weekStart = startOfWeekMonday(state.selectedDate);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 5);
+    return { start: weekStart, end: weekEnd };
+  }
+
+  function jobsInRange(start, end){
+    const filterId = document.getElementById('calendar-employee-filter').value;
+    return JOBS.filter(j => j.date >= start && j.date <= end)
+      .filter(j => !filterId || (Array.isArray(j.assignedEmployeeIds) && j.assignedEmployeeIds.includes(Number(filterId))));
+  }
+
+  function periodRevenue(jobs){
+    return jobs.filter(j => j.status !== 'Cancelled').reduce((sum, j) => sum + j.total, 0);
+  }
+
+  function updateCalendarPeriodBar(){
+    const { start, end } = getCalendarPeriodRange();
+    const label = isSameDay(start, end) ? formatLongDate(start) : `${formatShortDate(start)} – ${formatShortDate(end)}`;
+    document.getElementById('cal-period-label').textContent = label;
+    const jobs = jobsInRange(start, end);
+    document.getElementById('cal-period-revenue').textContent = `${formatCurrency(periodRevenue(jobs))} · ${jobs.length} job${jobs.length === 1 ? '' : 's'}`;
+  }
+
+  // Los KPIs de arriba siempre son relativos a HOY, sin importar qué
+  // periodo/pestaña esté navegando el usuario abajo.
+  function updateCalendarKpis(){
+    const weekStart = startOfWeekMonday(TODAY);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 5);
+    const todaysJobs = JOBS.filter(j => isSameDay(j.date, TODAY));
+    const weekJobs = JOBS.filter(j => j.date >= weekStart && j.date <= weekEnd);
+    document.getElementById('kpi-today-revenue').textContent = formatCurrency(periodRevenue(todaysJobs));
+    document.getElementById('kpi-week-revenue').textContent = formatCurrency(periodRevenue(weekJobs));
+    document.getElementById('kpi-jobs-today').textContent = todaysJobs.filter(j => j.status !== 'Cancelled').length;
+    document.getElementById('kpi-pending').textContent = JOBS.filter(j => j.status === 'Pending').length;
+  }
+
+  function renderCalendarViews(){
+    renderMiniCalendar();
+    updateCalendarPeriodBar();
+    updateCalendarKpis();
+    const view = state.calendarView || 'agenda';
+    if (view === 'agenda') renderAgendaView();
+    else if (view === 'week') renderWeekGrid();
+    else if (view === 'month') renderMonthView();
+    else if (view === 'day') renderDayView();
+  }
+
+  // ================= AGENDA VIEW =================
+  function renderAgendaView(){
+    const container = document.getElementById('calview-agenda');
+    const { start, end } = getCalendarPeriodRange();
+    const jobs = jobsInRange(start, end).sort((a,b) => a.date - b.date || ADMIN_TIME_SLOTS.indexOf(a.time) - ADMIN_TIME_SLOTS.indexOf(b.time));
+
+    if (!jobs.length){
+      container.innerHTML = `<p class="empty-state">No jobs scheduled for this period.</p>`;
+      return;
+    }
+
+    const byDay = new Map();
+    jobs.forEach(j => {
+      const key = toInputDate(j.date);
+      if (!byDay.has(key)) byDay.set(key, []);
+      byDay.get(key).push(j);
+    });
+
+    container.innerHTML = Array.from(byDay.entries()).map(([key, dayJobs]) => {
+      const d = fromInputDate(key);
+      const dayRevenue = periodRevenue(dayJobs);
+      return `
+        <div class="agenda-day-group">
+          <div class="agenda-day-header">
+            <span class="agenda-day-title">${isSameDay(d, TODAY) ? 'Today · ' : ''}${formatLongDate(d)}</span>
+            <span class="agenda-day-revenue">${formatCurrency(dayRevenue)}</span>
+          </div>
+          <div class="agenda-day-jobs">${dayJobs.map(buildJobCardHtml).join('')}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
   // ================= WEEK VIEW =================
   const weekGrid = document.getElementById('week-grid');
-  const weekRangeLabel = document.getElementById('week-range-label');
 
-  function renderWeekView(){
+  function renderWeekGrid(){
     const weekStart = startOfWeekMonday(state.selectedDate);
     const days = [];
     for (let i = 0; i < 6; i++){
@@ -4307,7 +4622,6 @@
       d.setDate(weekStart.getDate() + i);
       days.push(d);
     }
-    weekRangeLabel.textContent = `${formatShortDate(days[0])} – ${formatShortDate(days[5])}`;
 
     weekGrid.innerHTML = '';
 
@@ -4324,10 +4638,7 @@
       cell.innerHTML = `<span class="week-day-name">${WEEKDAY_SHORT[d.getDay()]}</span><span class="week-day-num">${d.getDate()}</span>`;
       cell.addEventListener('click', () => {
         state.selectedDate = d;
-        renderMiniCalendar();
-        renderWeekView();
-        renderJobsListForDay();
-        renderEventsListForDay();
+        renderCalendarViews();
       });
       weekGrid.appendChild(cell);
     });
@@ -4380,16 +4691,24 @@
     });
   }
 
-  // ================= JOBS LIST FOR SELECTED DAY =================
+  // ================= JOB CARD (shared by Agenda + Day views) =================
   function buildJobCardHtml(j){
+    const assignedEmp = (j.assignedEmployeeIds && j.assignedEmployeeIds.length) ? findEmployee(j.assignedEmployeeIds[0]) : null;
+    const avatarHtml = assignedEmp
+      ? `<span class="tech-avatar" style="background:${employeeColor(assignedEmp)}" title="${escapeHtml(assignedEmp.name)}">${employeeInitials(assignedEmp)}</span>`
+      : '';
+    const due = balanceDue(j);
     return `
-      <div class="job-card">
+      <div class="job-card" data-status="${STATUS_SLUG[j.status]}">
         <div class="job-card-top">
           <div>
             <div class="job-number">JOB #${j.jobNumber}</div>
             <div class="job-service">${j.service} — ${j.vehicleType}</div>
           </div>
-          <span class="status-display" data-job-id="${j.id}">${renderStatusBadge(j)}</span>
+          <div class="job-card-top-right">
+            ${avatarHtml}
+            <span class="status-display" data-job-id="${j.id}">${renderStatusBadge(j)}</span>
+          </div>
         </div>
         <div class="job-meta">
           <div>Customer<strong>${j.customer.name}</strong></div>
@@ -4398,7 +4717,7 @@
           <div>Address<strong>${j.address}</strong></div>
           <div>Total<strong>${formatCurrency(j.total)}</strong></div>
           <div>Deposit Paid<strong>${formatCurrency(getDepositAmount(j))}</strong></div>
-          <div>Balance Due<strong>${formatCurrency(balanceDue(j))}</strong></div>
+          <div>Balance Due<strong class="${due > 0 ? 'balance-due-pos' : 'balance-due-zero'}">${formatCurrency(due)}</strong></div>
         </div>
         <div class="job-card-actions">
           <button type="button" class="btn-mini job-view-btn" data-job-id="${j.id}">View</button>
@@ -4413,45 +4732,100 @@
     return currentRole ? ROLE_PERMISSIONS[currentRole].canEditJobs : true;
   }
 
-  function renderJobsListForDay(){
-    document.getElementById('selected-day-label').textContent = formatLongDate(state.selectedDate);
-    const container = document.getElementById('jobs-list');
-    const dayJobs = JOBS
-      .filter(j => isSameDay(j.date, state.selectedDate))
-      .sort((a,b) => ADMIN_TIME_SLOTS.indexOf(a.time) - ADMIN_TIME_SLOTS.indexOf(b.time));
+  // ================= MONTH VIEW =================
+  function renderMonthView(){
+    const container = document.getElementById('calview-month');
+    const { start, end } = getCalendarPeriodRange();
+    const startWeekday = (start.getDay() + 6) % 7;
 
-    if (!dayJobs.length){
-      container.innerHTML = `<p class="empty-state">No jobs scheduled for this day.</p>`;
-      return;
+    let html = `<div class="month-grid">`;
+    WEEKDAY_SHORT.slice(1).concat(WEEKDAY_SHORT[0]).forEach(w => {
+      html += `<div class="month-weekday-label">${w}</div>`;
+    });
+    for (let i = 0; i < startWeekday; i++){
+      html += `<div class="month-cell empty"></div>`;
     }
-    container.innerHTML = dayJobs.map(buildJobCardHtml).join('');
+    for (let day = 1; day <= end.getDate(); day++){
+      const d = new Date(start.getFullYear(), start.getMonth(), day);
+      const dayJobs = jobsInRange(d, d).sort((a,b) => ADMIN_TIME_SLOTS.indexOf(a.time) - ADMIN_TIME_SLOTS.indexOf(b.time));
+      const visible = dayJobs.slice(0, 3);
+      const extra = dayJobs.length - visible.length;
+      html += `
+        <button type="button" class="month-cell${isSameDay(d, TODAY) ? ' is-today' : ''}" data-month-day="${toInputDate(d)}">
+          <span class="month-cell-num">${day}</span>
+          <div class="month-pills">
+            ${visible.map(j => `<span class="month-pill chip-${STATUS_SLUG[j.status]}">${j.customer.name.split(' ')[0]}</span>`).join('')}
+            ${extra > 0 ? `<span class="month-pill-more">+${extra} more</span>` : ''}
+          </div>
+          <div class="month-dots">
+            ${dayJobs.slice(0, 4).map(j => `<span class="month-dot chip-${STATUS_SLUG[j.status]}"></span>`).join('')}
+          </div>
+        </button>
+      `;
+    }
+    html += `</div>`;
+    container.innerHTML = html;
+
+    container.querySelectorAll('.month-cell[data-month-day]').forEach(cell => {
+      cell.addEventListener('click', () => {
+        state.selectedDate = fromInputDate(cell.dataset.monthDay);
+        state.calendarView = 'day';
+        document.querySelectorAll('#cal-view-tabs .cal-tab').forEach(b => b.classList.toggle('active', b.dataset.calview === 'day'));
+        document.querySelectorAll('.calview').forEach(v => v.classList.toggle('active', v.id === 'calview-day'));
+        renderCalendarViews();
+      });
+    });
   }
 
-  // ================= EVENTS LIST FOR SELECTED DAY =================
-  function renderEventsListForDay(){
-    document.getElementById('selected-day-label-events').textContent = formatLongDate(state.selectedDate);
-    const container = document.getElementById('events-list');
-    const dayEvents = EVENTS
-      .filter(ev => eventCoversDay(ev, state.selectedDate))
-      .sort((a,b) => ADMIN_TIME_SLOTS.indexOf(a.time) - ADMIN_TIME_SLOTS.indexOf(b.time));
+  // ================= DAY VIEW =================
+  function renderDayView(){
+    const container = document.getElementById('calview-day');
+    const d = state.selectedDate;
+    const dayJobs = jobsInRange(d, d);
+    const dayEvents = EVENTS.filter(ev => eventCoversDay(ev, d));
 
-    if (!dayEvents.length){
-      container.innerHTML = `<p class="empty-state">No events scheduled for this day.</p>`;
-      return;
+    const allDayEvents = dayEvents.filter(ev => ev.allDay);
+    let html = '';
+    if (allDayEvents.length){
+      html += `<div class="day-allday-row">${allDayEvents.map(ev => `
+        <button type="button" class="btn-mini event-view-btn" data-event-id="${ev.id}">📌 ${escapeHtml(ev.title)} (All Day)</button>
+      `).join('')}</div>`;
     }
-    container.innerHTML = dayEvents.map(ev => `
-      <div class="event-card">
-        <div class="event-card-top">
-          <strong>${ev.title}</strong>
-          <span class="event-time">${eventTimeLabel(ev)}</span>
+
+    html += `<div class="day-timeline">`;
+    ADMIN_TIME_SLOTS.forEach(slot => {
+      const slotJobs = dayJobs.filter(j => j.time === slot);
+      const slotEvents = dayEvents.filter(ev => !ev.allDay && eventCoversSlot(ev, d, slot));
+      html += `
+        <div class="day-timeline-row">
+          <div class="day-timeline-time">${slot}</div>
+          <div class="day-timeline-content">
+            ${!slotJobs.length && !slotEvents.length ? `<span class="day-timeline-empty">—</span>` : ''}
+            ${slotJobs.map(buildJobCardHtml).join('')}
+            ${slotEvents.map(ev => `
+              <div class="event-card">
+                <div class="event-card-top">
+                  <strong>📌 ${escapeHtml(ev.title)}</strong>
+                  <span class="event-time">${eventTimeLabel(ev)}</span>
+                </div>
+                ${ev.notes ? `<p class="event-notes">${escapeHtml(ev.notes)}</p>` : ''}
+                <div class="job-card-actions">
+                  <button type="button" class="btn-mini event-view-btn" data-event-id="${ev.id}">View</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
         </div>
-        ${ev.notes ? `<p class="event-notes">${ev.notes}</p>` : ''}
-        <div class="job-card-actions">
-          <button type="button" class="btn-mini event-view-btn" data-event-id="${ev.id}">View</button>
-        </div>
-      </div>
-    `).join('');
+      `;
+    });
+    html += `</div>`;
+
+    if (!dayJobs.length && !dayEvents.length){
+      html = `<p class="empty-state">No jobs or events scheduled for this day.</p>`;
+    }
+    container.innerHTML = html;
   }
+
   // Etiqueta legible para un evento: "All Day", "8:00 AM – 4:00 PM", o
   // solo la hora de inicio si nunca se puso hora de fin.
   function eventTimeLabel(ev){
@@ -4459,6 +4833,13 @@
     if (ev.endTime && ev.endTime !== ev.time) return `${ev.time} – ${ev.endTime}`;
     return ev.time || 'All Day';
   }
+
+  // Compat: varias secciones de la app aún llaman a estas 3 funciones por
+  // su nombre original tras crear/editar jobs, eventos o proposals — ahora
+  // simplemente refrescan el sistema de pestañas Agenda/Week/Month/Day.
+  function renderWeekView(){ renderCalendarViews(); }
+  function renderJobsListForDay(){ renderCalendarViews(); }
+  function renderEventsListForDay(){ renderCalendarViews(); }
 
   // ================= JOBS TABLE =================
   function renderJobsTable(){
@@ -4727,7 +5108,41 @@
     const editBtn = document.getElementById('modal-edit-job-btn');
     editBtn.hidden = !(currentRole ? ROLE_PERMISSIONS[currentRole].canEditJobs : true);
     document.getElementById('modal-resend-receipt').hidden = !(job.payments && job.payments.length);
+
+    const shareLink = buildPayLink(job);
+    document.getElementById('modal-share-payment-panel').hidden = !shareLink;
+    if (shareLink){
+      document.getElementById('modal-share-payment-input').value = shareLink;
+      document.getElementById('modal-share-payment-share').hidden = !navigator.share;
+    }
   }
+
+  // Solo existe un link de pago compartible una vez que la invoice fue
+  // enviada (sent_at) y tiene un public_token real — antes de eso no hay
+  // nada válido que compartir.
+  function buildPayLink(job){
+    if (!job.invoice || !job.invoice.publicToken || !job.invoice.sentAt) return null;
+    return 'https://app.altaluxdetail.com/pay/?token=' + encodeURIComponent(job.invoice.publicToken);
+  }
+
+  document.getElementById('modal-share-payment-copy').addEventListener('click', async () => {
+    const input = document.getElementById('modal-share-payment-input');
+    try {
+      await navigator.clipboard.writeText(input.value);
+    } catch (err){
+      input.select();
+      document.execCommand('copy');
+    }
+    showToast('Payment link copied', 'success');
+  });
+
+  document.getElementById('modal-share-payment-share').addEventListener('click', () => {
+    const job = findJob(currentModalJobId);
+    const link = document.getElementById('modal-share-payment-input').value;
+    if (!link) return;
+    navigator.share({ title: `AltaLux Invoice #${job ? job.jobNumber : ''}`, text: 'Here is your payment link:', url: link })
+      .catch(() => {});
+  });
 
   function openJobModal(jobId){
     currentModalJobId = jobId;

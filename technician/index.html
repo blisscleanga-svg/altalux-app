@@ -566,6 +566,15 @@
       </div>
     </div>
 
+    <div class="detail-section" id="dj-share-payment-section" hidden>
+      <p class="detail-section-title">Share Payment Link</p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <input type="text" id="dj-share-payment-input" readonly style="flex:1; min-width:160px;">
+        <button type="button" class="btn btn-outline btn-sm" id="dj-share-payment-copy">Copy Link</button>
+        <button type="button" class="btn btn-outline btn-sm hidden" id="dj-share-payment-share">Share</button>
+      </div>
+    </div>
+
     <div class="detail-section" id="dj-edit-section" hidden>
       <div class="collapsible-header" id="dj-edit-collapsible-header">
         <span class="detail-section-title" style="margin:0;">Edit Job</span>
@@ -1380,6 +1389,27 @@
         JOBS.length = 0;
         data.forEach((row, i) => JOBS.push(mapJobRow(row, i)));
         console.log(`[Supabase] Loaded ${data.length} job(s) from database.`);
+
+        // Trae las invoices ya enviadas (desde admin o desde este mismo
+        // panel) para que el panel "Share Payment Link" del detalle de
+        // trabajo pueda mostrar un link real, no solo el generado en la
+        // sesión actual.
+        const jobIds = JOBS.filter(j => j.supabaseId).map(j => j.supabaseId);
+        if (jobIds.length){
+          const { data: invoiceRows, error: invoicesErr } = await db.from('invoices').select('*').in('job_id', jobIds);
+          if (invoicesErr) console.error('[Supabase] Failed to load invoices:', invoicesErr);
+          (invoiceRows || []).forEach(inv => {
+            const job = JOBS.find(j => j.supabaseId === inv.job_id);
+            if (!job) return;
+            const formattedInvNumber = inv.invoice_number
+              ? 'INV-' + new Date(inv.created_at).getFullYear() + '-' + String(inv.invoice_number).padStart(4, '0')
+              : '';
+            job.invoice = {
+              id: inv.id, number: formattedInvNumber, status: inv.status || 'Draft',
+              sentAt: inv.sent_at || null, publicToken: inv.public_token || null
+            };
+          });
+        }
       } else {
         console.log('[Supabase] No jobs in database for the next 7 days — keeping sample data.');
       }
@@ -1721,6 +1751,13 @@
     document.getElementById('dj-refund-btn').classList.toggle('hidden', !(perms().viewFinancials && totalPaid(job) > 0 && job.supabaseId));
     document.getElementById('dj-send-invoice-btn').classList.toggle('hidden', !(perms().viewFinancials && job.supabaseId));
 
+    const shareLink = buildPayLink(job);
+    document.getElementById('dj-share-payment-section').hidden = !shareLink;
+    if (shareLink){
+      document.getElementById('dj-share-payment-input').value = shareLink;
+      document.getElementById('dj-share-payment-share').classList.toggle('hidden', !navigator.share);
+    }
+
     const editSection = document.getElementById('dj-edit-section');
     editSection.hidden = !perms().editJobs;
     document.getElementById('dj-edit-collapsible-body').classList.remove('open');
@@ -1774,6 +1811,32 @@
     refreshAllViews();
   }
   document.getElementById('detail-back-btn').addEventListener('click', closeJobDetail);
+
+  // Solo hay link compartible una vez que la invoice fue enviada
+  // (sent_at) y tiene un public_token real.
+  function buildPayLink(job){
+    if (!job.invoice || !job.invoice.publicToken || !job.invoice.sentAt) return null;
+    return 'https://app.altaluxdetail.com/pay/?token=' + encodeURIComponent(job.invoice.publicToken);
+  }
+
+  document.getElementById('dj-share-payment-copy').addEventListener('click', async () => {
+    const input = document.getElementById('dj-share-payment-input');
+    try {
+      await navigator.clipboard.writeText(input.value);
+    } catch (err){
+      input.select();
+      document.execCommand('copy');
+    }
+    showToast('Payment link copied', 'success');
+  });
+
+  document.getElementById('dj-share-payment-share').addEventListener('click', () => {
+    const job = findJob(currentJobId);
+    const link = document.getElementById('dj-share-payment-input').value;
+    if (!link) return;
+    navigator.share({ title: `AltaLux Invoice #${job ? job.jobNumber : ''}`, text: 'Here is your payment link:', url: link })
+      .catch(() => {});
+  });
 
   function refreshAllViews(){
     if (currentView === 'today') renderTodayView();
