@@ -1728,7 +1728,7 @@
           <div class="settings-pane" id="settab-services">
             <div class="table-scroll">
               <table class="data-table" id="settings-services-table">
-                <thead><tr><th>Category</th><th>Package</th><th>Vehicle Type</th><th>Price</th><th>Active</th></tr></thead>
+                <thead><tr><th>Category</th><th>Package</th><th>Vehicle Type</th><th>Price</th><th>Description</th><th>Active</th></tr></thead>
                 <tbody id="settings-services-tbody"></tbody>
               </table>
             </div>
@@ -3538,6 +3538,66 @@
     if (profile.vehicles.length && !profile.vehicles.some(v => v.isDefault)) profile.vehicles[0].isDefault = true;
   }
 
+  // ---- Sincronización a Supabase de direcciones/vehículos del perfil ----
+  // (2026-07-18: antes "Set as Default"/agregar/editar/borrar acá nunca
+  // tocaban Supabase, solo el caché local CUSTOMER_PROFILES).
+  function getCustomerIdByEmail(email){
+    const job = JOBS.find(j => j.customer.email === email && j.customerId);
+    if (job) return job.customerId;
+    const sc = STANDALONE_CUSTOMERS.find(c => c.email === email && c.customerId);
+    return sc ? sc.customerId : null;
+  }
+  function syncProfileAddressesToSupabase(email){
+    const customerId = getCustomerIdByEmail(email);
+    const profile = getCustomerProfile(email);
+    if (!customerId || !profile || !db) return;
+    const addressesJson = profile.addresses.map(a => ({
+      label: a.label, address: a.matchString || formatAddressLine(a),
+      street: a.street || null, city: a.city || null, state: a.state || null, zip: a.zip || null,
+      notes: a.notes || null, isDefault: !!a.isDefault
+    }));
+    db.from('customers').update({ addresses: addressesJson }).eq('id', customerId)
+      .then(({ error }) => { if (error) console.error('[Supabase] Failed to sync addresses, kept locally only:', error); });
+  }
+  function syncVehicleUpsert(email, vehicle){
+    const customerId = getCustomerIdByEmail(email);
+    if (!customerId || !db) return;
+    const payload = {
+      customer_id: customerId, year: vehicle.year || null, make: vehicle.make || null, model: vehicle.model || null,
+      color: vehicle.color || null, license_plate: vehicle.plate || null, vehicle_type: vehicle.vehicleType || null,
+      notes: vehicle.notes || null, is_default: !!vehicle.isDefault, business_id: BUSINESS_ID
+    };
+    if (vehicle.supabaseId){
+      db.from('vehicles').update(payload).eq('id', vehicle.supabaseId)
+        .then(({ error }) => { if (error) console.error('[Supabase] Failed to sync vehicle, kept locally only:', error); });
+    } else {
+      db.from('vehicles').insert([payload]).select().single()
+        .then(({ data, error }) => {
+          if (error) console.error('[Supabase] Failed to sync vehicle, kept locally only:', error);
+          else vehicle.supabaseId = data.id;
+        });
+    }
+  }
+  function syncVehicleDelete(vehicle){
+    if (!vehicle.supabaseId || !db) return;
+    db.from('vehicles').delete().eq('id', vehicle.supabaseId)
+      .then(({ error }) => { if (error) console.error('[Supabase] Failed to delete vehicle, removed locally only:', error); });
+  }
+  function syncVehicleSetDefault(email, vehicleId){
+    const customerId = getCustomerIdByEmail(email);
+    const profile = getCustomerProfile(email);
+    if (!customerId || !profile || !db) return;
+    db.from('vehicles').update({ is_default: false }).eq('customer_id', customerId)
+      .then(({ error }) => {
+        if (error){ console.error('[Supabase] Failed to clear default vehicles:', error); return; }
+        const v = profile.vehicles.find(x => x.id === vehicleId);
+        if (v && v.supabaseId){
+          db.from('vehicles').update({ is_default: true }).eq('id', v.supabaseId)
+            .then(({ error: e2 }) => { if (e2) console.error('[Supabase] Failed to set default vehicle:', e2); });
+        }
+      });
+  }
+
   function parseVehicleString(str){
     const parts = (str || '').trim().split(/\s+/);
     const year = /^\d{4}$/.test(parts[0]) ? parts.shift() : '';
@@ -3729,6 +3789,29 @@
             addresses: c.addresses || [], phones: c.phones || [], emails: c.emails || []
           });
         }
+
+        // Mezcla direcciones (jsonb) y vehículos (tabla real) guardados
+        // en Supabase al perfil del cliente — además de lo que
+        // seedCustomerProfilesFromJobs() deriva del historial de jobs.
+        if (c.email){
+          const profile = getOrCreateCustomerProfile(c.email, c.full_name, c.phone);
+          (c.addresses || []).forEach(a => {
+            if (a.address && !profile.addresses.some(x => x.matchString === a.address)){
+              addAddressToProfile(c.email, { label: a.label, street: a.address, matchString: a.address, isDefault: profile.addresses.length === 0 });
+            }
+          });
+          (c.vehicles || []).forEach(v => {
+            const matchString = [v.year, v.make, v.model].filter(Boolean).join(' ');
+            if (!profile.vehicles.some(x => x.supabaseId === v.id)){
+              const added = addVehicleToProfile(c.email, {
+                year: v.year, make: v.make, model: v.model, color: v.color,
+                plate: v.license_plate, vehicleType: v.vehicle_type, notes: v.notes,
+                matchString, isDefault: !!v.is_default
+              });
+              added.supabaseId = v.id;
+            }
+          });
+        }
       });
 
       const { data: bookingRows, error: bookingsErr } = await db
@@ -3747,6 +3830,40 @@
         .from('business_addons').select('*').eq('business_id', BUSINESS_ID);
       if (addonsErr) console.error('[Supabase] Failed to load business_addons:', addonsErr);
       applyLiveCatalog(serviceRows, addonRows);
+
+      const { data: proposalRows, error: proposalsErr } = await db
+        .from('proposals').select('*').eq('business_id', BUSINESS_ID).order('created_at', { ascending: false });
+      if (proposalsErr) console.error('[Supabase] Failed to load proposals:', proposalsErr);
+      PROPOSALS.length = 0;
+      (proposalRows || []).forEach((row, i) => {
+        const convertedJob = row.converted_to_job_id ? JOBS.find(j => j.supabaseId === row.converted_to_job_id) : null;
+        PROPOSALS.push({
+          id: i + 1, supabaseId: row.id,
+          proposalNumber: row.proposal_number || '',
+          customer: { name: row.customer_name || '', phone: row.customer_phone || '', email: row.customer_email || '' },
+          serviceDescription: row.service_description || '', vehicle: row.vehicle || '', price: Number(row.price) || 0,
+          validUntil: row.valid_until ? fromInputDate(row.valid_until) : null,
+          status: row.status || 'Draft', notes: row.notes || '',
+          createdDate: new Date(row.created_at || TODAY),
+          convertedToJobId: convertedJob ? convertedJob.id : null
+        });
+      });
+      nextProposalIdCounter = PROPOSALS.length + 1;
+      console.log(`[Supabase] Loaded ${PROPOSALS.length} proposal(s).`);
+
+      const { data: eventRows, error: eventsErr } = await db
+        .from('events').select('*').eq('business_id', BUSINESS_ID).order('event_date', { ascending: true });
+      if (eventsErr) console.error('[Supabase] Failed to load events:', eventsErr);
+      EVENTS.length = 0;
+      (eventRows || []).forEach((row, i) => {
+        EVENTS.push({
+          id: i + 1, supabaseId: row.id,
+          title: row.title || '', date: row.event_date ? fromInputDate(row.event_date) : new Date(TODAY),
+          time: row.event_time || '', notes: row.notes || ''
+        });
+      });
+      nextEventIdCounter = EVENTS.length + 1;
+      console.log(`[Supabase] Loaded ${EVENTS.length} event(s).`);
 
       await loadEmployeesFromSupabase();
 
@@ -4923,6 +5040,13 @@
     // Fix 2026-07-16: ya no se manda ningún email/invoice automático al
     // marcar Completed — el envío de invoice ahora es siempre manual,
     // vía "Send Payable Invoice" (Collect Payment) o "Resend Receipt".
+
+    // 2026-07-18: esta función solo mutaba el status en memoria — el
+    // cambio nunca llegaba a Supabase y se perdía al recargar.
+    if (statusChanged && job.supabaseId && db){
+      db.from('jobs').update({ status: newStatus }).eq('id', job.supabaseId)
+        .then(({ error }) => { if (error) console.error('[Supabase] Failed to sync job status, kept locally only:', error); });
+    }
   }
 
   function refreshAfterPaymentChange(jobId){
@@ -5854,6 +5978,7 @@
     }
     document.getElementById('profile-address-form').hidden = true;
     renderProfileAddresses();
+    syncProfileAddressesToSupabase(currentProfileEmail);
   });
 
   // ---- Vehicle CRUD ----
@@ -5899,35 +6024,59 @@
     };
     if (!data.make || !data.model){ alert('Please enter at least a make and model.'); return; }
     data.matchString = formatVehicleLine(data);
+    let vehicle;
     if (currentEditVehicleId){
       const profile = getCustomerProfile(currentProfileEmail);
-      const v = profile.vehicles.find(x => x.id === currentEditVehicleId);
-      Object.assign(v, data);
-      if (data.isDefault) setDefaultVehicle(currentProfileEmail, v.id);
+      vehicle = profile.vehicles.find(x => x.id === currentEditVehicleId);
+      Object.assign(vehicle, data);
+      if (data.isDefault) setDefaultVehicle(currentProfileEmail, vehicle.id);
     } else {
-      addVehicleToProfile(currentProfileEmail, data);
+      vehicle = addVehicleToProfile(currentProfileEmail, data);
     }
     document.getElementById('profile-vehicle-form').hidden = true;
     renderProfileVehicles();
+    syncVehicleUpsert(currentProfileEmail, vehicle);
   });
 
   document.addEventListener('click', (e) => {
     const addrEdit = e.target.closest('.address-edit-btn');
     if (addrEdit){ openAddressForm(Number(addrEdit.dataset.addressId)); return; }
     const addrDefault = e.target.closest('.address-setdefault-btn');
-    if (addrDefault){ setDefaultAddress(currentProfileEmail, Number(addrDefault.dataset.addressId)); renderProfileAddresses(); return; }
+    if (addrDefault){
+      setDefaultAddress(currentProfileEmail, Number(addrDefault.dataset.addressId));
+      renderProfileAddresses();
+      syncProfileAddressesToSupabase(currentProfileEmail);
+      return;
+    }
     const addrDelete = e.target.closest('.address-delete-btn');
     if (addrDelete){
-      if (confirm('Delete this address?')){ deleteAddress(currentProfileEmail, Number(addrDelete.dataset.addressId)); renderProfileAddresses(); }
+      if (confirm('Delete this address?')){
+        deleteAddress(currentProfileEmail, Number(addrDelete.dataset.addressId));
+        renderProfileAddresses();
+        syncProfileAddressesToSupabase(currentProfileEmail);
+      }
       return;
     }
     const vehEdit = e.target.closest('.vehicle-edit-btn');
     if (vehEdit){ openVehicleForm(Number(vehEdit.dataset.vehicleId)); return; }
     const vehDefault = e.target.closest('.vehicle-setdefault-btn');
-    if (vehDefault){ setDefaultVehicle(currentProfileEmail, Number(vehDefault.dataset.vehicleId)); renderProfileVehicles(); return; }
+    if (vehDefault){
+      const vehicleId = Number(vehDefault.dataset.vehicleId);
+      setDefaultVehicle(currentProfileEmail, vehicleId);
+      renderProfileVehicles();
+      syncVehicleSetDefault(currentProfileEmail, vehicleId);
+      return;
+    }
     const vehDelete = e.target.closest('.vehicle-delete-btn');
     if (vehDelete){
-      if (confirm('Delete this vehicle?')){ deleteVehicle(currentProfileEmail, Number(vehDelete.dataset.vehicleId)); renderProfileVehicles(); }
+      if (confirm('Delete this vehicle?')){
+        const vehicleId = Number(vehDelete.dataset.vehicleId);
+        const profile = getCustomerProfile(currentProfileEmail);
+        const vehicle = profile ? profile.vehicles.find(v => v.id === vehicleId) : null;
+        deleteVehicle(currentProfileEmail, vehicleId);
+        renderProfileVehicles();
+        if (vehicle) syncVehicleDelete(vehicle);
+      }
       return;
     }
     const historyEditBtn = e.target.closest('.profile-history-edit-btn');
@@ -6008,8 +6157,13 @@
   });
   document.getElementById('pm-status-select').addEventListener('change', (e) => {
     if (currentProposalModalId === null) return;
-    findProposal(currentProposalModalId).status = e.target.value;
+    const p = findProposal(currentProposalModalId);
+    p.status = e.target.value;
     renderProposalsTable();
+    if (p.supabaseId && db){
+      db.from('proposals').update({ status: p.status }).eq('id', p.supabaseId)
+        .then(({ error }) => { if (error) console.error('[Supabase] Failed to sync proposal status, kept locally only:', error); });
+    }
   });
 
   function convertProposalToJob(id){
@@ -6032,6 +6186,31 @@
     renderAll();
     if (currentProposalModalId === id) populateProposalModal(p);
     alert(`Proposal converted to Job #${job.jobNumber}.`);
+
+    attemptSupabaseWrite(async () => {
+      const { data: custData, error: custErr } = await db.from('customers')
+        .insert([{ full_name: p.customer.name, phone: p.customer.phone, email: p.customer.email }])
+        .select().single();
+      if (custErr) throw custErr;
+
+      const { data: jobData, error: jobErr } = await db.from('jobs').insert([{
+        job_number: job.jobNumber, customer_id: custData.id, business_id: BUSINESS_ID,
+        category: job.service, package: job.service,
+        service_date: toInputDate(job.date), service_time: job.time,
+        subtotal: job.subtotal, addons_total: job.addonsTotal, total: job.total,
+        status: job.status, notes: job.notes
+      }]).select().single();
+      if (jobErr) throw jobErr;
+      job.supabaseId = jobData.id;
+      job.customerId = custData.id;
+
+      if (p.supabaseId){
+        const { error: propErr } = await db.from('proposals')
+          .update({ status: 'Accepted', converted_to_job_id: jobData.id })
+          .eq('id', p.supabaseId);
+        if (propErr) throw propErr;
+      }
+    }, `Job #${job.jobNumber} synced to database.`, `Proposal conversion database sync`);
   }
   document.getElementById('pm-convert-btn').addEventListener('click', () => {
     if (currentProposalModalId !== null) convertProposalToJob(currentProposalModalId);
@@ -6063,10 +6242,14 @@
     if (currentEventModalId === null) return;
     const idx = EVENTS.findIndex(ev => ev.id === currentEventModalId);
     if (idx > -1 && confirm('Delete this event?')){
-      EVENTS.splice(idx, 1);
+      const [deleted] = EVENTS.splice(idx, 1);
       closeEventModal();
       renderWeekView();
       renderEventsListForDay();
+      if (deleted.supabaseId && db){
+        db.from('events').delete().eq('id', deleted.supabaseId)
+          .then(({ error }) => { if (error) console.error('[Supabase] Failed to delete event, removed locally only:', error); });
+      }
     }
   });
 
@@ -6721,18 +6904,30 @@
 
     const id = nextProposalIdCounter++;
     const proposalNumber = 'PROP-' + padNum(nextProposalNumCounter++);
-    PROPOSALS.push({
+    const proposal = {
       id, proposalNumber,
       customer: { name, phone, email },
       serviceDescription, vehicle, price,
       validUntil: validUntilVal ? fromInputDate(validUntilVal) : null,
       status: 'Draft', notes, createdDate: new Date(TODAY),
       convertedToJobId: null
-    });
+    };
+    PROPOSALS.push(proposal);
 
     closeCreateProposalModal();
     renderProposalsTable();
     alert(`Proposal ${proposalNumber} created for ${name}.`);
+
+    attemptSupabaseWrite(async () => {
+      const { data, error } = await db.from('proposals').insert([{
+        business_id: BUSINESS_ID, proposal_number: proposalNumber,
+        customer_name: name, customer_phone: phone, customer_email: email,
+        service_description: serviceDescription, vehicle, price,
+        valid_until: validUntilVal || null, status: 'Draft', notes
+      }]).select().single();
+      if (error) throw error;
+      proposal.supabaseId = data.id;
+    }, `Proposal ${proposalNumber} synced to database.`, `Proposal ${proposalNumber} database sync`);
   });
 
   // ================= CREATE EVENT MODAL =================
@@ -6762,10 +6957,19 @@
       alert('Please enter a title and date.');
       return;
     }
-    EVENTS.push({ id: nextEventIdCounter++, title, date: fromInputDate(dateVal), time, notes });
+    const event = { id: nextEventIdCounter++, title, date: fromInputDate(dateVal), time, notes };
+    EVENTS.push(event);
     closeCreateEventModal();
     renderWeekView();
     renderEventsListForDay();
+
+    attemptSupabaseWrite(async () => {
+      const { data, error } = await db.from('events').insert([{
+        business_id: BUSINESS_ID, title, event_date: dateVal, event_time: time, notes
+      }]).select().single();
+      if (error) throw error;
+      event.supabaseId = data.id;
+    }, `Event "${title}" synced to database.`, `Event "${title}" database sync`);
   });
 
   // ================= PAYMENT JOB PICKER MODAL =================
@@ -7053,11 +7257,15 @@
         <td>${row.package || ''}</td>
         <td>${row.vehicle_type}</td>
         <td><input type="number" step="0.01" min="0" data-svc-idx="${i}" data-field="price" value="${Number(row.price).toFixed(2)}"></td>
+        <td><textarea rows="2" style="min-width:220px;" data-svc-idx="${i}" data-field="description" placeholder="Service description shown to customers">${escapeHtml(row.description || '')}</textarea></td>
         <td><input type="checkbox" data-svc-idx="${i}" data-field="is_active" ${row.is_active !== false ? 'checked' : ''}></td>
       </tr>
     `).join('');
     tbody.querySelectorAll('input[data-field="price"]').forEach(inp => {
       inp.addEventListener('input', () => { settingsServicesDraft[inp.dataset.svcIdx].price = parseFloat(inp.value) || 0; });
+    });
+    tbody.querySelectorAll('textarea[data-field="description"]').forEach(inp => {
+      inp.addEventListener('input', () => { settingsServicesDraft[inp.dataset.svcIdx].description = inp.value; });
     });
     tbody.querySelectorAll('input[data-field="is_active"]').forEach(inp => {
       inp.addEventListener('change', () => { settingsServicesDraft[inp.dataset.svcIdx].is_active = inp.checked; });
@@ -7066,7 +7274,7 @@
   document.getElementById('set-services-save').addEventListener('click', async () => {
     if (!db) return;
     try {
-      const updates = settingsServicesDraft.map(row => db.from('business_services').update({ price: row.price, is_active: row.is_active }).eq('id', row.id));
+      const updates = settingsServicesDraft.map(row => db.from('business_services').update({ price: row.price, is_active: row.is_active, description: row.description || null }).eq('id', row.id));
       const results = await Promise.all(updates);
       const failed = results.find(r => r.error);
       if (failed) throw failed.error;
