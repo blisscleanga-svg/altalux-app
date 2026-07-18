@@ -921,41 +921,53 @@
   .payment-timeline-item span:last-child{ color:var(--white); font-weight:600; }
   .payment-timeline-item.outstanding span:last-child{ color:var(--danger); }
 
-  /* ================= INVOICE MODAL ================= */
+  /* ================= INVOICE MODAL — documento profesional (fondo blanco) ================= */
+  #invoice-print-container{
+    background:#ffffff; color:#1a202c; border-radius:10px; padding:32px;
+    max-width:680px; margin:0 auto 20px; font-family:'Inter',sans-serif;
+  }
   .invoice-header{
     display:flex; justify-content:space-between; align-items:flex-start;
-    margin-bottom:22px; flex-wrap:wrap; gap:14px;
+    margin-bottom:22px; flex-wrap:wrap; gap:14px; padding-bottom:20px; border-bottom:1px solid #e2e8f0;
   }
-  .invoice-brand{ font-size:20px; font-weight:700; letter-spacing:2px; text-transform:uppercase; }
-  .invoice-brand .lux{
-    background:linear-gradient(120deg,var(--gold),var(--orange));
-    -webkit-background-clip:text; background-clip:text; color:transparent;
-  }
-  .invoice-logo-img{ height:32px; width:auto; display:block; }
+  .invoice-header-brand{ display:flex; flex-direction:column; gap:2px; }
+  .invoice-brand{ font-size:20px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#104872; }
+  .invoice-brand .lux{ color:#FF8C00; }
+  .invoice-logo-img{ height:44px; width:auto; display:block; margin-bottom:8px; }
+  .invoice-biz-info{ font-size:11.5px; color:#4a5568; line-height:1.7; margin-top:6px; }
   .invoice-title-block{ text-align:right; }
-  .invoice-title{ font-size:24px; font-weight:700; letter-spacing:3px; color:var(--gold); margin:0; }
-  .invoice-meta{ font-size:12px; color:var(--ink-muted); margin-top:6px; line-height:1.6; }
-  .invoice-meta strong{ color:var(--white); }
-  .invoice-billto{ margin-bottom:20px; font-size:13px; color:var(--ink-muted); line-height:1.6; }
-  .invoice-billto strong{ display:block; color:var(--white); font-size:15px; margin-bottom:2px; }
+  .invoice-title{ font-family:'Rajdhani',sans-serif; font-size:32px; font-weight:700; letter-spacing:.05em; color:#104872; margin:0; }
+  .invoice-meta{ font-size:12.5px; color:#4a5568; margin-top:6px; line-height:1.7; }
+  .invoice-meta strong{ color:#1a202c; }
+  .invoice-parties{ display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; padding-bottom:18px; border-bottom:1px solid #e2e8f0; }
+  @media (max-width:520px){ .invoice-parties{ grid-template-columns:1fr; } }
+  .invoice-billto{ font-size:13px; color:#4a5568; line-height:1.7; }
+  .invoice-billto strong{ display:block; color:#1a202c; font-size:15px; margin-bottom:2px; }
   .invoice-table{ width:100%; border-collapse:collapse; font-size:13px; margin-bottom:14px; }
   .invoice-table th{
-    text-align:left; padding:8px; font-size:10.5px; text-transform:uppercase; letter-spacing:.6px;
-    color:var(--gold); border-bottom:1px solid rgba(255,255,255,.14);
+    text-align:left; padding:9px 8px; font-size:11px; text-transform:uppercase; letter-spacing:.6px;
+    color:#4a5568; background:#f7f8fa; border-bottom:1px solid #e2e8f0;
   }
-  .invoice-table td{ padding:8px; border-bottom:1px solid rgba(255,255,255,.06); color:var(--ink-muted); }
+  .invoice-table td{ padding:9px 8px; border-bottom:1px solid #e2e8f0; color:#1a202c; }
+  .invoice-table tbody tr:nth-child(even) td{ background:#fafafa; }
   .invoice-table td:last-child, .invoice-table th:last-child{ text-align:right; }
-  .invoice-summary-line{ display:flex; justify-content:space-between; font-size:13.5px; padding:5px 0; color:var(--ink-muted); }
-  .invoice-summary-line.total{ font-weight:700; font-size:17px; color:var(--gold); font-family:'Rajdhani',sans-serif; padding-top:10px; border-top:1px solid rgba(255,255,255,.1); margin-top:4px; }
-  .invoice-tax-toggle{ display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--ink-muted); margin:8px 0; cursor:pointer; }
-  .invoice-tax-toggle input{ accent-color:var(--orange); width:16px; height:16px; cursor:pointer; }
-  .invoice-payment-summary{ margin-top:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,.08); }
-  .invoice-balance-highlight{ color:var(--orange) !important; font-weight:700 !important; }
+  .invoice-summary-line{ display:flex; justify-content:space-between; font-size:13.5px; padding:5px 0; color:#4a5568; }
+  .invoice-summary-line.total{ font-weight:700; font-size:19px; color:#104872; font-family:'Rajdhani',sans-serif; padding-top:10px; border-top:1px solid #e2e8f0; margin-top:4px; }
+  .invoice-payment-summary{ margin-top:16px; padding-top:14px; border-top:1px solid #e2e8f0; }
+  .invoice-balance-highlight{ color:#FF8C00 !important; font-weight:700 !important; }
   .invoice-footer{
-    margin-top:22px; padding-top:16px; border-top:1px solid rgba(255,255,255,.08);
-    font-size:11px; color:var(--ink-faint); line-height:1.6; text-align:center;
+    margin-top:24px; padding-top:16px; border-top:2px solid #104872;
+    font-size:11px; color:#4a5568; line-height:1.6; text-align:center;
   }
-  .invoice-footer .thanks{ color:var(--ink-muted); font-weight:600; margin:8px 0 2px; font-size:12.5px; }
+  .invoice-footer .thanks{ color:#1a202c; font-weight:600; margin:8px 0 2px; font-size:12.5px; }
+  .invoice-footer .policy{ font-size:9px; color:#718096; font-style:italic; max-width:600px; margin:6px auto; }
+  #invoice-print-container .modal-section-title{ font-size:10px; letter-spacing:.12em; color:#FF8C00; }
+  #invoice-print-container .badge-invoice-draft{ background:#edf2f7; color:#4a5568; border:1px solid #cbd5e0; }
+  .invoice-sent-label{
+    display:flex; align-items:center; justify-content:center; flex:1; min-width:140px;
+    border-radius:999px; padding:12px 20px; font-size:14px; font-weight:700;
+    background:rgba(255,255,255,.05); color:#4a5568;
+  }
 
   /* ================= EVENTS (Calendar) ================= */
   .chip-event{ background:rgba(120,140,200,.35); color:#e8ecff; }
@@ -1201,32 +1213,26 @@
 
   /* ================= PRINT ================= */
   .no-print{}
+  /* @page va al top level — no puede anidarse dentro de @media print */
+  @page{ size:letter; margin:0.75in; }
   @media print{
     body *{ visibility:hidden; }
     #invoice-modal-overlay, #invoice-modal-overlay *{ visibility:visible; }
+    /* El position:absolute va en el overlay (hijo directo de body) — ponerlo
+       en #invoice-print-container (anidado dentro de .modal-box) hace que
+       .modal-box colapse a su altura de contenido normal (ya no tiene hijos
+       en flujo), y el inset:0 termina midiendo relativo a ESE contenedor
+       colapsado en vez de la página completa. */
     #invoice-modal-overlay{
       position:absolute; inset:0; padding:0; background:#fff; display:block; overflow:visible;
     }
     #invoice-modal-overlay .modal-box{
-      max-width:100%; width:100%; box-shadow:none; border:none; background:#fff; color:#000;
-      border-radius:0; padding:24px;
+      max-width:100%; width:100%; box-shadow:none; border:none; background:transparent;
+      border-radius:0; padding:0;
     }
+    #invoice-print-container{ margin:0 auto; border-radius:0; }
     #invoice-modal-overlay .no-print{ display:none !important; }
-    /* El logo blanco es invisible en papel — al imprimir se fuerza de
-       vuelta el logo de texto (que sí tiene su propio color oscuro aquí). */
-    #invoice-modal-overlay .invoice-logo-img{ display:none !important; }
-    #invoice-modal-overlay .invoice-brand{ display:block !important; }
-    #invoice-modal-overlay .invoice-brand,
-    #invoice-modal-overlay .invoice-title,
-    #invoice-modal-overlay .invoice-billto strong,
-    #invoice-modal-overlay .invoice-meta strong{ color:#0a1628 !important; }
-    #invoice-modal-overlay .invoice-meta,
-    #invoice-modal-overlay .invoice-billto,
-    #invoice-modal-overlay .invoice-table td,
-    #invoice-modal-overlay .invoice-summary-line,
-    #invoice-modal-overlay .invoice-footer{ color:#333 !important; }
-    #invoice-modal-overlay .invoice-table th{ color:#104872 !important; }
-    #invoice-modal-overlay .invoice-summary-line.total{ color:#c46a00 !important; }
+    *{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   }
 
   /* ================= LOADING OVERLAY (Supabase data fetch) ================= */
@@ -2115,57 +2121,73 @@
   <div class="modal-box modal-box-wide" id="invoice-modal-box">
     <button type="button" class="modal-close no-print" id="invoice-modal-close" aria-label="Close">✕</button>
 
-    <div class="invoice-header">
-      <div>
-        <img class="invoice-logo-img" id="invoice-logo-img" src="" alt="AltaLux Mobile Detail" hidden>
-        <div class="invoice-brand" id="invoice-brand-text">ALTA<span class="lux">LUX</span></div>
-        <div style="font-size:11px; letter-spacing:2px; color:var(--ink-faint); margin-top:2px;">MOBILE DETAIL</div>
-      </div>
-      <div class="invoice-title-block">
-        <p class="invoice-title">INVOICE</p>
-        <div class="invoice-meta">
-          <div>Invoice #: <strong id="inv-number"></strong> <span class="badge" id="inv-status-badge"></span></div>
-          <div>Invoice Date: <strong id="inv-issue-date"></strong></div>
-          <div>Due Date: <strong id="inv-due-date"></strong></div>
+    <div id="invoice-print-container">
+      <div class="invoice-header">
+        <div class="invoice-header-brand">
+          <img class="invoice-logo-img" id="invoice-logo-img" src="../brand/altalux-logo-color.png" alt="AltaLux Mobile Detail" onerror="this.hidden=true; document.getElementById('invoice-brand-text').hidden=false;">
+          <div class="invoice-brand" id="invoice-brand-text" hidden>ALTA<span class="lux">LUX</span></div>
+          <div class="invoice-biz-info">
+            <div id="inv-biz-address">Roswell, GA 30075</div>
+            <div id="inv-biz-phone"></div>
+            <div id="inv-biz-email">contact@altaluxdetail.com</div>
+            <div id="inv-biz-website">altaluxdetail.com</div>
+          </div>
+        </div>
+        <div class="invoice-title-block">
+          <p class="invoice-title">INVOICE</p>
+          <div class="invoice-meta">
+            <div>Invoice #: <strong id="inv-number"></strong> <span class="badge" id="inv-status-badge"></span></div>
+            <div>Invoice Date: <strong id="inv-issue-date"></strong></div>
+            <div>Due: <strong>Upon Receipt</strong></div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <p class="modal-section-title">Bill To</p>
-    <div class="invoice-billto">
-      <strong id="inv-customer-name"></strong>
-      <div id="inv-customer-phone"></div>
-      <div id="inv-customer-email"></div>
-      <div id="inv-customer-address"></div>
-    </div>
+      <div class="invoice-parties">
+        <div>
+          <p class="modal-section-title">Bill To</p>
+          <div class="invoice-billto">
+            <strong id="inv-customer-name"></strong>
+            <div id="inv-customer-phone"></div>
+            <div id="inv-customer-email"></div>
+            <div id="inv-customer-address"></div>
+          </div>
+        </div>
+        <div>
+          <p class="modal-section-title">Service Details</p>
+          <div class="invoice-billto">
+            <div>Date: <span id="inv-service-date"></span></div>
+            <div id="inv-service-tech-row" hidden>Tech: <span id="inv-service-tech"></span></div>
+            <div>Location: <span id="inv-service-location"></span></div>
+          </div>
+        </div>
+      </div>
 
-    <table class="invoice-table">
-      <thead>
-        <tr><th>Description</th><th>Vehicle</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr>
-      </thead>
-      <tbody id="inv-line-items"></tbody>
-    </table>
+      <table class="invoice-table">
+        <thead>
+          <tr><th>Description</th><th>Vehicle</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr>
+        </thead>
+        <tbody id="inv-line-items"></tbody>
+      </table>
 
-    <div style="max-width:280px; margin-left:auto;">
-      <div class="invoice-summary-line"><span>Subtotal</span><span id="inv-subtotal"></span></div>
-      <label class="invoice-tax-toggle no-print">
-        <input type="checkbox" id="inv-tax-toggle">
-        Apply Tax (6%)
-      </label>
-      <div class="invoice-summary-line" id="inv-tax-row" hidden><span>Tax (6%)</span><span id="inv-tax-amount"></span></div>
-      <div class="invoice-summary-line total"><span>Total</span><span id="inv-total"></span></div>
-    </div>
+      <div style="max-width:280px; margin-left:auto;">
+        <div class="invoice-summary-line"><span>Subtotal</span><span id="inv-subtotal"></span></div>
+        <div class="invoice-summary-line total"><span>Total</span><span id="inv-total"></span></div>
+      </div>
 
-    <div class="invoice-payment-summary">
-      <p class="modal-section-title">Payment Summary</p>
-      <div class="invoice-summary-line"><span>Amount Paid</span><span id="inv-amount-paid"></span></div>
-      <div class="invoice-summary-line"><span>Balance Due</span><span id="inv-balance-due"></span></div>
-    </div>
+      <div class="invoice-payment-summary">
+        <p class="modal-section-title">Payment Summary</p>
+        <div class="invoice-summary-line"><span>Amount Paid</span><span id="inv-amount-paid"></span></div>
+        <div class="invoice-summary-line"><span>Balance Due</span><span id="inv-balance-due"></span></div>
+        <div class="invoice-summary-line" id="inv-payment-method-row" hidden><span>Payment Method</span><span id="inv-payment-method"></span></div>
+      </div>
 
-    <div class="invoice-footer">
-      <p>A 25% non-refundable deposit is required to confirm your booking. Cancellations or rescheduling with less than 72 hours notice will forfeit the deposit. Our technicians rely on scheduled appointments for their income. Please be aware of your arrival window — if your vehicle is not available within 15 minutes of technician arrival, a $50 late fee will apply.</p>
-      <p class="thanks">Thank you for choosing AltaLux Mobile Detail</p>
-      <p>altaluxdetail.com</p>
+      <div class="invoice-footer">
+        <p class="modal-section-title" style="text-align:center;">Payment Terms</p>
+        <p class="policy">Due upon receipt. A 25% non-refundable deposit is required to confirm your booking. Cancellations or rescheduling with less than 72 hours notice will forfeit the deposit. Our technicians rely on scheduled appointments for their income. Please be aware of your arrival window — if your vehicle is not available within 15 minutes of technician arrival, a $50 late fee will apply.</p>
+        <p class="thanks">Thank you for choosing AltaLux Mobile Detail</p>
+        <p>altaluxdetail.com · contact@altaluxdetail.com</p>
+      </div>
     </div>
 
     <div class="modal-actions no-print">
@@ -2173,6 +2195,7 @@
       <button type="button" class="btn btn-ghost" id="inv-download">Download as PDF</button>
       <button type="button" class="btn btn-ghost" id="inv-send">Send Invoice</button>
       <button type="button" class="btn btn-primary" id="inv-mark-sent">Mark as Sent</button>
+      <span class="invoice-sent-label" id="inv-sent-label" hidden></span>
     </div>
   </div>
 </div>
@@ -2871,8 +2894,6 @@
     if (iconEl) iconEl.innerHTML = getNavIcon(btn.dataset.view);
   });
 
-  const TAX_RATE = 0.06;
-
   // ---------- Supabase ----------
   const SUPABASE_URL = 'https://xmhsehfdmiqbwhpqjgon.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtaHNlaGZkbWlxYndocHFqZ29uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzODU5NzQsImV4cCI6MjA5ODk2MTk3NH0.J2UOp-pgzP6ByvDBoHcocFAmarWdlDK8M31YgKrUNss';
@@ -2961,7 +2982,7 @@
       payments: [
         { id:1, label:'Deposit', amount:52.25, method:'Square', date:new Date(TODAY), reference:'Online Booking', notes:'', recordedBy:'Online Booking' }
       ],
-      invoice: { number:'INV-001', status:'Sent', issueDate:new Date(TODAY), dueDate:new Date(TODAY), taxEnabled:false }
+      invoice: { number:'INV-001', status:'Sent', issueDate:new Date(TODAY), dueDate:new Date(TODAY) }
     },
     {
       id: 2, jobNumber: '002', paymentNumber: 'PAY-002',
@@ -2979,7 +3000,7 @@
         { id:2, label:'Deposit', amount:71.25, method:'Square', date:new Date(TODAY), reference:'Online Booking', notes:'', recordedBy:'Online Booking' },
         { id:3, label:'Balance', amount:213.74, method:'Cash', date:new Date(TODAY), reference:'', notes:'', recordedBy:'Admin' }
       ],
-      invoice: { number:'INV-002', status:'Sent', issueDate:new Date(TODAY), dueDate:new Date(TODAY), taxEnabled:false }
+      invoice: { number:'INV-002', status:'Sent', issueDate:new Date(TODAY), dueDate:new Date(TODAY) }
     },
     {
       id: 3, jobNumber: '003', paymentNumber: 'PAY-003',
@@ -2996,7 +3017,7 @@
       payments: [
         { id:4, label:'Deposit', amount:94.75, method:'Square', date:new Date(TODAY), reference:'Online Booking', notes:'', recordedBy:'Online Booking' }
       ],
-      invoice: { number:'INV-003', status:'Draft', issueDate:new Date(TODAY), dueDate:new Date(TODAY), taxEnabled:false }
+      invoice: { number:'INV-003', status:'Draft', issueDate:new Date(TODAY), dueDate:new Date(TODAY) }
     }
   ];
 
@@ -3206,7 +3227,7 @@
       priceOverride: null, auditLog: [],
       depositOverride: null,
       payments: [],
-      invoice: { number: invNum, status: 'Draft', issueDate: new Date(TODAY), dueDate: data.date, taxEnabled: false },
+      invoice: { number: invNum, status: 'Draft', issueDate: new Date(TODAY), dueDate: data.date },
       bookingSource: data.bookingSource || null
     };
     JOBS.push(job);
@@ -3549,8 +3570,7 @@
       invoice: {
         number: '', status: 'Draft',
         issueDate: new Date(row.created_at || TODAY),
-        dueDate: row.service_date ? fromInputDate(row.service_date) : new Date(TODAY),
-        taxEnabled: false
+        dueDate: row.service_date ? fromInputDate(row.service_date) : new Date(TODAY)
       }
     };
   }
@@ -3612,10 +3632,11 @@
           const job = jobBySupabaseId.get(inv.job_id);
           if (!job) return;
           job.invoice = {
+            id: inv.id,
             number: inv.invoice_number || '', status: inv.status || 'Draft',
             issueDate: new Date(inv.created_at || TODAY),
             dueDate: inv.due_date ? fromInputDate(inv.due_date) : new Date(TODAY),
-            taxEnabled: !!inv.tax_enabled
+            sentAt: inv.sent_at || null
           };
         });
 
@@ -5254,17 +5275,10 @@
   }
 
   function renderInvoiceTotals(job){
-    const taxRow = document.getElementById('inv-tax-row');
-    const taxToggle = document.getElementById('inv-tax-toggle');
-    taxToggle.checked = job.invoice.taxEnabled;
-    taxRow.hidden = !job.invoice.taxEnabled;
-
     const subtotal = job.subtotal + job.addonsTotal;
-    const tax = job.invoice.taxEnabled ? subtotal * TAX_RATE : 0;
-    const total = subtotal + tax;
+    const total = subtotal;
 
     document.getElementById('inv-subtotal').textContent = formatCurrency(subtotal);
-    document.getElementById('inv-tax-amount').textContent = formatCurrency(tax);
     document.getElementById('inv-total').textContent = formatCurrency(total);
 
     const paid = totalPaid(job);
@@ -5275,39 +5289,78 @@
     balanceEl.classList.toggle('invoice-balance-highlight', balance > 0);
   }
 
+  // Referencia de negocio para el header del invoice — usa Settings si
+  // están cargados, con el fallback fijo de AltaLux si Supabase no respondió.
+  function invoiceBizInfo(){
+    const s = (window.APP_CONFIG && window.APP_CONFIG.settings) || {};
+    const cityLine = [s.city, s.state].filter(Boolean).join(', ') + (s.zip ? ' ' + s.zip : '');
+    return {
+      address: s.address ? `${s.address}, ${cityLine || 'Roswell, GA 30075'}` : (cityLine || 'Roswell, GA 30075'),
+      phone: s.phone || '',
+      email: s.email || 'contact@altaluxdetail.com',
+      website: (s.website || 'altaluxdetail.com').replace(/^https?:\/\//, '')
+    };
+  }
+
+  // Última tarjeta Square pagada en este job (para la línea "Payment Method")
+  function findSquarePaymentRef(job){
+    const squarePayment = (job.payments || []).slice().reverse().find(p => p.method === 'Square' && p.reference);
+    return squarePayment ? squarePayment.reference : null;
+  }
+
   function populateInvoiceModal(job){
     const status = getInvoiceStatus(job);
     document.getElementById('inv-number').textContent = job.invoice.number;
     document.getElementById('inv-status-badge').outerHTML = `<span class="badge badge-invoice-${INVOICE_STATUS_SLUG[status]}" id="inv-status-badge">${status}</span>`;
     document.getElementById('inv-issue-date').textContent = formatShortDate(job.invoice.issueDate);
-    document.getElementById('inv-due-date').textContent = formatShortDate(job.invoice.dueDate);
+
+    const biz = invoiceBizInfo();
+    document.getElementById('inv-biz-address').textContent = biz.address;
+    document.getElementById('inv-biz-phone').textContent = biz.phone;
+    document.getElementById('inv-biz-phone').hidden = !biz.phone;
+    document.getElementById('inv-biz-email').textContent = biz.email;
+    document.getElementById('inv-biz-website').textContent = biz.website;
 
     document.getElementById('inv-customer-name').textContent = job.customer.name;
     document.getElementById('inv-customer-phone').textContent = job.customer.phone;
     document.getElementById('inv-customer-email').textContent = job.customer.email;
     document.getElementById('inv-customer-address').textContent = job.address;
 
+    document.getElementById('inv-service-date').textContent = formatShortDate(job.date);
+    document.getElementById('inv-service-location').textContent = job.address;
+    const techNames = (job.assignedEmployeeIds || []).map(id => {
+      const emp = findEmployee(id);
+      return emp ? employeeFullName(emp) : null;
+    }).filter(Boolean).join(', ');
+    document.getElementById('inv-service-tech-row').hidden = !techNames;
+    document.getElementById('inv-service-tech').textContent = techNames;
+
     document.getElementById('inv-line-items').innerHTML = renderInvoiceLineItems(job);
     renderInvoiceTotals(job);
+
+    const squareRef = findSquarePaymentRef(job);
+    const methodRow = document.getElementById('inv-payment-method-row');
+    methodRow.hidden = !squareRef;
+    if (squareRef){
+      document.getElementById('inv-payment-method').textContent = `Paid via Square · Ref: ${String(squareRef).slice(-8)}`;
+    }
+
+    const markSentBtn = document.getElementById('inv-mark-sent');
+    const sentLabel = document.getElementById('inv-sent-label');
+    if (job.invoice.sentAt){
+      markSentBtn.hidden = true;
+      sentLabel.hidden = false;
+      sentLabel.textContent = `Sent on ${formatShortDate(new Date(job.invoice.sentAt))}`;
+    } else {
+      markSentBtn.hidden = false;
+      sentLabel.hidden = true;
+    }
   }
 
   function openInvoiceModal(jobId){
     currentInvoiceJobId = jobId;
     populateInvoiceModal(findJob(jobId));
     invoiceModalOverlay.hidden = false;
-
-    // Logo real en pantalla; el CSS de @media print lo oculta y vuelve
-    // a mostrar el logo de texto (el blanco es invisible en papel).
-    const logoUrl = window.APP_CONFIG && window.APP_CONFIG.settings && window.APP_CONFIG.settings.logo_url;
-    if (logoUrl){
-      const logoImg = document.getElementById('invoice-logo-img');
-      const logoText = document.getElementById('invoice-brand-text');
-      if (logoImg && logoText){
-        logoImg.src = logoUrl;
-        logoImg.hidden = false;
-        logoText.hidden = true;
-      }
-    }
   }
 
   function closeInvoiceModal(){
@@ -5320,29 +5373,57 @@
     if (e.target === invoiceModalOverlay) closeInvoiceModal();
   });
 
-  document.getElementById('inv-tax-toggle').addEventListener('change', (e) => {
-    const job = findJob(currentInvoiceJobId);
-    if (!job) return;
-    job.invoice.taxEnabled = e.target.checked;
-    renderInvoiceTotals(job);
-  });
-
   document.getElementById('inv-print').addEventListener('click', () => window.print());
   document.getElementById('inv-download').addEventListener('click', () => window.print());
+  // "Send Invoice" desde el visor: reusa los mismos modales reales que ya
+  // usa la tabla de Payments — Resend Receipt si el job ya tiene pagos,
+  // Send Invoice (pedir pago) si todavía no tiene ninguno.
   document.getElementById('inv-send').addEventListener('click', () => {
     const job = findJob(currentInvoiceJobId);
     if (!job) return;
-    if (job.invoice.status === 'Draft') job.invoice.status = 'Sent';
-    alert('Email invoice — Resend integration coming soon');
-    populateInvoiceModal(job);
-    renderPaymentsView();
+    const jobId = currentInvoiceJobId;
+    closeInvoiceModal();
+    if (job.payments && job.payments.length){
+      openResendReceiptModal(jobId);
+    } else {
+      openSendInvoiceModal(jobId);
+    }
   });
-  document.getElementById('inv-mark-sent').addEventListener('click', () => {
+
+  document.getElementById('inv-mark-sent').addEventListener('click', async () => {
     const job = findJob(currentInvoiceJobId);
     if (!job) return;
-    job.invoice.status = 'Sent';
-    populateInvoiceModal(job);
-    renderPaymentsView();
+    if (!job.invoice.id){
+      showToast('This invoice is not synced to the database yet.', 'error');
+      return;
+    }
+    const btn = document.getElementById('inv-mark-sent');
+    btn.disabled = true;
+    try {
+      const sentAt = new Date().toISOString();
+      // Guardia contra doble-click: solo actualiza si sent_at sigue siendo null.
+      const { data, error } = await db.from('invoices')
+        .update({ sent_at: sentAt, status: 'Sent' })
+        .eq('id', job.invoice.id)
+        .is('sent_at', null)
+        .select();
+      if (error) throw error;
+      if (!data || !data.length){
+        showToast('This invoice was already marked as sent.', 'error');
+      } else {
+        job.invoice.status = 'Sent';
+        job.invoice.sentAt = sentAt;
+        logJobActivity(job, 'Invoice marked as sent');
+        showToast('Invoice marked as sent', 'success');
+      }
+      populateInvoiceModal(job);
+      renderPaymentsView();
+    } catch (err){
+      console.error('[Mark as Sent] failed:', err);
+      showToast('Failed to mark invoice as sent.', 'error');
+    } finally {
+      btn.disabled = false;
+    }
   });
 
   // ================= CUSTOMER PROFILE MODAL =================
