@@ -3862,7 +3862,10 @@
     try {
       if (!db) throw new Error('Supabase client unavailable');
       await fn();
-      showToast(successMsg, 'success');
+      // successMsg puede ser una función cuando el mensaje depende de un
+      // valor que solo se conoce después del write (ej. job_number real
+      // asignado por la base de datos, no el número optimista local).
+      showToast(typeof successMsg === 'function' ? successMsg() : successMsg, 'success');
     } catch (err){
       console.error(`[Supabase] ${failureLabel} failed, kept locally only:`, err);
       showToast(`${failureLabel} — saved locally only (database sync failed).`, 'error');
@@ -3889,8 +3892,8 @@
     return {
       id: index + 1,
       supabaseId: row.id,
-      jobNumber: row.job_number || String(index + 1).padStart(3, '0'),
-      paymentNumber: 'PAY-' + (row.job_number || String(index + 1).padStart(3, '0')),
+      jobNumber: row.job_number ? padNum(row.job_number) : String(index + 1).padStart(3, '0'),
+      paymentNumber: 'PAY-' + (row.job_number ? padNum(row.job_number) : String(index + 1).padStart(3, '0')),
       customerId: row.customer_id || null,
       customer: { name: customer.full_name || '', email: customer.email || '', phone: customer.phone || '' },
       service: row.package || row.category || '',
@@ -3995,6 +3998,15 @@
         JOBS.length = 0;
         mapped.forEach(j => JOBS.push(j));
         nextJobIdCounter = JOBS.length + 1;
+        // nextJobNumCounter arrancaba hardcodeado en 4 y nunca se
+        // resincronizaba con lo ya guardado en Supabase — cada sesión
+        // nueva volvía a ofrecer "Job #004" como número optimista, sin
+        // importar cuántos jobs reales ya existieran. La DB sigue siendo
+        // la fuente de verdad (nextval de sequence, ver createJobFromData
+        // callers), esto solo evita que el número optimista mostrado
+        // antes de que confirme el guardado repita uno ya usado.
+        const maxJobNum = JOBS.reduce((max, j) => Math.max(max, parseInt(j.jobNumber, 10) || 0), 0);
+        nextJobNumCounter = maxJobNum + 1;
         console.log(`[Supabase] Loaded ${JOBS.length} job(s) from database.`);
       } else {
         console.log('[Supabase] No jobs in database yet — keeping sample data.');
@@ -6654,8 +6666,13 @@
         .select().single();
       if (custErr) throw custErr;
 
+      // No mandamos job_number acá — la columna tiene un default de DB
+      // (nextval de una sequence) que garantiza unicidad real. Mandarlo
+      // nosotros usaba un contador en memoria (nextJobNumCounter) que no
+      // se resincronizaba con lo que ya existía en Supabase, y terminó
+      // generando dos jobs #004 distintos.
       const { data: jobData, error: jobErr } = await db.from('jobs').insert([{
-        job_number: job.jobNumber, customer_id: custData.id, business_id: BUSINESS_ID,
+        customer_id: custData.id, business_id: BUSINESS_ID,
         category: job.service, package: job.service,
         service_date: toInputDate(job.date), service_time: job.time,
         subtotal: job.subtotal, addons_total: job.addonsTotal, total: job.total,
@@ -6664,6 +6681,10 @@
       if (jobErr) throw jobErr;
       job.supabaseId = jobData.id;
       job.customerId = custData.id;
+      job.jobNumber = padNum(jobData.job_number);
+      job.paymentNumber = 'PAY-' + job.jobNumber;
+      renderAll();
+      if (currentProposalModalId === id) populateProposalModal(p);
 
       if (p.supabaseId){
         const { error: propErr } = await db.from('proposals')
@@ -6671,7 +6692,7 @@
           .eq('id', p.supabaseId);
         if (propErr) throw propErr;
       }
-    }, `Job #${job.jobNumber} synced to database.`, `Proposal conversion database sync`);
+    }, () => `Job #${job.jobNumber} synced to database.`, `Proposal conversion database sync`);
   }
   document.getElementById('pm-convert-btn').addEventListener('click', () => {
     if (currentProposalModalId !== null) convertProposalToJob(currentProposalModalId);
@@ -6808,10 +6829,13 @@
         .single();
       if (custErr) throw custErr;
 
+      // job_number lo asigna la DB (default nextval de sequence) — ver
+      // nota igual en convertProposalToJob sobre por qué no lo mandamos
+      // desde acá.
       const { data: jobData, error: jobErr } = await db
         .from('jobs')
         .insert([{
-          job_number: job.jobNumber, customer_id: custData.id,
+          customer_id: custData.id,
           category: JOB_CATALOG[cat].label, package: serviceLabel,
           service_date: dateVal, service_time: time,
           subtotal: price, addons_total: 0, total: price, status, notes
@@ -6820,7 +6844,10 @@
         .single();
       if (jobErr) throw jobErr;
       job.supabaseId = jobData.id;
-    }, `Job #${job.jobNumber} synced to database.`, `Job #${job.jobNumber} database sync`);
+      job.jobNumber = padNum(jobData.job_number);
+      job.paymentNumber = 'PAY-' + job.jobNumber;
+      renderAll();
+    }, () => `Job #${job.jobNumber} synced to database.`, `Job #${job.jobNumber} database sync`);
   });
 
   // ================= EDIT JOB MODAL =================
