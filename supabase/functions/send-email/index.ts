@@ -160,12 +160,22 @@ function emailShell(biz: BizSettings, subject: string, bodyHtml: string): string
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Evita que Apple Mail / iPhone inviertan los colores en dark mode -->
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
 <title>${esc(subject)}</title>
 <style>
+  :root { color-scheme: light only; }
   @media only screen and (max-width: 600px) {
     .email-wrapper { width: 100% !important; }
     .email-body { padding: 24px 20px !important; }
     .email-header { padding: 22px 20px !important; }
+  }
+  @media (prefers-color-scheme: dark) {
+    body, table, td, div, p, a, span { background-color: inherit !important; color: inherit !important; }
+    .email-header { background-color: ${primary} !important; }
+    .email-body-cell { background-color: #ffffff !important; color: #1a202c !important; }
+    .email-footer { background-color: #f7f8fa !important; }
   }
 </style>
 </head>
@@ -180,12 +190,12 @@ function emailShell(biz: BizSettings, subject: string, bodyHtml: string): string
         </tr>
         <tr><td style="background:${secondary}; height:4px; line-height:4px; font-size:0;">&nbsp;</td></tr>
         <tr>
-          <td class="email-body" style="padding:32px; color:#1a202c; font-size:15px; line-height:1.5;">
+          <td class="email-body email-body-cell" style="padding:32px; background:#ffffff; color:#1a202c; font-size:15px; line-height:1.5;">
             ${bodyHtml}
           </td>
         </tr>
         <tr>
-          <td style="background:#f7f8fa; padding:24px 32px; border-top:1px solid #e2e8f0; text-align:center;">
+          <td class="email-footer" style="background:#f7f8fa; padding:24px 32px; border-top:1px solid #e2e8f0; text-align:center;">
             <p style="margin:0 0 8px; font-size:12px; color:#4a5568;">${esc(biz.name)} &middot; ${esc(bizAddressLine(biz))}</p>
             <p style="margin:0; font-size:12px; color:#4a5568;">
               <a href="${esc(bizWebsiteHref(biz))}" style="color:${primary};">${esc(bizWebsiteHost(biz))}</a>

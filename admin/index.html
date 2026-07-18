@@ -3227,24 +3227,36 @@
   // hardcodeados de siempre (mismo patrón de fallback que booking/index.html).
   function applyLiveCatalog(serviceRows, addonRows){
     if (serviceRows && serviceRows.length){
+      // Por cada fila se guardan dos vistas: "flat" (todas las filas de la
+      // categoría, sin importar package) y "byPackage" (agrupadas por el
+      // valor real de package). En la DB, interior/exterior tienen
+      // `package` = 'interior'/'exterior' (igual al category, NO null como
+      // se asumió en la primera versión de este fix) — por eso esas dos
+      // categorías nunca actualizaban precios. full sí usa package real
+      // ('essential'/'premium'), por eso esa sí funcionaba.
       const grouped = {};
       serviceRows.forEach(r => {
         if (r.is_active === false) return;
-        const cat = grouped[r.category] || (grouped[r.category] = {});
-        const pkgKey = r.package || '_none';
-        (cat[pkgKey] || (cat[pkgKey] = [])).push({ label: r.vehicle_type, price: Number(r.price) });
+        const cat = grouped[r.category] || (grouped[r.category] = { flat: [], byPackage: {} });
+        cat.flat.push({ label: r.vehicle_type, price: Number(r.price) });
+        if (r.package){
+          (cat.byPackage[r.package] || (cat.byPackage[r.package] = [])).push({ label: r.vehicle_type, price: Number(r.price) });
+        }
       });
       Object.keys(grouped).forEach(catKey => {
         if (!JOB_CATALOG[catKey]) return; // categoría desconocida — ignorar defensivamente
-        const pkgGroups = grouped[catKey];
+        const g = grouped[catKey];
         if (JOB_CATALOG[catKey].packages){
-          Object.keys(pkgGroups).forEach(pkgKey => {
-            if (pkgKey !== '_none' && JOB_CATALOG[catKey].packages[pkgKey] && pkgGroups[pkgKey].length){
-              JOB_CATALOG[catKey].packages[pkgKey].vehicles = pkgGroups[pkgKey];
+          // full: sí tiene sub-paquetes reales (essential/premium)
+          Object.keys(g.byPackage).forEach(pkgKey => {
+            if (JOB_CATALOG[catKey].packages[pkgKey] && g.byPackage[pkgKey].length){
+              JOB_CATALOG[catKey].packages[pkgKey].vehicles = g.byPackage[pkgKey];
             }
           });
-        } else if (pkgGroups['_none'] && pkgGroups['_none'].length){
-          JOB_CATALOG[catKey].vehicles = pkgGroups['_none'];
+        } else if (g.flat.length){
+          // interior/exterior: no tienen sub-paquetes — toda la categoría
+          // es una sola lista de vehículos, sin importar el valor de package
+          JOB_CATALOG[catKey].vehicles = g.flat;
         }
       });
     }
@@ -3679,9 +3691,17 @@
         (invoiceRows || []).forEach(inv => {
           const job = jobBySupabaseId.get(inv.job_id);
           if (!job) return;
+          // inv.invoice_number es un entero crudo (ej. 4) — igual que en
+          // sendPayableInvoice(), se formatea a "INV-YYYY-XXXX" acá mismo
+          // para que TODO lo que lea job.invoice.number (incluyendo los
+          // emails de job_confirmed/reminder/job_completed/resend receipt)
+          // reciba siempre el mismo formato, no el número crudo de la DB.
+          const formattedInvNumber = inv.invoice_number
+            ? 'INV-' + new Date(inv.created_at).getFullYear() + '-' + String(inv.invoice_number).padStart(4, '0')
+            : '';
           job.invoice = {
             id: inv.id,
-            number: inv.invoice_number || '', status: inv.status || 'Draft',
+            number: formattedInvNumber, status: inv.status || 'Draft',
             issueDate: new Date(inv.created_at || TODAY),
             dueDate: inv.due_date ? fromInputDate(inv.due_date) : new Date(TODAY),
             sentAt: inv.sent_at || null,
