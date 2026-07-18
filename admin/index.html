@@ -6397,16 +6397,33 @@
 
     getOrCreateCustomerProfile(email, name, phone);
 
-    // Persistir nombre/teléfono/email a la fila real de customers en
-    // Supabase (antes este modal solo mutaba el job en memoria y el
-    // cambio se perdía al recargar la página).
+    // Persistir nombre/teléfono/email/dirección a la fila real de customers,
+    // y categoría/paquete/fecha/hora/precios/status/notas a la fila real de
+    // jobs, en Supabase. Antes este modal solo mutaba el job en memoria —
+    // TODA edición (incluyendo la fecha) se perdía al recargar la página.
     if (job.customerId){
       attemptSupabaseWrite(async () => {
         const { error } = await db.from('customers')
-          .update({ full_name: name, last_name: ejLastName || null, phone, email })
+          .update({ full_name: name, last_name: ejLastName || null, phone, email, address })
           .eq('id', job.customerId);
         if (error) throw error;
       }, 'Customer info synced to database.', 'Customer info sync');
+    }
+    if (job.supabaseId){
+      attemptSupabaseWrite(async () => {
+        const { error } = await db.from('jobs').update({
+          category: JOB_CATALOG[cat].label,
+          package: serviceLabel,
+          service_date: dateVal,
+          service_time: time,
+          subtotal: basePrice,
+          addons_total: addonsTotal,
+          total: newTotal,
+          status,
+          notes
+        }).eq('id', job.supabaseId);
+        if (error) throw error;
+      }, `Job #${job.jobNumber} synced to database.`, `Job #${job.jobNumber} database sync`);
     }
 
     closeEditJobModal();
