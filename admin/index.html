@@ -2612,9 +2612,17 @@
     <h2 class="modal-title">New <span>Event</span></h2>
     <form id="create-event-form">
       <div class="field"><label for="ce-title">Title</label><input type="text" id="ce-title" placeholder="e.g. Equipment maintenance" required></div>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px;">
-        <div class="field"><label for="ce-date">Date</label><input type="date" id="ce-date"></div>
-        <div class="field"><label for="ce-time">Time</label><select id="ce-time"></select></div>
+      <label class="role-radio-option" style="margin-top:14px;">
+        <input type="checkbox" id="ce-allday">
+        <span><span class="role-radio-label">All Day</span><span class="role-radio-desc">Blocks the entire day(s) instead of a specific time range</span></span>
+      </label>
+      <div class="edit-job-section-grid" style="margin-top:14px;">
+        <div class="field"><label for="ce-date">Start Date</label><input type="date" id="ce-date"></div>
+        <div class="field" id="ce-time-field"><label for="ce-time">Start Time</label><select id="ce-time"></select></div>
+      </div>
+      <div class="edit-job-section-grid" style="margin-top:14px;">
+        <div class="field"><label for="ce-enddate">End Date <span style="color:var(--ink-faint); text-transform:none; font-weight:400;">(optional — same day if empty)</span></label><input type="date" id="ce-enddate"></div>
+        <div class="field" id="ce-endtime-field"><label for="ce-endtime">End Time</label><select id="ce-endtime"></select></div>
       </div>
       <div class="field" style="margin-top:14px;"><label for="ce-notes">Notes <span style="color:var(--ink-faint); text-transform:none; font-weight:400;">(optional)</span></label><textarea id="ce-notes"></textarea></div>
     </form>
@@ -2631,7 +2639,7 @@
     <button type="button" class="modal-close" id="event-modal-close" aria-label="Close">✕</button>
     <h2 class="modal-title" id="em-title">Event</h2>
     <div class="summary-line"><span>Date</span><span id="em-date"></span></div>
-    <div class="summary-line"><span>Time</span><span id="em-time"></span></div>
+    <div class="summary-line" id="em-time-row"><span>Time</span><span id="em-time"></span></div>
     <div class="summary-line"><span>Notes</span><span id="em-notes"></span></div>
     <div class="modal-actions">
       <button type="button" class="btn btn-danger" id="em-delete">Delete Event</button>
@@ -2952,6 +2960,34 @@
   function formatCurrency(n){ return '$' + n.toFixed(2); }
   function isSameDay(a,b){
     return a && b && a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+  }
+  // Un evento puede durar varios días (ej. vacaciones) — cubre `d` si cae
+  // entre event.date y event.endDate (o solo event.date si nunca se puso
+  // fecha de fin, mismo comportamiento que antes de soportar rangos).
+  function eventCoversDay(ev, d){
+    const start = new Date(ev.date.getFullYear(), ev.date.getMonth(), ev.date.getDate());
+    const end = new Date((ev.endDate || ev.date).getFullYear(), (ev.endDate || ev.date).getMonth(), (ev.endDate || ev.date).getDate());
+    const day = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    return day >= start && day <= end;
+  }
+  // Si el evento es "All Day" cubre cualquier slot de cualquier día del
+  // rango. Si no, para un evento de un solo día cubre los slots entre
+  // time y endTime; para uno de varios días con horas específicas, el
+  // primer día cubre desde `time`, el último hasta `endTime`, y los días
+  // intermedios se bloquean completos.
+  function eventCoversSlot(ev, d, slot){
+    if (ev.allDay) return true;
+    const endDate = ev.endDate || ev.date;
+    const slotIdx = ADMIN_TIME_SLOTS.indexOf(slot);
+    const startIdx = ADMIN_TIME_SLOTS.indexOf(ev.time);
+    const endIdx = ADMIN_TIME_SLOTS.indexOf(ev.endTime || ev.time);
+    if (slotIdx === -1 || startIdx === -1) return ev.time === slot;
+    if (!isSameDay(ev.date, endDate)){
+      if (isSameDay(d, ev.date)) return slotIdx >= startIdx;
+      if (isSameDay(d, endDate)) return slotIdx <= Math.max(endIdx, 0);
+      return true;
+    }
+    return slotIdx >= startIdx && slotIdx <= Math.max(endIdx, startIdx);
   }
   function formatShortDate(d){ return `${MONTH_LABELS[d.getMonth()].slice(0,3)} ${d.getDate()}`; }
   function formatLongDate(d){ return `${WEEKDAY_LONG[d.getDay()]}, ${MONTH_LABELS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`; }
@@ -3859,7 +3895,10 @@
         EVENTS.push({
           id: i + 1, supabaseId: row.id,
           title: row.title || '', date: row.event_date ? fromInputDate(row.event_date) : new Date(TODAY),
-          time: row.event_time || '', notes: row.notes || ''
+          time: row.event_time || '',
+          endDate: row.end_date ? fromInputDate(row.end_date) : (row.event_date ? fromInputDate(row.event_date) : new Date(TODAY)),
+          endTime: row.end_time || '', allDay: !!row.all_day,
+          notes: row.notes || ''
         });
       });
       nextEventIdCounter = EVENTS.length + 1;
@@ -4324,7 +4363,7 @@
           });
           cell.appendChild(chip);
         });
-        const eventMatches = EVENTS.filter(ev => isSameDay(ev.date, d) && ev.time === slot);
+        const eventMatches = EVENTS.filter(ev => eventCoversDay(ev, d) && eventCoversSlot(ev, d, slot));
         eventMatches.forEach(ev => {
           const chip = document.createElement('button');
           chip.type = 'button';
@@ -4393,7 +4432,7 @@
     document.getElementById('selected-day-label-events').textContent = formatLongDate(state.selectedDate);
     const container = document.getElementById('events-list');
     const dayEvents = EVENTS
-      .filter(ev => isSameDay(ev.date, state.selectedDate))
+      .filter(ev => eventCoversDay(ev, state.selectedDate))
       .sort((a,b) => ADMIN_TIME_SLOTS.indexOf(a.time) - ADMIN_TIME_SLOTS.indexOf(b.time));
 
     if (!dayEvents.length){
@@ -4404,7 +4443,7 @@
       <div class="event-card">
         <div class="event-card-top">
           <strong>${ev.title}</strong>
-          <span class="event-time">${ev.time}</span>
+          <span class="event-time">${eventTimeLabel(ev)}</span>
         </div>
         ${ev.notes ? `<p class="event-notes">${ev.notes}</p>` : ''}
         <div class="job-card-actions">
@@ -4412,6 +4451,13 @@
         </div>
       </div>
     `).join('');
+  }
+  // Etiqueta legible para un evento: "All Day", "8:00 AM – 4:00 PM", o
+  // solo la hora de inicio si nunca se puso hora de fin.
+  function eventTimeLabel(ev){
+    if (ev.allDay) return 'All Day';
+    if (ev.endTime && ev.endTime !== ev.time) return `${ev.time} – ${ev.endTime}`;
+    return ev.time || 'All Day';
   }
 
   // ================= JOBS TABLE =================
@@ -6225,8 +6271,11 @@
     if (!ev) return;
     currentEventModalId = id;
     document.getElementById('em-title').textContent = ev.title;
-    document.getElementById('em-date').textContent = formatLongDate(ev.date);
-    document.getElementById('em-time').textContent = ev.time;
+    const endDate = ev.endDate || ev.date;
+    document.getElementById('em-date').textContent = isSameDay(ev.date, endDate)
+      ? formatLongDate(ev.date)
+      : `${formatLongDate(ev.date)} – ${formatLongDate(endDate)}`;
+    document.getElementById('em-time').textContent = eventTimeLabel(ev);
     document.getElementById('em-notes').textContent = ev.notes || '—';
     eventModalOverlay.hidden = false;
   }
@@ -6933,13 +6982,22 @@
   // ================= CREATE EVENT MODAL =================
   const createEventOverlay = document.getElementById('create-event-overlay');
 
+  function toggleEventTimeFields(){
+    const allDay = document.getElementById('ce-allday').checked;
+    document.getElementById('ce-time-field').hidden = allDay;
+    document.getElementById('ce-endtime-field').hidden = allDay;
+  }
   function openCreateEventModal(){
     document.getElementById('create-event-form').reset();
     document.getElementById('ce-date').value = toInputDate(state.selectedDate);
-    const timeSelect = document.getElementById('ce-time');
-    timeSelect.innerHTML = ADMIN_TIME_SLOTS.map(t => `<option value="${t}">${t}</option>`).join('');
+    document.getElementById('ce-enddate').value = '';
+    const timeOptions = ADMIN_TIME_SLOTS.map(t => `<option value="${t}">${t}</option>`).join('');
+    document.getElementById('ce-time').innerHTML = timeOptions;
+    document.getElementById('ce-endtime').innerHTML = timeOptions;
+    toggleEventTimeFields();
     createEventOverlay.hidden = false;
   }
+  document.getElementById('ce-allday').addEventListener('change', toggleEventTimeFields);
   function closeCreateEventModal(){ createEventOverlay.hidden = true; }
   document.getElementById('create-event-close').addEventListener('click', closeCreateEventModal);
   document.getElementById('ce-cancel').addEventListener('click', closeCreateEventModal);
@@ -6949,15 +7007,29 @@
 
   document.getElementById('ce-submit').addEventListener('click', () => {
     const title = document.getElementById('ce-title').value.trim();
+    const allDay = document.getElementById('ce-allday').checked;
     const dateVal = document.getElementById('ce-date').value;
-    const time = document.getElementById('ce-time').value;
+    const time = allDay ? null : document.getElementById('ce-time').value;
+    const endDateVal = document.getElementById('ce-enddate').value || dateVal;
+    const endTime = allDay ? null : document.getElementById('ce-endtime').value;
     const notes = document.getElementById('ce-notes').value.trim();
 
     if (!title || !dateVal){
       alert('Please enter a title and date.');
       return;
     }
-    const event = { id: nextEventIdCounter++, title, date: fromInputDate(dateVal), time, notes };
+    if (endDateVal < dateVal){
+      alert('End date must be on or after the start date.');
+      return;
+    }
+    if (!allDay && endDateVal === dateVal && ADMIN_TIME_SLOTS.indexOf(endTime) < ADMIN_TIME_SLOTS.indexOf(time)){
+      alert('End time must be on or after the start time.');
+      return;
+    }
+    const event = {
+      id: nextEventIdCounter++, title, date: fromInputDate(dateVal), time,
+      endDate: fromInputDate(endDateVal), endTime, allDay, notes
+    };
     EVENTS.push(event);
     closeCreateEventModal();
     renderWeekView();
@@ -6965,7 +7037,8 @@
 
     attemptSupabaseWrite(async () => {
       const { data, error } = await db.from('events').insert([{
-        business_id: BUSINESS_ID, title, event_date: dateVal, event_time: time, notes
+        business_id: BUSINESS_ID, title, event_date: dateVal, event_time: time,
+        end_date: endDateVal, end_time: endTime, all_day: allDay, notes
       }]).select().single();
       if (error) throw error;
       event.supabaseId = data.id;
