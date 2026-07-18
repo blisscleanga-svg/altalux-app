@@ -442,15 +442,39 @@
   .section-title span{ color:var(--gold); }
 
   /* ================= MINI CALENDAR ================= */
+  #mini-calendar-panel{ margin-bottom:16px; }
   .calendar-header{
     display:flex;
     align-items:center;
     justify-content:space-between;
-    margin-bottom:14px;
+    gap:10px;
     font-family:'Rajdhani',sans-serif;
     font-weight:600;
     font-size:16px;
   }
+  #mini-calendar-panel .calendar-header{ margin-bottom:0; }
+  #mini-calendar-panel.expanded .calendar-header{ margin-bottom:14px; }
+  .mini-cal-toggle{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:transparent;
+    border:none;
+    color:var(--white);
+    font-family:'Rajdhani',sans-serif;
+    font-weight:600;
+    font-size:16px;
+    cursor:pointer;
+    padding:4px 0;
+  }
+  .mini-cal-toggle .chev{
+    display:inline-block;
+    font-size:12px;
+    color:var(--gold);
+    transition:transform .2s ease;
+  }
+  .mini-cal-toggle[aria-expanded="true"] .chev{ transform:rotate(90deg); }
+  .mini-cal-nav-btn[hidden]{ display:none; }
   .cal-nav{
     width:30px; height:30px;
     border-radius:50%;
@@ -1609,16 +1633,20 @@
 
       <!-- ===== CALENDAR VIEW ===== -->
       <section class="view active" id="view-calendar">
-        <div class="panel">
+        <div class="panel" id="mini-calendar-panel">
           <div class="calendar-header">
-            <button type="button" class="cal-nav" id="admin-cal-prev" aria-label="Previous month">‹</button>
-            <span id="admin-cal-month-label">Month Year</span>
-            <button type="button" class="cal-nav" id="admin-cal-next" aria-label="Next month">›</button>
+            <button type="button" class="cal-nav mini-cal-nav-btn" id="admin-cal-prev" aria-label="Previous month" hidden>‹</button>
+            <button type="button" class="mini-cal-toggle" id="mini-cal-toggle" aria-expanded="false">
+              <span class="chev">▸</span> <span id="admin-cal-month-label">Month Year</span>
+            </button>
+            <button type="button" class="cal-nav mini-cal-nav-btn" id="admin-cal-next" aria-label="Next month" hidden>›</button>
           </div>
-          <div class="calendar-weekdays">
-            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+          <div id="mini-calendar-body" hidden>
+            <div class="calendar-weekdays">
+              <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+            </div>
+            <div class="calendar-grid" id="admin-calendar-grid"></div>
           </div>
-          <div class="calendar-grid" id="admin-calendar-grid"></div>
         </div>
 
         <div class="panel">
@@ -4489,6 +4517,21 @@
   document.getElementById('admin-cal-next').addEventListener('click', () => {
     state.calendarViewDate = new Date(state.calendarViewDate.getFullYear(), state.calendarViewDate.getMonth() + 1, 1);
     renderMiniCalendar();
+  });
+
+  // El mini-calendario arranca colapsado — en escritorio ocupaba toda la
+  // pantalla y tapaba el panel de Agenda/Week/Month/Day de abajo. Se
+  // expande/colapsa con un click, sin perder su estado ni su selección.
+  const miniCalPanel = document.getElementById('mini-calendar-panel');
+  const miniCalBody = document.getElementById('mini-calendar-body');
+  const miniCalToggleBtn = document.getElementById('mini-cal-toggle');
+  miniCalToggleBtn.addEventListener('click', () => {
+    const expand = miniCalBody.hidden;
+    miniCalBody.hidden = !expand;
+    document.getElementById('admin-cal-prev').hidden = !expand;
+    document.getElementById('admin-cal-next').hidden = !expand;
+    miniCalPanel.classList.toggle('expanded', expand);
+    miniCalToggleBtn.setAttribute('aria-expanded', String(expand));
   });
 
   // ================= CALENDAR TABS (Agenda/Week/Month/Day) =================
