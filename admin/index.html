@@ -2220,7 +2220,10 @@
     </div>
 
     <div class="profile-panel active" id="profile-panel-overview">
-      <div class="field"><label for="profile-name-input">Name</label><input type="text" id="profile-name-input"></div>
+      <div class="edit-job-section-grid">
+        <div class="field"><label for="profile-firstname-input">First Name</label><input type="text" id="profile-firstname-input"></div>
+        <div class="field"><label for="profile-lastname-input">Last Name</label><input type="text" id="profile-lastname-input"></div>
+      </div>
       <div class="field" style="margin-top:14px;"><label for="profile-phone-input">Phone</label><input type="tel" id="profile-phone-input"></div>
       <div class="summary-line" style="margin-top:14px;"><span>Email</span><span id="profile-email"></span></div>
       <hr class="summary-divider">
@@ -2331,7 +2334,10 @@
     <button type="button" class="modal-close" id="create-job-close" aria-label="Close">✕</button>
     <h2 class="modal-title">New <span>Quote / Job</span></h2>
     <form id="create-job-form">
-      <div class="field"><label for="cj-name">Customer Name</label><input type="text" id="cj-name" required></div>
+      <div class="edit-job-section-grid">
+        <div class="field"><label for="cj-firstname">First Name</label><input type="text" id="cj-firstname" required></div>
+        <div class="field"><label for="cj-lastname">Last Name</label><input type="text" id="cj-lastname"></div>
+      </div>
       <div class="field" style="margin-top:14px;"><label for="cj-phone">Phone</label><input type="tel" id="cj-phone" required></div>
       <div class="field" style="margin-top:14px;"><label for="cj-email">Email</label><input type="email" id="cj-email" required></div>
       <div class="field" style="margin-top:14px;"><label for="cj-address">Service Address</label><input type="text" id="cj-address" required></div>
@@ -2417,9 +2423,10 @@
       <hr class="summary-divider">
       <p class="modal-section-title">Customer</p>
       <div class="edit-job-section-grid">
-        <div class="field"><label for="ej-name">Name</label><input type="text" id="ej-name"></div>
-        <div class="field"><label for="ej-phone">Phone</label><input type="tel" id="ej-phone"></div>
+        <div class="field"><label for="ej-firstname">First Name</label><input type="text" id="ej-firstname"></div>
+        <div class="field"><label for="ej-lastname">Last Name</label><input type="text" id="ej-lastname"></div>
       </div>
+      <div class="field" style="margin-top:14px;"><label for="ej-phone">Phone</label><input type="tel" id="ej-phone"></div>
       <div class="field" style="margin-top:14px;"><label for="ej-email">Email</label><input type="email" id="ej-email"></div>
       <div class="field" style="margin-top:14px;"><label for="ej-address">Service Address</label><input type="text" id="ej-address"></div>
       <div class="field" style="margin-top:14px;"><label for="ej-vehicle">Vehicle (Year Make Model)</label><input type="text" id="ej-vehicle"></div>
@@ -2544,7 +2551,10 @@
     <button type="button" class="modal-close" id="create-proposal-close" aria-label="Close">✕</button>
     <h2 class="modal-title">New <span>Proposal</span></h2>
     <form id="create-proposal-form">
-      <div class="field"><label for="cp-name">Customer Name</label><input type="text" id="cp-name" required></div>
+      <div class="edit-job-section-grid">
+        <div class="field"><label for="cp-firstname">First Name</label><input type="text" id="cp-firstname" required></div>
+        <div class="field"><label for="cp-lastname">Last Name</label><input type="text" id="cp-lastname"></div>
+      </div>
       <div class="field" style="margin-top:14px;"><label for="cp-phone">Phone</label><input type="tel" id="cp-phone" required></div>
       <div class="field" style="margin-top:14px;"><label for="cp-email">Email</label><input type="email" id="cp-email" required></div>
       <div class="field" style="margin-top:14px;"><label for="cp-service">Service Description</label><input type="text" id="cp-service" placeholder="e.g. Premium Detail for 2 vehicles" required></div>
@@ -3209,6 +3219,44 @@
     }
   };
 
+  // Sobrescribe los precios/vehículos de JOB_CATALOG y las filas de
+  // ADDONS_CATALOG con los datos reales de business_services/business_addons
+  // (lo que edita Settings > Servicios y Precios / Add-ons). Se llama una
+  // vez al cargar el dashboard. Si Supabase no responde o no hay filas
+  // activas, JOB_CATALOG/ADDONS_CATALOG se quedan con sus valores
+  // hardcodeados de siempre (mismo patrón de fallback que booking/index.html).
+  function applyLiveCatalog(serviceRows, addonRows){
+    if (serviceRows && serviceRows.length){
+      const grouped = {};
+      serviceRows.forEach(r => {
+        if (r.is_active === false) return;
+        const cat = grouped[r.category] || (grouped[r.category] = {});
+        const pkgKey = r.package || '_none';
+        (cat[pkgKey] || (cat[pkgKey] = [])).push({ label: r.vehicle_type, price: Number(r.price) });
+      });
+      Object.keys(grouped).forEach(catKey => {
+        if (!JOB_CATALOG[catKey]) return; // categoría desconocida — ignorar defensivamente
+        const pkgGroups = grouped[catKey];
+        if (JOB_CATALOG[catKey].packages){
+          Object.keys(pkgGroups).forEach(pkgKey => {
+            if (pkgKey !== '_none' && JOB_CATALOG[catKey].packages[pkgKey] && pkgGroups[pkgKey].length){
+              JOB_CATALOG[catKey].packages[pkgKey].vehicles = pkgGroups[pkgKey];
+            }
+          });
+        } else if (pkgGroups['_none'] && pkgGroups['_none'].length){
+          JOB_CATALOG[catKey].vehicles = pkgGroups['_none'];
+        }
+      });
+    }
+    if (addonRows && addonRows.length){
+      const active = addonRows.filter(r => r.is_active !== false);
+      if (active.length){
+        ADDONS_CATALOG.length = 0;
+        active.forEach(r => ADDONS_CATALOG.push({ key: r.id, name: r.name, price: Number(r.price) }));
+      }
+    }
+  }
+
   function createJobFromData(data){
     const id = nextJobIdCounter++;
     const num = padNum(nextJobNumCounter++);
@@ -3670,6 +3718,14 @@
       BOOKINGS.length = 0;
       (bookingRows || []).forEach(row => BOOKINGS.push(mapBookingRow(row)));
       console.log(`[Supabase] Loaded ${BOOKINGS.length} booking(s).`);
+
+      const { data: serviceRows, error: servicesErr } = await db
+        .from('business_services').select('*').eq('business_id', BUSINESS_ID);
+      if (servicesErr) console.error('[Supabase] Failed to load business_services:', servicesErr);
+      const { data: addonRows, error: addonsErr } = await db
+        .from('business_addons').select('*').eq('business_id', BUSINESS_ID);
+      if (addonsErr) console.error('[Supabase] Failed to load business_addons:', addonsErr);
+      applyLiveCatalog(serviceRows, addonRows);
 
       await loadEmployeesFromSupabase();
 
@@ -5558,6 +5614,19 @@
 
   // Escapa texto de usuario antes de insertarlo como HTML (nombres/direcciones
   // vienen de clientes vía el booking público, no son datos confiables)
+  // Divide un nombre completo en nombre/apellido — primera palabra es el
+  // nombre, el resto es el apellido (para poblar los campos First/Last
+  // Name a partir de datos existentes que solo tienen un string "name").
+  function splitFullName(fullName){
+    const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return { firstName: '', lastName: '' };
+    if (parts.length === 1) return { firstName: parts[0], lastName: '' };
+    return { firstName: parts[0], lastName: parts.slice(1).join(' ') };
+  }
+  function joinName(firstName, lastName){
+    return [String(firstName || '').trim(), String(lastName || '').trim()].filter(Boolean).join(' ');
+  }
+
   function escapeHtml(str){
     return String(str ?? '').replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
   }
@@ -5596,7 +5665,9 @@
 
     document.getElementById('profile-customer-name').textContent = record.name;
     document.getElementById('profile-lifetime-value').textContent = formatCurrency(record.totalSpent);
-    document.getElementById('profile-name-input').value = record.name;
+    const nameParts = splitFullName(record.name);
+    document.getElementById('profile-firstname-input').value = nameParts.firstName;
+    document.getElementById('profile-lastname-input').value = nameParts.lastName;
     document.getElementById('profile-phone-input').value = record.phone;
     document.getElementById('profile-email').textContent = record.email;
     document.getElementById('profile-jobs-count').textContent = record.jobsCount;
@@ -5609,7 +5680,8 @@
     document.getElementById('profile-favorite-service').textContent = favorite || '—';
 
     const editableFieldsDisabled = currentRole && !ROLE_PERMISSIONS[currentRole].canEditCustomers;
-    document.getElementById('profile-name-input').disabled = !!editableFieldsDisabled;
+    document.getElementById('profile-firstname-input').disabled = !!editableFieldsDisabled;
+    document.getElementById('profile-lastname-input').disabled = !!editableFieldsDisabled;
     document.getElementById('profile-phone-input').disabled = !!editableFieldsDisabled;
 
     document.getElementById('profile-notes-input').value = (getCustomerProfile(email) || {}).notes || '';
@@ -5621,23 +5693,56 @@
     renderProfileJobHistory();
   }
 
-  document.getElementById('profile-name-input').addEventListener('change', (e) => {
+  // Guarda el cambio de nombre — actualiza estado local (mismo patrón de
+  // siempre) y, si el cliente ya tiene fila real en Supabase, la persiste
+  // también (antes solo quedaba en memoria y se perdía al recargar).
+  function saveProfileNameChange(){
     if (!currentProfileEmail) return;
-    const val = e.target.value.trim();
+    const firstName = document.getElementById('profile-firstname-input').value.trim();
+    const lastName = document.getElementById('profile-lastname-input').value.trim();
+    const val = joinName(firstName, lastName);
     const profile = getOrCreateCustomerProfile(currentProfileEmail);
     profile.name = val;
-    JOBS.forEach(j => { if (j.customer.email === currentProfileEmail) j.customer.name = val; });
+    let customerId = null;
+    JOBS.forEach(j => {
+      if (j.customer.email === currentProfileEmail){
+        j.customer.name = val;
+        if (j.customerId) customerId = j.customerId;
+      }
+    });
     STANDALONE_CUSTOMERS.forEach(c => { if (c.email === currentProfileEmail) c.name = val; });
     document.getElementById('profile-customer-name').textContent = val;
     renderAll();
-  });
+
+    if (customerId){
+      attemptSupabaseWrite(async () => {
+        const { error } = await db.from('customers').update({ full_name: val, last_name: lastName || null }).eq('id', customerId);
+        if (error) throw error;
+      }, 'Customer name updated.', 'Customer name sync');
+    }
+  }
+  document.getElementById('profile-firstname-input').addEventListener('change', saveProfileNameChange);
+  document.getElementById('profile-lastname-input').addEventListener('change', saveProfileNameChange);
   document.getElementById('profile-phone-input').addEventListener('change', (e) => {
     if (!currentProfileEmail) return;
     const val = e.target.value.trim();
     const profile = getOrCreateCustomerProfile(currentProfileEmail);
     profile.phone = val;
-    JOBS.forEach(j => { if (j.customer.email === currentProfileEmail) j.customer.phone = val; });
+    let customerId = null;
+    JOBS.forEach(j => {
+      if (j.customer.email === currentProfileEmail){
+        j.customer.phone = val;
+        if (j.customerId) customerId = j.customerId;
+      }
+    });
     STANDALONE_CUSTOMERS.forEach(c => { if (c.email === currentProfileEmail) c.phone = val; });
+
+    if (customerId){
+      attemptSupabaseWrite(async () => {
+        const { error } = await db.from('customers').update({ phone: val }).eq('id', customerId);
+        if (error) throw error;
+      }, 'Customer phone updated.', 'Customer phone sync');
+    }
   });
   document.getElementById('profile-notes-input').addEventListener('input', (e) => {
     if (!currentProfileEmail) return;
@@ -5983,7 +6088,7 @@
   });
 
   document.getElementById('cj-submit').addEventListener('click', () => {
-    const name = document.getElementById('cj-name').value.trim();
+    const name = joinName(document.getElementById('cj-firstname').value, document.getElementById('cj-lastname').value);
     const phone = document.getElementById('cj-phone').value.trim();
     const email = document.getElementById('cj-email').value.trim();
     const address = document.getElementById('cj-address').value.trim();
@@ -6129,7 +6234,9 @@
     timeSelect.innerHTML = ADMIN_TIME_SLOTS.map(t => `<option value="${t}">${t}</option>`).join('');
     timeSelect.value = job.time;
 
-    document.getElementById('ej-name').value = job.customer.name || '';
+    const ejNameParts = splitFullName(job.customer.name);
+    document.getElementById('ej-firstname').value = ejNameParts.firstName;
+    document.getElementById('ej-lastname').value = ejNameParts.lastName;
     document.getElementById('ej-phone').value = job.customer.phone || '';
     document.getElementById('ej-email').value = job.customer.email || '';
     document.getElementById('ej-address').value = job.address || '';
@@ -6179,7 +6286,9 @@
     const job = findJob(currentEditJobId);
     if (!job) return;
 
-    const name = document.getElementById('ej-name').value.trim();
+    const ejFirstName = document.getElementById('ej-firstname').value.trim();
+    const ejLastName = document.getElementById('ej-lastname').value.trim();
+    const name = joinName(ejFirstName, ejLastName);
     const phone = document.getElementById('ej-phone').value.trim();
     const email = document.getElementById('ej-email').value.trim();
     const address = document.getElementById('ej-address').value.trim();
@@ -6257,6 +6366,18 @@
     if (!changes.length) logJobActivity(job, 'Job reviewed — no changes made');
 
     getOrCreateCustomerProfile(email, name, phone);
+
+    // Persistir nombre/teléfono/email a la fila real de customers en
+    // Supabase (antes este modal solo mutaba el job en memoria y el
+    // cambio se perdía al recargar la página).
+    if (job.customerId){
+      attemptSupabaseWrite(async () => {
+        const { error } = await db.from('customers')
+          .update({ full_name: name, last_name: ejLastName || null, phone, email })
+          .eq('id', job.customerId);
+        if (error) throw error;
+      }, 'Customer info synced to database.', 'Customer info sync');
+    }
 
     closeEditJobModal();
     renderAll();
@@ -6391,6 +6512,8 @@
     document.querySelectorAll('#address-entries .entry-input').forEach(initAddressAutocomplete);
     const cjAddress = document.getElementById('cj-address');
     if (cjAddress) initAddressAutocomplete(cjAddress);
+    const ejAddress = document.getElementById('ej-address');
+    if (ejAddress) initAddressAutocomplete(ejAddress);
   };
 
   // ================= TYPE TOGGLE (Person/Business) =================
@@ -6535,7 +6658,7 @@
   });
 
   document.getElementById('cp-submit').addEventListener('click', () => {
-    const name = document.getElementById('cp-name').value.trim();
+    const name = joinName(document.getElementById('cp-firstname').value, document.getElementById('cp-lastname').value);
     const phone = document.getElementById('cp-phone').value.trim();
     const email = document.getElementById('cp-email').value.trim();
     const serviceDescription = document.getElementById('cp-service').value.trim();
@@ -7091,13 +7214,18 @@
   });
 
   function selectRoleRadio(role){
-    document.querySelectorAll('.role-radio-option').forEach(opt => {
+    // Acotado a [data-role]: .role-radio-option también se reusa para
+    // checkboxes simples (Override Price, Set as Default) que no son
+    // parte de este grupo de radio de rol de empleado — sin este scope,
+    // este handler los fuerza a "checked" en cada click y nunca se
+    // pueden desmarcar.
+    document.querySelectorAll('.role-radio-option[data-role]').forEach(opt => {
       const isMatch = opt.dataset.role === role;
       opt.classList.toggle('selected', isMatch);
       opt.querySelector('input').checked = isMatch;
     });
   }
-  document.querySelectorAll('.role-radio-option').forEach(opt => {
+  document.querySelectorAll('.role-radio-option[data-role]').forEach(opt => {
     opt.addEventListener('click', () => selectRoleRadio(opt.dataset.role));
   });
 
@@ -7121,7 +7249,7 @@
   function resetEmployeeForm(){
     document.getElementById('employee-form').reset();
     setEmployeeModalType('employee');
-    document.querySelectorAll('.role-radio-option').forEach(opt => opt.classList.remove('selected'));
+    document.querySelectorAll('.role-radio-option[data-role]').forEach(opt => opt.classList.remove('selected'));
     employeePhotoDataUrl = null;
     document.getElementById('emp-password').value = '';
     applyEmployeeModalPermissions();

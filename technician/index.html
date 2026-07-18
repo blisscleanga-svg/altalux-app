@@ -696,7 +696,8 @@
   <div class="modal-sheet">
     <div class="modal-handle"></div>
     <h2 class="modal-sheet-title">Edit Customer</h2>
-    <div class="field"><label for="ec-name">Full Name</label><input type="text" id="ec-name"></div>
+    <div class="field"><label for="ec-firstname">First Name</label><input type="text" id="ec-firstname"></div>
+    <div class="field" style="margin-top:14px;"><label for="ec-lastname">Last Name</label><input type="text" id="ec-lastname"></div>
     <div class="field" style="margin-top:14px;"><label for="ec-phone">Phone</label><input type="tel" id="ec-phone"></div>
     <div class="field" style="margin-top:14px;"><label for="ec-email">Email</label><input type="email" id="ec-email"></div>
     <div class="field" style="margin-top:14px;"><label for="ec-address">Service Address</label><input type="text" id="ec-address"></div>
@@ -898,7 +899,8 @@
   <div class="modal-sheet">
     <div class="modal-handle"></div>
     <h2 class="modal-sheet-title" id="customer-form-title">Add Customer</h2>
-    <div class="field"><label for="cf-name">Full Name</label><input type="text" id="cf-name"></div>
+    <div class="field"><label for="cf-firstname">First Name</label><input type="text" id="cf-firstname"></div>
+    <div class="field" style="margin-top:14px;"><label for="cf-lastname">Last Name</label><input type="text" id="cf-lastname"></div>
     <div class="field" style="margin-top:14px;"><label for="cf-phone">Phone</label><input type="tel" id="cf-phone"></div>
     <div class="field" style="margin-top:14px;"><label for="cf-email">Email</label><input type="email" id="cf-email"></div>
     <div class="modal-actions">
@@ -1272,6 +1274,16 @@
   let alljobsSubtab = 'upcoming';
   let customerSearchTerm = '';
   let currentProfileEmail = null;
+
+  function splitFullName(fullName){
+    const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return { firstName: '', lastName: '' };
+    if (parts.length === 1) return { firstName: parts[0], lastName: '' };
+    return { firstName: parts[0], lastName: parts.slice(1).join(' ') };
+  }
+  function joinName(firstName, lastName){
+    return [String(firstName || '').trim(), String(lastName || '').trim()].filter(Boolean).join(' ');
+  }
 
   function isClockedIn(){ return !!(currentClockRecord && !currentClockRecord.clockOut); }
   function perms(){ return currentUser ? ROLE_PERMISSIONS[currentUser.role] : ROLE_PERMISSIONS.Owner; }
@@ -2092,7 +2104,9 @@
   // ================= EDIT CUSTOMER MODAL =================
   function openEditCustomerModal(){
     const job = findJob(currentJobId);
-    document.getElementById('ec-name').value = job.customer.name;
+    const ecNameParts = splitFullName(job.customer.name);
+    document.getElementById('ec-firstname').value = ecNameParts.firstName;
+    document.getElementById('ec-lastname').value = ecNameParts.lastName;
     document.getElementById('ec-phone').value = job.customer.phone;
     document.getElementById('ec-email').value = job.customer.email;
     document.getElementById('ec-address').value = job.address;
@@ -2106,9 +2120,11 @@
   document.getElementById('ec-cancel').addEventListener('click', () => closeModal('edit-customer-modal'));
   document.getElementById('dj-edit-customer-btn').addEventListener('click', openEditCustomerModal);
 
-  document.getElementById('ec-save').addEventListener('click', () => {
+  document.getElementById('ec-save').addEventListener('click', async () => {
     const job = findJob(currentJobId);
-    const name = document.getElementById('ec-name').value.trim();
+    const ecFirstName = document.getElementById('ec-firstname').value.trim();
+    const ecLastName = document.getElementById('ec-lastname').value.trim();
+    const name = joinName(ecFirstName, ecLastName);
     const phone = document.getElementById('ec-phone').value.trim();
     const email = document.getElementById('ec-email').value.trim();
     const address = document.getElementById('ec-address').value.trim();
@@ -2129,6 +2145,21 @@
     job.notes = notes;
     changes.forEach(c => logJobActivity(job, `Field changed — ${c}`));
     getOrCreateCustomerProfile(email, name, phone);
+
+    // Persistir nombre/teléfono/email a la fila real de customers en
+    // Supabase (antes este modal solo mutaba el job en memoria).
+    if (db && job.customerId){
+      try {
+        const { error } = await db.from('customers')
+          .update({ full_name: name, last_name: ecLastName || null, phone, email })
+          .eq('id', job.customerId);
+        if (error) throw error;
+      } catch (err){
+        console.error('[Supabase] Failed to sync customer info, kept locally only:', err);
+        showToast('Customer info saved locally — sync failed.', 'error');
+      }
+    }
+
     closeModal('edit-customer-modal');
     populateJobDetail(job);
     refreshAllViews();
@@ -2879,7 +2910,8 @@
 
   function openAddCustomerModal(){
     document.getElementById('customer-form-title').textContent = 'Add Customer';
-    document.getElementById('cf-name').value = '';
+    document.getElementById('cf-firstname').value = '';
+    document.getElementById('cf-lastname').value = '';
     document.getElementById('cf-phone').value = '';
     document.getElementById('cf-email').value = '';
     document.getElementById('customer-form-modal').classList.remove('hidden');
@@ -2887,7 +2919,7 @@
   document.getElementById('add-customer-btn').addEventListener('click', openAddCustomerModal);
   document.getElementById('cf-cancel').addEventListener('click', () => closeModal('customer-form-modal'));
   document.getElementById('cf-save').addEventListener('click', () => {
-    const name = document.getElementById('cf-name').value.trim();
+    const name = joinName(document.getElementById('cf-firstname').value, document.getElementById('cf-lastname').value);
     const phone = document.getElementById('cf-phone').value.trim();
     const email = document.getElementById('cf-email').value.trim();
     if (!name || !phone || !email){ alert('Please complete all fields.'); return; }

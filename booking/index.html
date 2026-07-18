@@ -1051,9 +1051,16 @@
         <form id="details-form" novalidate>
           <div class="form-grid two-col">
             <div class="field">
-              <label for="c-name">Full Name</label>
-              <input type="text" id="c-name" name="name" placeholder="e.g. Maria Gonzalez" required>
+              <label for="c-firstname">First Name</label>
+              <input type="text" id="c-firstname" name="firstname" placeholder="e.g. Maria" required>
             </div>
+            <div class="field">
+              <label for="c-lastname">Last Name</label>
+              <input type="text" id="c-lastname" name="lastname" placeholder="e.g. Gonzalez">
+            </div>
+          </div>
+
+          <div class="form-grid" style="margin-top:16px;">
             <div class="field">
               <label for="c-phone">Mobile Phone</label>
               <input type="tel" id="c-phone" name="phone" placeholder="(404) 555-0123" pattern="^[0-9\-\+\(\)\s]{7,20}$" required>
@@ -1565,6 +1572,9 @@
   function isSameDay(a,b){
     return a && b && a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
   }
+  function joinName(firstName, lastName){
+    return [String(firstName || '').trim(), String(lastName || '').trim()].filter(Boolean).join(' ');
+  }
   function toISODate(d){
     const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
     return `${y}-${m}-${day}`;
@@ -1783,7 +1793,7 @@
   const detailsForm = document.getElementById('details-form');
 
   function collectFormData(){
-    state.name = document.getElementById('c-name').value.trim();
+    state.name = joinName(document.getElementById('c-firstname').value, document.getElementById('c-lastname').value);
     state.phone = document.getElementById('c-phone').value.trim();
     state.email = document.getElementById('c-email').value.trim();
     state.address = document.getElementById('c-address').value.trim();
