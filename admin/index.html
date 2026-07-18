@@ -2790,7 +2790,7 @@
   // deja el input deshabilitado permanentemente — lo revertimos a texto
   // plano editable a mano en vez de dejarlo roto.
   function gm_authFailure(){
-    document.querySelectorAll('.entry-input[disabled]').forEach(inp => {
+    document.querySelectorAll('.entry-input[disabled], #cj-address[disabled]').forEach(inp => {
       inp.disabled = false;
       inp.classList.remove('gm-err-autocomplete');
       inp.placeholder = 'Street, city, state, ZIP';
@@ -6308,6 +6308,8 @@
   window.initGoogleMaps = function(){
     if (_origInitGoogleMaps) _origInitGoogleMaps();
     document.querySelectorAll('#address-entries .entry-input').forEach(initAddressAutocomplete);
+    const cjAddress = document.getElementById('cj-address');
+    if (cjAddress) initAddressAutocomplete(cjAddress);
   };
 
   // ================= TYPE TOGGLE (Person/Business) =================

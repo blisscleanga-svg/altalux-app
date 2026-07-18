@@ -955,6 +955,9 @@
     margin-right:8px;
   }
   @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  /* Asegurar que el dropdown de Places de Google aparezca por encima de todo */
+  .pac-container{ z-index:9999 !important; border-radius:8px; box-shadow:0 4px 20px rgba(0,0,0,.3); }
 </style>
 </head>
 <body>
@@ -1193,6 +1196,49 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://web.squarecdn.com/v1/square.js"></script>
+<script>
+  // Se inicializa automáticamente al cargar (callback de Google Maps)
+  function initGoogleMaps(){
+    const addr = document.getElementById('c-address');
+    if (addr && window.google && window.google.maps && window.google.maps.places){
+      initAddressAutocomplete(addr);
+    }
+  }
+  // Si Google rechaza la key (referrer/billing/quota), el widget de Places
+  // deja el input deshabilitado permanentemente — lo revertimos a texto
+  // plano editable a mano en vez de dejarlo roto.
+  function gm_authFailure(){
+    document.querySelectorAll('.entry-input[disabled], #c-address[disabled]').forEach(inp => {
+      inp.disabled = false;
+      inp.classList.remove('gm-err-autocomplete');
+      inp.placeholder = 'Street, city, state, ZIP';
+    });
+  }
+  // Inicializa autocompletado de Google Maps en el campo de dirección
+  function initAddressAutocomplete(inputElement){
+    if (!window.google || !window.google.maps || !window.google.maps.places) return;
+    if (inputElement.dataset.autocompleteBound) return;
+    inputElement.dataset.autocompleteBound = '1';
+
+    const autocomplete = new google.maps.places.Autocomplete(inputElement, {
+      types: ['address'],
+      componentRestrictions: { country: 'us' },
+      fields: ['formatted_address', 'geometry', 'place_id']
+    });
+    autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace();
+      if (!place.geometry) return;
+      inputElement.value = place.formatted_address;
+      inputElement.dataset.placeId = place.place_id;
+      inputElement.dataset.lat = place.geometry.location.lat();
+      inputElement.dataset.lng = place.geometry.location.lng();
+    });
+  }
+</script>
+<script
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAdC73Nxq3vjMvAQZBaPECM1vpSO6fXxGM&libraries=places&callback=initGoogleMaps"
+  async defer
+></script>
 <script>
 (function(){
   "use strict";
