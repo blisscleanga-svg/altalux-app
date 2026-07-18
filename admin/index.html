@@ -3684,7 +3684,8 @@
             number: inv.invoice_number || '', status: inv.status || 'Draft',
             issueDate: new Date(inv.created_at || TODAY),
             dueDate: inv.due_date ? fromInputDate(inv.due_date) : new Date(TODAY),
-            sentAt: inv.sent_at || null
+            sentAt: inv.sent_at || null,
+            publicToken: inv.public_token || null
           };
         });
 
@@ -5432,14 +5433,23 @@
   document.getElementById('inv-print').addEventListener('click', () => window.print());
   document.getElementById('inv-download').addEventListener('click', () => window.print());
   // "Send Invoice" desde el visor: reusa los mismos modales reales que ya
-  // usa la tabla de Payments — Resend Receipt si el job ya tiene pagos,
-  // Send Invoice (pedir pago) si todavía no tiene ninguno.
+  // usa la tabla de Payments — Resend Receipt SOLO si ya existe un invoice
+  // real con public_token (o sea, ya se mandó un link de pago antes),
+  // Send Invoice (crear uno nuevo) en cualquier otro caso.
+  //
+  // OJO: tener pagos (job.payments.length > 0) NO implica que exista un
+  // invoice — el depósito del booking se cobra directo con Square al
+  // reservar y nunca pasa por la tabla `invoices`. Enrutar por
+  // job.payments.length mandaba jobs con solo depósito a Resend Receipt,
+  // que intentaba reenviar un link con publicToken null -> el correo
+  // llegaba pero el botón "View & Pay" apuntaba a un token inexistente
+  // ("Link expired"). Corregido 2026-07-17.
   document.getElementById('inv-send').addEventListener('click', () => {
     const job = findJob(currentInvoiceJobId);
     if (!job) return;
     const jobId = currentInvoiceJobId;
     closeInvoiceModal();
-    if (job.payments && job.payments.length){
+    if (job.invoice && job.invoice.publicToken){
       openResendReceiptModal(jobId);
     } else {
       openSendInvoiceModal(jobId);

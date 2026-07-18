@@ -352,7 +352,11 @@ function buildInvoiceLink(biz: BizSettings, d: any) {
 
 function buildPaymentReceipt(biz: BizSettings, d: any) {
   const subject = `✅ Payment Received — ${biz.name} · ${esc(d.invoiceNumber)}`;
-  const url = payUrl(biz, d.publicToken);
+  // No siempre hay un invoice real ligado al pago (el depósito del booking
+  // se cobra directo con Square, nunca pasa por la tabla invoices) — sin
+  // publicToken no hay a dónde enlazar un "View Receipt" válido, así que
+  // se omite el botón en vez de armar un link con token=null (404/expired).
+  const url = d.publicToken ? payUrl(biz, d.publicToken) : null;
   const body = `
     <div style="background:#f0fff4; border:1px solid #9ae6b4; border-radius:8px; padding:16px 20px; text-align:center; margin-bottom:24px;">
       <div style="font-size:32px; margin-bottom:8px;">✅</div>
@@ -367,7 +371,7 @@ function buildPaymentReceipt(biz: BizSettings, d: any) {
       { label: 'Date', value: esc(fmtDate(d.paidAt)) },
       ...(d.squarePaymentId ? [{ label: 'Reference', value: `<span style="font-family:monospace; font-size:12px; color:#718096;">${esc(d.squarePaymentId)}</span>` }] : []),
     ], '#276749')}
-    ${ctaButton(url, 'View Receipt', biz.primary_color || '#104872')}
+    ${url ? ctaButton(url, 'View Receipt', biz.primary_color || '#104872') : ''}
     ${d.reviewUrl ? `
     <div style="text-align:center; margin:8px 0 0; padding:20px; background:#fffbeb; border-radius:8px; border:1px solid #FFAA00;">
       <p style="margin:0 0 12px; font-size:14px; color:#744210; font-weight:600;">Enjoying your detail? Leave us a review! ⭐</p>
