@@ -4031,7 +4031,10 @@
             sentAt: inv.sent_at || null,
             publicToken: inv.public_token || null,
             linkOpenedAt: inv.link_opened_at || null,
-            linkOpenCount: inv.link_open_count || 0
+            linkOpenCount: inv.link_open_count || 0,
+            finalAmount: inv.final_amount != null ? Number(inv.final_amount) : null,
+            title: inv.title || null,
+            comment: inv.comment || null
           };
         });
 
@@ -5229,7 +5232,12 @@
     // El modal pudo haber cambiado de job mientras esto cargaba.
     if (currentModalJobId === null || findJob(currentModalJobId) !== job) return;
 
-    const items = [{ icon: '📨', label: 'Invoice sent', time: formatEventTime(job.invoice.sentAt), color: 'var(--ink-faint)' }];
+    const sentAmount = job.invoice.finalAmount != null ? formatCurrency(job.invoice.finalAmount) : null;
+    const items = [{
+      icon: '📨', label: 'Invoice sent' + (sentAmount ? ` — ${sentAmount}` : ''),
+      sub: job.invoice.title || job.invoice.number || '',
+      time: formatEventTime(job.invoice.sentAt), color: 'var(--ink-faint)'
+    }];
 
     events.forEach(ev => {
       const m = ev.metadata || {};
@@ -6302,6 +6310,14 @@
   const profileModalOverlay = document.getElementById('profile-modal-overlay');
 
   function buildJobHistoryEntryHtml(job){
+    // Solicitud de invoice enviada (independiente de si ya se cobró) — el
+    // request en sí, con su monto, para trazabilidad completa por cliente.
+    const invoiceRequestLine = (job.invoice && job.invoice.sentAt) ? `
+      <div class="payment-timeline-item">
+        <span>📨 Invoice ${job.invoice.number || ''} sent ${formatShortDate(new Date(job.invoice.sentAt))}${job.invoice.linkOpenedAt ? ' · opened' : ''}</span>
+        <span>${job.invoice.finalAmount != null ? formatCurrency(job.invoice.finalAmount) : '—'}</span>
+      </div>
+    ` : '';
     const payLines = job.payments.map(p => `
       <div class="payment-timeline-item">
         <span>${p.label} received ${formatShortDate(p.date)} · ${p.method}</span>
@@ -6324,6 +6340,7 @@
           <span class="badge badge-invoice-${INVOICE_STATUS_SLUG[invStatus]}">${invStatus}</span>
         </div>
         <div class="payment-timeline">
+          ${invoiceRequestLine}
           ${payLines}
           ${outstandingLine}
         </div>
