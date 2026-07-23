@@ -475,6 +475,28 @@
   }
   .mini-cal-toggle[aria-expanded="true"] .chev{ transform:rotate(90deg); }
   .mini-cal-nav-btn[hidden]{ display:none; }
+
+  /* ---------- Collapsible group (reusable — Link Activity, Job History) ---------- */
+  /* Mismo patrón que .mini-cal-toggle: chevron que rota 90°, togglea .collapse-body. */
+  .collapse-group{ border-bottom:1px solid var(--line); padding:6px 0; }
+  .collapse-group:last-child{ border-bottom:none; }
+  .collapse-toggle{
+    display:flex; align-items:center; gap:8px; width:100%;
+    background:transparent; border:none; color:var(--white); text-align:left;
+    font-family:'Inter',sans-serif; font-size:12.5px; font-weight:600;
+    cursor:pointer; padding:4px 0;
+  }
+  .collapse-toggle .chev{ display:inline-block; font-size:11px; color:var(--gold); transition:transform .2s ease; flex-shrink:0; }
+  .collapse-toggle[aria-expanded="true"] .chev{ transform:rotate(90deg); }
+  .collapse-toggle-label{ flex:1; }
+  .collapse-toggle-badge{
+    font-size:10px; font-weight:700; letter-spacing:.03em; color:var(--gold);
+    background:rgba(255,170,0,.12); padding:2px 8px; border-radius:20px; flex-shrink:0;
+  }
+  .collapse-toggle-time{ font-size:10.5px; color:var(--ink-faint); font-weight:400; flex-shrink:0; }
+  .collapse-toggle-sub{ font-size:11px; color:var(--ink-faint); padding-left:19px; margin-top:-2px; }
+  .collapse-body{ padding-left:19px; margin-top:4px; }
+  .collapse-body .collapse-group{ padding:2px 0; }
   .cal-nav{
     width:30px; height:30px;
     border-radius:50%;
@@ -3951,11 +3973,16 @@
       priceOverride: null, auditLog: [],
       depositOverride: null,
       payments: [],
+      // Placeholder local hasta que llegue al menos una fila real de
+      // `invoices` desde Supabase — invoiceHistory acumula TODAS las
+      // solicitudes enviadas (una fila nueva por cada envío, ver
+      // sendPayableInvoice), invoice = la más reciente de esa lista.
       invoice: {
         number: '', status: 'Draft',
         issueDate: new Date(row.created_at || TODAY),
         dueDate: row.service_date ? fromInputDate(row.service_date) : new Date(TODAY)
-      }
+      },
+      invoiceHistory: []
     };
   }
 
@@ -4023,7 +4050,7 @@
           const formattedInvNumber = inv.invoice_number
             ? 'INV-' + new Date(inv.created_at).getFullYear() + '-' + String(inv.invoice_number).padStart(4, '0')
             : '';
-          job.invoice = {
+          job.invoiceHistory.push({
             id: inv.id,
             number: formattedInvNumber, status: inv.status || 'Draft',
             issueDate: new Date(inv.created_at || TODAY),
@@ -4034,8 +4061,18 @@
             linkOpenCount: inv.link_open_count || 0,
             finalAmount: inv.final_amount != null ? Number(inv.final_amount) : null,
             title: inv.title || null,
-            comment: inv.comment || null
-          };
+            comment: inv.comment || null,
+            paidAt: inv.paid_at || null
+          });
+        });
+        // job.invoice sigue siendo "la invoice actual" para todo el código
+        // existente (Edit Job, invoice viewer, Resend Receipt, etc.) — es
+        // la más reciente de invoiceHistory. Si un job no tiene ninguna
+        // invoice real todavía, se deja el placeholder Draft de mapJobRow.
+        mapped.forEach(j => {
+          if (!j.invoiceHistory.length) return;
+          j.invoiceHistory.sort((a, b) => b.issueDate - a.issueDate);
+          j.invoice = j.invoiceHistory[0];
         });
 
         JOBS.length = 0;
@@ -5165,18 +5202,23 @@
       container.innerHTML = `<p class="payment-history-empty">No payments recorded yet.</p>`;
       return;
     }
+    // El botón de recibo solo aplica a pagos con un id real de Supabase
+    // (uuid) — algunos pagos viejos/locales (ej. depósitos recuperados de
+    // un booking) solo tienen un contador local en memoria, sin fila real.
+    const isRealId = (id) => typeof id === 'string' && /^[0-9a-f-]{20,}$/i.test(id);
     const rows = job.payments.map(p => `
       <tr>
         <td>${formatShortDate(p.date)}</td>
         <td>${formatCurrency(p.amount)}</td>
         <td>${p.method}</td>
         <td>${p.recordedBy}</td>
+        <td>${isRealId(p.id) ? `<button type="button" class="btn-mini receipt-download-btn" data-payment-id="${p.id}">📄</button>` : ''}</td>
       </tr>
     `).join('');
     const bal = balanceDue(job);
     container.innerHTML = `
       <table class="payment-history-table">
-        <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Recorded By</th></tr></thead>
+        <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Recorded By</th><th></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
       <div class="running-balance-row">
@@ -5214,61 +5256,187 @@
     }
   }
 
+  // ================= COLLAPSIBLE GROUP (reusable) =================
+  // Mismo patrón visual/interacción que el toggle del mini-calendario
+  // (chevron que rota 90° + togglea `hidden` en un body hermano) —
+  // generalizado para no repetirlo a mano en cada timeline nuevo.
+  // Un solo listener delegado en document cubre cualquier grupo, incluidos
+  // los que se generan después vía innerHTML (invoices/intentos fallidos).
+  function collapsibleGroupHtml({ label, sub, badge, time, bodyHtml, expanded }){
+    return `
+      <div class="collapse-group${expanded ? ' expanded' : ''}">
+        <button type="button" class="collapse-toggle" aria-expanded="${expanded ? 'true' : 'false'}">
+          <span class="chev">▸</span>
+          <span class="collapse-toggle-label">${label}</span>
+          ${badge ? `<span class="collapse-toggle-badge">${badge}</span>` : ''}
+          ${time ? `<span class="collapse-toggle-time">${time}</span>` : ''}
+        </button>
+        ${sub ? `<div class="collapse-toggle-sub">${sub}</div>` : ''}
+        <div class="collapse-body" ${expanded ? '' : 'hidden'}>${bodyHtml}</div>
+      </div>
+    `;
+  }
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.collapse-toggle');
+    if (!btn) return;
+    const group = btn.closest('.collapse-group');
+    const body = group.querySelector(':scope > .collapse-body');
+    const expand = body.hidden;
+    body.hidden = !expand;
+    group.classList.toggle('expanded', expand);
+    btn.setAttribute('aria-expanded', String(expand));
+  });
+  // Descarga de recibo PDF — mismo botón reusado en Link Activity, Payment
+  // History y Job History del perfil del cliente. `token` = invoice pública
+  // (sin auth); `paymentId` = pago suelto (Cash/Zelle/Reader, requiere el
+  // JWT de la sesión actual porque no tiene public_token).
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.receipt-download-btn');
+    if (!btn) return;
+    e.preventDefault();
+    const token = btn.dataset.token;
+    const paymentId = btn.dataset.paymentId;
+    if (token){
+      window.open(`${SUPABASE_URL}/functions/v1/generate-receipt-pdf?token=${encodeURIComponent(token)}`, '_blank');
+      return;
+    }
+    if (paymentId){
+      const original = btn.textContent;
+      btn.textContent = '…';
+      try {
+        const { data: { session } } = await db.auth.getSession();
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/generate-receipt-pdf`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (session ? session.access_token : SUPABASE_ANON_KEY) },
+          body: JSON.stringify({ paymentId })
+        });
+        if (!res.ok) throw new Error('Failed to generate receipt.');
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `receipt-${paymentId.slice(0, 8)}.pdf`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      } catch (err){
+        console.error('[Receipt] Download failed:', err);
+        showToast('Could not generate receipt PDF.', 'error');
+      } finally {
+        btn.textContent = original;
+      }
+    }
+  });
+
+  // Agrupa pares consecutivos payment_started + payment_failed en un solo
+  // "intento fallido" colapsable — evita que 3 intentos fallidos se vean
+  // como 6 líneas sueltas. payment_completed / link_opened no se agrupan
+  // por par, se muestran siempre visibles (ver buildInvoiceActivityBody).
+  function groupPaymentAttempts(events){
+    const groups = [];
+    let i = 0;
+    while (i < events.length){
+      const ev = events[i];
+      if (ev.event_type === 'payment_started' && events[i + 1] && events[i + 1].event_type === 'payment_failed'){
+        groups.push({ type: 'failed_attempt', startedAt: ev.occurred_at, failedAt: events[i + 1].occurred_at, metadata: events[i + 1].metadata || {} });
+        i += 2;
+      } else if (ev.event_type === 'link_opened'){
+        i += 1; // fusionado en una sola línea aparte, ver buildInvoiceActivityBody
+      } else {
+        groups.push({ type: ev.event_type, occurredAt: ev.occurred_at, metadata: ev.metadata || {} });
+        i += 1;
+      }
+    }
+    return groups;
+  }
+
+  function timelineRowHtml({ icon, label, sub, time, color }){
+    return `
+      <div style="display:flex; gap:10px; padding:7px 0; border-bottom:1px solid var(--line);">
+        <span style="font-size:14px; flex-shrink:0;">${icon}</span>
+        <div style="flex:1;">
+          <div style="font-size:12.5px; color:${color}; font-weight:600;">${label}</div>
+          ${sub ? `<div style="font-size:11px; color:var(--ink-faint); margin-top:1px;">${sub}</div>` : ''}
+        </div>
+        <span style="font-size:10.5px; color:var(--ink-faint); white-space:nowrap;">${time}</span>
+      </div>
+    `;
+  }
+
+  // Cuerpo del timeline de UNA invoice — reusado dentro del grupo colapsable
+  // de esa invoice en el modal del job.
+  function buildInvoiceActivityBody(inv, events){
+    const sentAmount = inv.finalAmount != null ? formatCurrency(inv.finalAmount) : null;
+    let html = timelineRowHtml({
+      icon: '📨', label: 'Invoice sent' + (sentAmount ? ` — ${sentAmount}` : ''),
+      sub: inv.title || inv.number || '', time: formatEventTime(inv.sentAt), color: 'var(--ink-faint)'
+    });
+
+    // Todos los link_opened de esta invoice se funden en 1 sola línea —
+    // antes cada apertura generaba una fila nueva repitiendo el mismo
+    // contador acumulado ("×2" en dos líneas distintas), confuso.
+    if (inv.linkOpenedAt){
+      const count = inv.linkOpenCount || 1;
+      html += timelineRowHtml({
+        icon: '👁', label: 'Link opened' + (count > 1 ? ` ×${count}` : ''),
+        sub: `last: ${formatEventTime(inv.linkOpenedAt)}`, time: '', color: 'var(--blue-light)'
+      });
+    }
+
+    groupPaymentAttempts(events).forEach(g => {
+      if (g.type === 'failed_attempt'){
+        html += collapsibleGroupHtml({
+          label: '❌ Failed attempt', expanded: false,
+          time: formatEventTime(g.failedAt),
+          bodyHtml: `<div style="padding:4px 0 8px 24px; font-size:11.5px; color:var(--danger);">${escapeHtml(g.metadata.error_message || 'Unknown error')}</div>`
+        });
+      } else if (g.type === 'payment_completed'){
+        const m = g.metadata;
+        const card = (m.card_brand && m.card_last4) ? `${m.card_brand} ****${m.card_last4}` : 'Card';
+        const amt = m.amount ? formatCurrency(Number(m.amount)) : '';
+        html += timelineRowHtml({ icon: '✅', label: 'Payment received', sub: [card, amt].filter(Boolean).join(' · '), time: formatEventTime(g.occurredAt), color: 'var(--green)' });
+      } else if (g.type === 'payment_failed'){
+        html += timelineRowHtml({ icon: '❌', label: 'Payment attempt failed', sub: g.metadata.error_message || '', time: formatEventTime(g.occurredAt), color: 'var(--danger)' });
+      } else if (g.type === 'payment_started'){
+        html += timelineRowHtml({ icon: '⏳', label: 'Payment started', time: formatEventTime(g.occurredAt), color: 'var(--gold)' });
+      }
+    });
+
+    return html;
+  }
+
   // Timeline de interacción con el link de pago — distinto de
   // renderPaymentHistorySection() de arriba, que lista los pagos reales
-  // ya cobrados (tabla `payments`). Esta sección lee `payment_events`
-  // (link abierto/iniciado/completado/fallido).
+  // ya cobrados (tabla `payments`). Un grupo colapsable por CADA invoice
+  // enviada para este job (puede haber varias — ver invoiceHistory), el
+  // más reciente arranca expandido, el resto colapsado.
   async function renderLinkActivity(job){
     const panel = document.getElementById('modal-link-activity-panel');
     const container = document.getElementById('modal-link-activity-list');
-    if (!job.invoice || !job.invoice.id || !job.invoice.publicToken || !job.invoice.sentAt){
+    const history = job.invoiceHistory || [];
+    if (!history.length){
       panel.hidden = true;
       return;
     }
     panel.hidden = false;
     container.innerHTML = `<p class="empty-state" style="margin:0;">Loading…</p>`;
 
-    const events = await loadPaymentEvents(job.invoice.id);
+    const eventsByInvoice = await Promise.all(history.map(inv => loadPaymentEvents(inv.id)));
     // El modal pudo haber cambiado de job mientras esto cargaba.
     if (currentModalJobId === null || findJob(currentModalJobId) !== job) return;
 
-    const sentAmount = job.invoice.finalAmount != null ? formatCurrency(job.invoice.finalAmount) : null;
-    const items = [{
-      icon: '📨', label: 'Invoice sent' + (sentAmount ? ` — ${sentAmount}` : ''),
-      sub: job.invoice.title || job.invoice.number || '',
-      time: formatEventTime(job.invoice.sentAt), color: 'var(--ink-faint)'
-    }];
-
-    events.forEach(ev => {
-      const m = ev.metadata || {};
-      if (ev.event_type === 'link_opened'){
-        const count = job.invoice.linkOpenCount || 1;
-        items.push({
-          icon: '👁', label: 'Link opened' + (count > 1 ? ` (×${count})` : ''),
-          sub: m.device_type === 'mobile' ? 'from mobile' : 'from desktop',
-          time: formatEventTime(ev.occurred_at), color: 'var(--blue-light)'
-        });
-      } else if (ev.event_type === 'payment_started'){
-        items.push({ icon: '⏳', label: 'Payment started', time: formatEventTime(ev.occurred_at), color: 'var(--gold)' });
-      } else if (ev.event_type === 'payment_completed'){
-        const card = (m.card_brand && m.card_last4) ? `${m.card_brand} ****${m.card_last4}` : 'Card';
-        const amt = m.amount ? formatCurrency(Number(m.amount)) : '';
-        items.push({ icon: '✅', label: 'Payment received', sub: [card, amt].filter(Boolean).join(' · '), time: formatEventTime(ev.occurred_at), color: 'var(--green)' });
-      } else if (ev.event_type === 'payment_failed'){
-        items.push({ icon: '❌', label: 'Payment attempt failed', sub: m.error_message || '', time: formatEventTime(ev.occurred_at), color: 'var(--danger)' });
-      }
-    });
-
-    container.innerHTML = items.map(it => `
-      <div style="display:flex; gap:10px; padding:7px 0; border-bottom:1px solid var(--line);">
-        <span style="font-size:14px; flex-shrink:0;">${it.icon}</span>
-        <div style="flex:1;">
-          <div style="font-size:12.5px; color:${it.color}; font-weight:600;">${it.label}</div>
-          ${it.sub ? `<div style="font-size:11px; color:var(--ink-faint); margin-top:1px;">${it.sub}</div>` : ''}
-        </div>
-        <span style="font-size:10.5px; color:var(--ink-faint); white-space:nowrap;">${it.time}</span>
-      </div>
-    `).join('');
+    container.innerHTML = history.map((inv, idx) => {
+      const badge = inv.status === 'Paid' ? '✅ Paid' : (inv.status || 'Sent');
+      return collapsibleGroupHtml({
+        label: `${inv.number || 'Invoice'} — ${inv.finalAmount != null ? formatCurrency(inv.finalAmount) : ''}`,
+        badge,
+        expanded: idx === 0,
+        bodyHtml: `
+          <div style="text-align:right; margin-bottom:6px;">
+            <button type="button" class="btn-mini receipt-download-btn" data-token="${inv.publicToken || ''}">📄 Download Receipt</button>
+          </div>
+          ${buildInvoiceActivityBody(inv, eventsByInvoice[idx])}
+        `
+      });
+    }).join('');
   }
 
   function addonDisplayName(a){ return typeof a === 'string' ? a : a.name; }
@@ -5612,11 +5780,10 @@
 
     const publicToken = crypto.randomUUID();
 
-    // Reusa una fila de invoice existente para este job si ya hay una
-    // (para no ir generando duplicados cada vez que se reenvía).
-    const { data: existing } = await db.from('invoices').select('id')
-      .eq('job_id', job.supabaseId).order('created_at', { ascending: false }).limit(1);
-
+    // Cada envío crea una fila NUEVA (no se reusa/sobreescribe una existente)
+    // — así cada solicitud queda como historial real y permanente, con su
+    // propio monto/token/fecha, en vez de perder el detalle de envíos
+    // anteriores cada vez que se reenvía con un monto distinto.
     const payload = {
       job_id: job.supabaseId, customer_id: job.customerId,
       status: 'Sent', original_amount: amount, original_service_name: job.service,
@@ -5625,16 +5792,8 @@
       public_token: publicToken, sent_at: new Date().toISOString()
     };
 
-    let invRow;
-    if (existing && existing.length){
-      const { data, error } = await db.from('invoices').update(payload).eq('id', existing[0].id).select().single();
-      if (error) throw error;
-      invRow = data;
-    } else {
-      const { data, error } = await db.from('invoices').insert([payload]).select().single();
-      if (error) throw error;
-      invRow = data;
-    }
+    const { data: invRow, error: invInsertErr } = await db.from('invoices').insert([payload]).select().single();
+    if (invInsertErr) throw invInsertErr;
 
     const invoiceDisplayNumber = 'INV-' + new Date(invRow.created_at).getFullYear() + '-' + String(invRow.invoice_number).padStart(4, '0');
 
@@ -6309,15 +6468,36 @@
   // ================= CUSTOMER PROFILE MODAL =================
   const profileModalOverlay = document.getElementById('profile-modal-overlay');
 
+  // Cada solicitud de invoice enviada para este job, como grupo colapsable
+  // (monto/estado/aperturas ya vienen cargados — sin fetch extra de
+  // payment_events acá, a diferencia de Link Activity en el modal del job,
+  // para no disparar N llamadas a la vez al abrir un perfil con varios jobs).
+  function buildInvoiceRequestGroupsHtml(job){
+    const history = job.invoiceHistory || [];
+    if (!history.length) return '';
+    return history.map((inv, idx) => {
+      const parts = [];
+      if (inv.linkOpenedAt) parts.push(`👁 opened ${inv.linkOpenCount > 1 ? '×' + inv.linkOpenCount : ''}`);
+      if (inv.status === 'Paid' && inv.paidAt) parts.push(`✅ paid ${formatShortDate(new Date(inv.paidAt))}`);
+      return collapsibleGroupHtml({
+        label: `📨 ${inv.number || 'Invoice'} sent ${formatShortDate(new Date(inv.sentAt))}`,
+        badge: inv.status || 'Sent',
+        expanded: false,
+        bodyHtml: `
+          <div class="payment-timeline-item">
+            <span>${[inv.title, parts.join(' · ')].filter(Boolean).join(' — ') || 'Amount'}</span>
+            <span>${inv.finalAmount != null ? formatCurrency(inv.finalAmount) : '—'}</span>
+          </div>
+          <div style="text-align:right; margin-top:4px;">
+            <button type="button" class="btn-mini receipt-download-btn" data-token="${inv.publicToken || ''}">📄 Download Receipt</button>
+          </div>
+        `
+      });
+    }).join('');
+  }
+
   function buildJobHistoryEntryHtml(job){
-    // Solicitud de invoice enviada (independiente de si ya se cobró) — el
-    // request en sí, con su monto, para trazabilidad completa por cliente.
-    const invoiceRequestLine = (job.invoice && job.invoice.sentAt) ? `
-      <div class="payment-timeline-item">
-        <span>📨 Invoice ${job.invoice.number || ''} sent ${formatShortDate(new Date(job.invoice.sentAt))}${job.invoice.linkOpenedAt ? ' · opened' : ''}</span>
-        <span>${job.invoice.finalAmount != null ? formatCurrency(job.invoice.finalAmount) : '—'}</span>
-      </div>
-    ` : '';
+    const invoiceGroups = buildInvoiceRequestGroupsHtml(job);
     const payLines = job.payments.map(p => `
       <div class="payment-timeline-item">
         <span>${p.label} received ${formatShortDate(p.date)} · ${p.method}</span>
@@ -6339,8 +6519,8 @@
           <span>${job.service} — ${job.vehicle} (${formatShortDate(job.date)})</span>
           <span class="badge badge-invoice-${INVOICE_STATUS_SLUG[invStatus]}">${invStatus}</span>
         </div>
+        ${invoiceGroups}
         <div class="payment-timeline">
-          ${invoiceRequestLine}
           ${payLines}
           ${outstandingLine}
         </div>

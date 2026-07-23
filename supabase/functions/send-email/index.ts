@@ -437,12 +437,14 @@ const TOGGLE_KEY: Record<string, string> = {
 // Va al mismo destinatario que internal_notification — el admin, no el cliente.
 const ADMIN_RECIPIENT_ACTIONS = ['internal_notification', 'payment_notification_admin'];
 
-async function sendViaResend(to: string, from: string, subject: string, html: string) {
+async function sendViaResend(to: string, from: string, subject: string, html: string, attachments?: Array<{ filename: string; content: string }>) {
   if (!RESEND_API_KEY) throw new Error('RESEND_API_KEY is not configured. Set it with `supabase secrets set RESEND_API_KEY=...`.');
+  const body: Record<string, unknown> = { from, to, subject, html };
+  if (attachments && attachments.length) body.attachments = attachments;
   const res = await fetch(`${RESEND_API_BASE}/emails`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from, to, subject, html }),
+    body: JSON.stringify(body),
   });
   const data = await res.json();
   if (!res.ok) {
@@ -490,7 +492,12 @@ Deno.serve(async (req: Request) => {
     const from = `${fromName} <${biz.resend_from_email}>`;
 
     const { subject, html } = BUILDERS[action](biz, data || {});
-    const result = await sendViaResend(to, from, subject, html);
+    // Adjunto opcional de recibo PDF (hoy solo lo manda payment_notification_admin,
+    // vía square-payment) — cualquier action puede usarlo si algún día lo necesita.
+    const attachments = (data && data.receiptPdfBase64)
+      ? [{ filename: data.receiptFilename || 'receipt.pdf', content: data.receiptPdfBase64 }]
+      : undefined;
+    const result = await sendViaResend(to, from, subject, html, attachments);
 
     return jsonResponse({ success: true, id: result?.id || null });
   } catch (err) {

@@ -251,13 +251,31 @@ Deno.serve(async (req: Request) => {
               }
             }
           }
+          // PDF del recibo — nunca debe bloquear el email si falla.
+          let receiptPdfBase64: string | null = null;
+          let receiptFilename: string | null = null;
+          try {
+            const pdfRes = await fetch(`${SUPABASE_URL}/functions/v1/generate-receipt-pdf`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+              body: JSON.stringify({ token: publicToken, format: 'base64' }),
+            });
+            const pdfData = await pdfRes.json();
+            if (pdfRes.ok && pdfData.pdfBase64) {
+              receiptPdfBase64 = pdfData.pdfBase64;
+              receiptFilename = pdfData.filename;
+            }
+          } catch (pdfErr) {
+            console.error('[square-payment] Failed to generate receipt PDF:', pdfErr);
+          }
+
           await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
             body: JSON.stringify({
               action: 'payment_notification_admin',
               businessId: invoice.business_id,
-              data: { customerName, service, amount: invoice.final_amount, cardBrand, cardLast4, paidAt },
+              data: { customerName, service, amount: invoice.final_amount, cardBrand, cardLast4, paidAt, receiptPdfBase64, receiptFilename },
             }),
           });
         } catch (emailErr) {

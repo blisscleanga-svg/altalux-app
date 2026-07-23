@@ -475,7 +475,12 @@
   }
 
   document.getElementById('download-receipt-btn').addEventListener('click', function(){
-    window.print();
+    var t = new URLSearchParams(window.location.search).get('token');
+    if (t){
+      window.open(SUPABASE_URL + '/functions/v1/generate-receipt-pdf?token=' + encodeURIComponent(t), '_blank');
+    } else {
+      window.print();
+    }
   });
 })();
 </script>
