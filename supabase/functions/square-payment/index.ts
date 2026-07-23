@@ -174,7 +174,7 @@ Deno.serve(async (req: Request) => {
         const supabase = getSupabaseAdmin();
         const { data: invoice, error: invErr } = await supabase
           .from('invoices')
-          .select('id, final_amount, status, sent_at, invoice_number, created_at, business_id')
+          .select('id, final_amount, status, sent_at, invoice_number, created_at, business_id, job_id')
           .eq('public_token', publicToken)
           .single();
         if (invErr || !invoice) return jsonResponse({ error: 'Invoice not found.' }, 404);
@@ -199,10 +199,17 @@ Deno.serve(async (req: Request) => {
         });
 
         const paymentId = result.payment?.id;
+        // REST API directo (no SDK Node) → la respuesta de Square viene en snake_case.
+        const cardBrand = result.payment?.card_details?.card?.card_brand || null;
+        const cardLast4 = result.payment?.card_details?.card?.last_4 || null;
+        const paidAt = new Date().toISOString();
 
         const { error: updInvErr } = await supabase
           .from('invoices')
-          .update({ status: 'Paid', paid_at: new Date().toISOString(), amount_paid: invoice.final_amount })
+          .update({
+            status: 'Paid', paid_at: paidAt, amount_paid: invoice.final_amount,
+            card_brand: cardBrand, card_last4: cardLast4, square_payment_id: paymentId,
+          })
           .eq('id', invoice.id);
         if (updInvErr) console.error('[square-payment] Failed to mark invoice paid:', updInvErr);
 
@@ -211,6 +218,51 @@ Deno.serve(async (req: Request) => {
           square_payment_id: paymentId, amount: invoice.final_amount, status: 'completed',
         }]);
         if (invPayErr) console.error('[square-payment] Failed to insert invoice_payments:', invPayErr);
+
+        // ---- Payment tracking — timeline visible en el modal del job en admin ----
+        const { error: evtErr } = await supabase.from('payment_events').insert({
+          invoice_id: invoice.id, business_id: invoice.business_id, job_id: invoice.job_id,
+          event_type: 'payment_completed',
+          metadata: { card_brand: cardBrand, card_last4: cardLast4, square_payment_id: paymentId, amount: invoice.final_amount },
+        });
+        if (evtErr) console.error('[square-payment] Failed to insert payment_events:', evtErr);
+
+        // Notificación por email al admin — nunca debe abortar el pago si falla.
+        // Se autentica con la service role key (server-to-server); esta función
+        // no tiene la anon key configurada como variable de entorno.
+        try {
+          let customerName = '';
+          let service = '';
+          if (invoice.job_id) {
+            const { data: jobRow } = await supabase
+              .from('jobs')
+              .select('category, package, customer_id')
+              .eq('id', invoice.job_id)
+              .single();
+            if (jobRow) {
+              service = jobRow.package || jobRow.category || '';
+              if (jobRow.customer_id) {
+                const { data: customerRow } = await supabase
+                  .from('customers')
+                  .select('full_name')
+                  .eq('id', jobRow.customer_id)
+                  .single();
+                customerName = customerRow?.full_name || '';
+              }
+            }
+          }
+          await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+            body: JSON.stringify({
+              action: 'payment_notification_admin',
+              businessId: invoice.business_id,
+              data: { customerName, service, amount: invoice.final_amount, cardBrand, cardLast4, paidAt },
+            }),
+          });
+        } catch (emailErr) {
+          console.error('[square-payment] Failed to send admin payment notification:', emailErr);
+        }
 
         await writeAuditLog({
           businessId: invoice.business_id,

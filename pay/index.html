@@ -243,8 +243,26 @@
   var SUPABASE_URL = 'https://xmhsehfdmiqbwhpqjgon.supabase.co';
   var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtaHNlaGZkbWlxYndocHFqZ29uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzODU5NzQsImV4cCI6MjA5ODk2MTk3NH0.J2UOp-pgzP6ByvDBoHcocFAmarWdlDK8M31YgKrUNss';
   var SQUARE_FUNCTION_URL = SUPABASE_URL + '/functions/v1/square-payment';
+  var TRACK_EVENT_URL = SUPABASE_URL + '/functions/v1/track-payment-event';
   var SQUARE_APP_ID = 'sq0idp-jVMn1EDrut74rDnsRGgZrQ';
   var SQUARE_LOCATION_ID = 'LEWG2XNWRA7BS';
+
+  // Registrar evento de interacción con el link de pago — fire-and-forget,
+  // nunca bloquea el flujo de pago ni muestra error al usuario.
+  function trackPaymentEvent(eventType, extraMetadata){
+    var token = new URLSearchParams(window.location.search).get('token');
+    if (!token) return Promise.resolve();
+    var isMobile = /Mobi|Android/i.test(navigator.userAgent);
+    return fetch(TRACK_EVENT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + SUPABASE_ANON_KEY, apikey: SUPABASE_ANON_KEY },
+      body: JSON.stringify({
+        token: token,
+        event_type: eventType,
+        metadata: Object.assign({ user_agent: navigator.userAgent, device_type: isMobile ? 'mobile' : 'desktop' }, extraMetadata || {})
+      })
+    }).catch(function(e){ console.warn('tracking event failed:', e); });
+  }
 
   var skeleton = document.getElementById('skeleton-loader');
   var errorScreen = document.getElementById('error-screen');
@@ -325,6 +343,9 @@
     skeleton.hidden = true;
     doc.hidden = false;
 
+    // Registrar que el cliente abrió el link — fire-and-forget.
+    trackPaymentEvent('link_opened');
+
     if (isPaid){
       showPaidConfirmation(inv);
     } else {
@@ -388,6 +409,10 @@
     btn.disabled = true;
     btn.innerHTML = '<span class="btn-spinner"></span> Processing...';
 
+    // Registrar intento de pago — fire-and-forget, sin await (un cold start
+    // de la Edge Function no debe demorar la aparición del formulario de Square).
+    trackPaymentEvent('payment_started');
+
     try {
       var tokenResult = await squareCard.tokenize();
       if (tokenResult.status !== 'OK'){
@@ -426,6 +451,7 @@
       }).catch(function(e){ console.error('payment_receipt email failed:', e); });
     } catch (err){
       console.error('Payment failed:', err);
+      trackPaymentEvent('payment_failed', { error_code: err.name || 'UNKNOWN', error_message: err.message || 'Unknown error' });
       btn.disabled = false;
       btn.innerHTML = originalHtml;
       cardErr.textContent = err.message || 'Something went wrong. Please try again.';

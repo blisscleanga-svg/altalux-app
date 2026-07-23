@@ -332,6 +332,27 @@ function buildInternalNotification(biz: BizSettings, d: any) {
   return { subject, html: emailShell(biz, subject, body) };
 }
 
+// ---------- Notificación al admin — pago recibido ----------
+function buildPaymentNotificationAdmin(biz: BizSettings, d: any) {
+  const cardInfo = (d.cardBrand && d.cardLast4) ? `${d.cardBrand} ****${d.cardLast4}` : 'Card';
+  const subject = `✅ Payment Received — ${esc(d.customerName || 'Customer')} · ${fmtCurrency(d.amount)}`;
+  const body = `
+    <div style="background:#f0fff4; border:1px solid #9ae6b4; border-radius:8px; padding:16px 20px; text-align:center; margin-bottom:24px;">
+      <div style="font-size:32px; margin-bottom:8px;">✅</div>
+      <h2 style="font-family:'Rajdhani',Georgia,sans-serif; color:#276749; margin:0; font-size:20px;">Payment Received</h2>
+    </div>
+    ${detailCard([
+      { label: 'Amount', value: fmtCurrency(d.amount), valueColor: '#276749' },
+      { label: 'Customer', value: esc(d.customerName || '—') },
+      ...(d.service ? [{ label: 'Service', value: esc(d.service) }] : []),
+      { label: 'Payment Method', value: esc(cardInfo) },
+      { label: 'Date & Time', value: esc(fmtDate(d.paidAt) + (d.paidAt ? ' ' + new Date(d.paidAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '')) },
+    ], biz.primary_color || '#104872')}
+    ${biz.admin_url ? ctaButton(biz.admin_url, 'View in Admin Panel →', biz.secondary_color || '#FF8C00') : ''}
+  `;
+  return { subject, html: emailShell(biz, subject, body) };
+}
+
 // ---------- pay/ — link de pago del invoice ----------
 function payUrl(biz: BizSettings, token: string): string {
   const base = (biz.booking_url || biz.admin_url || 'https://app.altaluxdetail.com/booking/').replace(/\/(booking|admin|technician)\/?$/, '');
@@ -399,6 +420,7 @@ const BUILDERS: Record<string, (biz: BizSettings, d: any) => { subject: string; 
   internal_notification: buildInternalNotification,
   invoice_link: buildInvoiceLink,
   payment_receipt: buildPaymentReceipt,
+  payment_notification_admin: buildPaymentNotificationAdmin,
 };
 
 const TOGGLE_KEY: Record<string, string> = {
@@ -409,7 +431,11 @@ const TOGGLE_KEY: Record<string, string> = {
   internal_notification: 'internal_notification',
   invoice_link: 'invoice_link',
   payment_receipt: 'payment_receipt',
+  payment_notification_admin: 'payment_notification_admin',
 };
+
+// Va al mismo destinatario que internal_notification — el admin, no el cliente.
+const ADMIN_RECIPIENT_ACTIONS = ['internal_notification', 'payment_notification_admin'];
 
 async function sendViaResend(to: string, from: string, subject: string, html: string) {
   if (!RESEND_API_KEY) throw new Error('RESEND_API_KEY is not configured. Set it with `supabase secrets set RESEND_API_KEY=...`.');
@@ -450,7 +476,7 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: `Resend is not configured for business "${businessId}" (no resend_from_email set in Settings > Notifications).` }, 400);
     }
 
-    const to = action === 'internal_notification' ? biz.notification_email : (data && data.customerEmail);
+    const to = ADMIN_RECIPIENT_ACTIONS.includes(action) ? biz.notification_email : (data && data.customerEmail);
     if (!to) return jsonResponse({ error: `No recipient email available for action "${action}".` }, 400);
     // Validación de input (auditoría de seguridad 2026-07-15). El resto de los
     // campos interpolados en el HTML del email ya pasan por esc() más abajo

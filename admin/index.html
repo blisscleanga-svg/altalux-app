@@ -2082,6 +2082,16 @@
         <button type="button" class="btn-mini" id="modal-share-payment-copy">Copy Link</button>
         <button type="button" class="btn-mini" id="modal-share-payment-share" hidden>Share</button>
       </div>
+      <div id="modal-link-open-status" style="font-size:11.5px; color:var(--ink-faint); margin-top:6px;"></div>
+    </div>
+
+    <!-- Timeline de interacción con el link de pago (link abierto/iniciado/
+         completado/fallido) — distinto de "Payment History" arriba, que
+         lista los pagos ya cobrados. Solo visible si hay una invoice real
+         enviada (mismo criterio que Share Payment Link). -->
+    <div class="field" id="modal-link-activity-panel" hidden style="margin-top:14px;">
+      <label>Link Activity</label>
+      <div id="modal-link-activity-list"></div>
     </div>
 
     <hr class="summary-divider">
@@ -4019,7 +4029,9 @@
             issueDate: new Date(inv.created_at || TODAY),
             dueDate: inv.due_date ? fromInputDate(inv.due_date) : new Date(TODAY),
             sentAt: inv.sent_at || null,
-            publicToken: inv.public_token || null
+            publicToken: inv.public_token || null,
+            linkOpenedAt: inv.link_opened_at || null,
+            linkOpenCount: inv.link_open_count || 0
           };
         });
 
@@ -4323,6 +4335,55 @@
     }
   }
 
+  // ================= REALTIME — PAYMENT EVENTS =================
+  let paymentEventsSubscribed = false;
+
+  function subscribeToPaymentEvents(){
+    if (!db || paymentEventsSubscribed) return;
+    paymentEventsSubscribed = true;
+    try {
+      db.channel('altalux-payment-events')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'payment_events', filter: `business_id=eq.${BUSINESS_ID}` }, (payload) => {
+          handleIncomingPaymentEvent(payload.new);
+        })
+        .subscribe();
+    } catch (err){
+      console.error('[Supabase] Failed to set up payment events subscription:', err);
+    }
+  }
+
+  async function handleIncomingPaymentEvent(event){
+    const { event_type, metadata, job_id } = event;
+    const m = metadata || {};
+    const openJob = currentModalJobId !== null ? findJob(currentModalJobId) : null;
+    const isForOpenJob = !!(openJob && openJob.supabaseId === job_id);
+
+    if (event_type === 'link_opened'){
+      showToast('👁 Customer opened the payment link', 'success');
+      if (isForOpenJob){
+        openJob.invoice.linkOpenCount = (openJob.invoice.linkOpenCount || 0) + 1;
+        openJob.invoice.linkOpenedAt = openJob.invoice.linkOpenedAt || new Date().toISOString();
+        renderLinkOpenStatus(openJob);
+        renderLinkActivity(openJob);
+      }
+      return;
+    }
+
+    if (event_type === 'payment_completed'){
+      const card = (m.card_brand && m.card_last4) ? `${m.card_brand} ****${m.card_last4}` : 'card';
+      const amount = m.amount ? formatCurrency(Number(m.amount)) : '';
+      showToast(`💳 Payment received — ${amount} · ${card}`, 'success');
+      // No hay una función de reload de un solo job — se recarga todo
+      // (mismo patrón que loadAllDataFromSupabase ya usa en el resto de la app).
+      await loadAllDataFromSupabase();
+      const refreshedJob = JOBS.find(j => j.supabaseId === job_id);
+      if (isForOpenJob && refreshedJob){
+        currentModalJobId = refreshedJob.id;
+        populateModal(refreshedJob);
+      }
+    }
+  }
+
   // ================= LOGIN =================
   const loginScreen = document.getElementById('login-screen');
   const dashboard = document.getElementById('dashboard');
@@ -4385,6 +4446,7 @@
       updateFabVisibility();
       loadAllDataFromSupabase();
       setupRealtimeBookingsSubscription();
+      subscribeToPaymentEvents();
     }
   }
 
@@ -5121,6 +5183,86 @@
     `;
   }
 
+  // ================= LINK ACTIVITY (payment tracking) =================
+  function formatEventTime(iso){
+    if (!iso) return '';
+    return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+  }
+
+  async function loadPaymentEvents(invoiceId){
+    if (!db || !invoiceId) return [];
+    const { data, error } = await db
+      .from('payment_events')
+      .select('event_type, occurred_at, metadata')
+      .eq('invoice_id', invoiceId)
+      .order('occurred_at', { ascending: true });
+    if (error){ console.error('[Supabase] Failed to load payment_events:', error); return []; }
+    return data || [];
+  }
+
+  function renderLinkOpenStatus(job){
+    const el = document.getElementById('modal-link-open-status');
+    if (!el) return;
+    if (!job.invoice || !job.invoice.linkOpenedAt){
+      el.textContent = '⏳ Link not opened yet';
+    } else {
+      const count = job.invoice.linkOpenCount || 1;
+      el.textContent = `👁 Opened ${count > 1 ? count + ' times' : 'once'} · last: ${formatEventTime(job.invoice.linkOpenedAt)}`;
+    }
+  }
+
+  // Timeline de interacción con el link de pago — distinto de
+  // renderPaymentHistorySection() de arriba, que lista los pagos reales
+  // ya cobrados (tabla `payments`). Esta sección lee `payment_events`
+  // (link abierto/iniciado/completado/fallido).
+  async function renderLinkActivity(job){
+    const panel = document.getElementById('modal-link-activity-panel');
+    const container = document.getElementById('modal-link-activity-list');
+    if (!job.invoice || !job.invoice.id || !job.invoice.publicToken || !job.invoice.sentAt){
+      panel.hidden = true;
+      return;
+    }
+    panel.hidden = false;
+    container.innerHTML = `<p class="empty-state" style="margin:0;">Loading…</p>`;
+
+    const events = await loadPaymentEvents(job.invoice.id);
+    // El modal pudo haber cambiado de job mientras esto cargaba.
+    if (currentModalJobId === null || findJob(currentModalJobId) !== job) return;
+
+    const items = [{ icon: '📨', label: 'Invoice sent', time: formatEventTime(job.invoice.sentAt), color: 'var(--ink-faint)' }];
+
+    events.forEach(ev => {
+      const m = ev.metadata || {};
+      if (ev.event_type === 'link_opened'){
+        const count = job.invoice.linkOpenCount || 1;
+        items.push({
+          icon: '👁', label: 'Link opened' + (count > 1 ? ` (×${count})` : ''),
+          sub: m.device_type === 'mobile' ? 'from mobile' : 'from desktop',
+          time: formatEventTime(ev.occurred_at), color: 'var(--blue-light)'
+        });
+      } else if (ev.event_type === 'payment_started'){
+        items.push({ icon: '⏳', label: 'Payment started', time: formatEventTime(ev.occurred_at), color: 'var(--gold)' });
+      } else if (ev.event_type === 'payment_completed'){
+        const card = (m.card_brand && m.card_last4) ? `${m.card_brand} ****${m.card_last4}` : 'Card';
+        const amt = m.amount ? formatCurrency(Number(m.amount)) : '';
+        items.push({ icon: '✅', label: 'Payment received', sub: [card, amt].filter(Boolean).join(' · '), time: formatEventTime(ev.occurred_at), color: 'var(--green)' });
+      } else if (ev.event_type === 'payment_failed'){
+        items.push({ icon: '❌', label: 'Payment attempt failed', sub: m.error_message || '', time: formatEventTime(ev.occurred_at), color: 'var(--danger)' });
+      }
+    });
+
+    container.innerHTML = items.map(it => `
+      <div style="display:flex; gap:10px; padding:7px 0; border-bottom:1px solid var(--line);">
+        <span style="font-size:14px; flex-shrink:0;">${it.icon}</span>
+        <div style="flex:1;">
+          <div style="font-size:12.5px; color:${it.color}; font-weight:600;">${it.label}</div>
+          ${it.sub ? `<div style="font-size:11px; color:var(--ink-faint); margin-top:1px;">${it.sub}</div>` : ''}
+        </div>
+        <span style="font-size:10.5px; color:var(--ink-faint); white-space:nowrap;">${it.time}</span>
+      </div>
+    `).join('');
+  }
+
   function addonDisplayName(a){ return typeof a === 'string' ? a : a.name; }
 
   function renderJobActivityLog(job){
@@ -5169,7 +5311,11 @@
     if (shareLink){
       document.getElementById('modal-share-payment-input').value = shareLink;
       document.getElementById('modal-share-payment-share').hidden = !navigator.share;
+      renderLinkOpenStatus(job);
     }
+    // Async, no bloquea el resto del render del modal — se auto-descarta
+    // si el modal cambia de job antes de que la consulta responda.
+    renderLinkActivity(job);
   }
 
   // Solo existe un link de pago compartible una vez que la invoice fue
