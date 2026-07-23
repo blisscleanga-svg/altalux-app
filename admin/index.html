@@ -5288,41 +5288,45 @@
   });
   // Descarga de recibo PDF — mismo botón reusado en Link Activity, Payment
   // History y Job History del perfil del cliente. `token` = invoice pública
-  // (sin auth); `paymentId` = pago suelto (Cash/Zelle/Reader, requiere el
-  // JWT de la sesión actual porque no tiene public_token).
+  // (validada por el token dentro de la función); `paymentId` = pago suelto
+  // (Cash/Zelle/Reader, requiere el JWT de la sesión porque no tiene
+  // public_token). Los dos casos SIEMPRE van por fetch(), nunca
+  // window.open()/navegación directa — Supabase exige un header
+  // Authorization con un JWT válido a nivel de gateway antes de que el
+  // código de la función corra, y una navegación de browser normal nunca
+  // manda ese header (a diferencia de fetch, donde sí se puede fijar a
+  // mano) — sin esto la descarga falla con "UNAUTHORIZED_NO_AUTH_HEADER"
+  // aunque la función en sí sea pública.
   document.addEventListener('click', async (e) => {
     const btn = e.target.closest('.receipt-download-btn');
     if (!btn) return;
     e.preventDefault();
     const token = btn.dataset.token;
     const paymentId = btn.dataset.paymentId;
-    if (token){
-      window.open(`${SUPABASE_URL}/functions/v1/generate-receipt-pdf?token=${encodeURIComponent(token)}`, '_blank');
-      return;
-    }
-    if (paymentId){
-      const original = btn.textContent;
-      btn.textContent = '…';
-      try {
-        const { data: { session } } = await db.auth.getSession();
-        const res = await fetch(`${SUPABASE_URL}/functions/v1/generate-receipt-pdf`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (session ? session.access_token : SUPABASE_ANON_KEY) },
-          body: JSON.stringify({ paymentId })
-        });
-        if (!res.ok) throw new Error('Failed to generate receipt.');
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = `receipt-${paymentId.slice(0, 8)}.pdf`;
-        document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
-      } catch (err){
-        console.error('[Receipt] Download failed:', err);
-        showToast('Could not generate receipt PDF.', 'error');
-      } finally {
-        btn.textContent = original;
-      }
+    if (!token && !paymentId) return;
+
+    const original = btn.textContent;
+    btn.textContent = '…';
+    try {
+      const { data: { session } } = await db.auth.getSession();
+      const authToken = session ? session.access_token : SUPABASE_ANON_KEY;
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/generate-receipt-pdf`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + authToken },
+        body: JSON.stringify(token ? { token } : { paymentId })
+      });
+      if (!res.ok) throw new Error('Failed to generate receipt.');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `receipt-${(token || paymentId).slice(0, 8)}.pdf`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch (err){
+      console.error('[Receipt] Download failed:', err);
+      showToast('Could not generate receipt PDF.', 'error');
+    } finally {
+      btn.textContent = original;
     }
   });
 

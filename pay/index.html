@@ -476,11 +476,27 @@
 
   document.getElementById('download-receipt-btn').addEventListener('click', function(){
     var t = new URLSearchParams(window.location.search).get('token');
-    if (t){
-      window.open(SUPABASE_URL + '/functions/v1/generate-receipt-pdf?token=' + encodeURIComponent(t), '_blank');
-    } else {
+    if (!t){ window.print(); return; }
+    // Supabase exige un header Authorization con un JWT válido a nivel de
+    // gateway antes de que el código de la función corra — una navegación
+    // directa (window.open) nunca manda ese header, solo fetch() puede.
+    fetch(SUPABASE_URL + '/functions/v1/generate-receipt-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + SUPABASE_ANON_KEY, apikey: SUPABASE_ANON_KEY },
+      body: JSON.stringify({ token: t })
+    }).then(function(res){
+      if (!res.ok) throw new Error('Failed to generate receipt.');
+      return res.blob();
+    }).then(function(blob){
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = 'receipt.pdf';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
+    }).catch(function(err){
+      console.error('Receipt download failed:', err);
       window.print();
-    }
+    });
   });
 })();
 </script>
