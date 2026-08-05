@@ -2073,7 +2073,10 @@
     <div class="summary-line"><span>Add-Ons</span><span id="modal-addons"></span></div>
     <div class="summary-line"><span>Date</span><span id="modal-date"></span></div>
     <div class="summary-line"><span>Time</span><span id="modal-time"></span></div>
-    <div class="summary-line"><span>Address</span><span id="modal-address"></span></div>
+    <div class="summary-line"><span>Address</span><span>
+      <span id="modal-address"></span>
+      <a id="modal-address-navigate" href="#" target="_blank" rel="noopener" title="Navigate" style="margin-left:6px; text-decoration:none;" hidden>📍</a>
+    </span></div>
 
     <hr class="summary-divider">
     <p class="modal-section-title">Customer</p>
@@ -5468,6 +5471,16 @@
     document.getElementById('modal-date').textContent = formatLongDate(job.date);
     document.getElementById('modal-time').textContent = job.time;
     document.getElementById('modal-address').textContent = job.address;
+    // "Navigate" — mismo patrón de link ya usado en la vista de técnico
+    // (📍 Open in Maps) y en el perfil del cliente (🗺 junto a la
+    // dirección) — búsqueda por texto libre, los jobs no guardan place_id.
+    const addrNavLink = document.getElementById('modal-address-navigate');
+    if (job.address){
+      addrNavLink.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(job.address);
+      addrNavLink.hidden = false;
+    } else {
+      addrNavLink.hidden = true;
+    }
     document.getElementById('modal-customer-name').textContent = job.customer.name;
     document.getElementById('modal-customer-phone').textContent = job.customer.phone;
     document.getElementById('modal-customer-email').textContent = job.customer.email;

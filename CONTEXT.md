@@ -1,5 +1,5 @@
 # AltaLux App — Contexto del Proyecto
-> Última actualización: 2026-07-22
+> Última actualización: 2026-08-05
 
 ## ¿Qué es esto?
 App de field service para AltaLux Mobile Detail (Roswell, GA).
@@ -76,6 +76,7 @@ App mobile-optimized para el equipo de campo.
 - Alertas realtime de jobs asignados.
 
 ## Fixes recientes
+- **2026-08-05:** Ícono "📍 Navigate" agregado junto a la dirección en el modal de detalle del job (`admin/index.html`) — abre Google Maps con la dirección como búsqueda de texto libre (los jobs no guardan `place_id`, solo texto). A pedido explícito de Luis, el alcance quedó acotado **solo** al modal del job ("el tiquete del trabajo") — se identificaron otros 4 lugares de solo lectura (visor de invoice ×2, tarjetas de Calendar/horario de empleado) y 2 campos editables (Quick Job/Edit Job) que también muestran `job.address`, pero se dejaron sin tocar a propósito. Reusa el mismo patrón de URL ya usado en la vista de técnico (`?api=1&query=`, botón "📍 Open in Maps" ya existente) y el mismo patrón visual (ícono junto al texto) ya usado en el perfil del cliente (pestaña Addresses).
 - **2026-07-22:** Bug real encontrado por Luis en vivo inmediatamente después de subir el fix de recibos PDF: el botón "Download Receipt" daba `{"code":"UNAUTHORIZED_NO_AUTH_HEADER"}` en vez de descargar el PDF. Causa: los botones nuevos usaban `window.open(generate-receipt-pdf?token=...)` — Supabase exige un header `Authorization` con un JWT válido a nivel de gateway **antes** de que el código de la Edge Function corra, y una navegación de navegador normal (`window.open`/`<a href>`) nunca manda ese header, solo `fetch()` puede fijarlo a mano. El caso de `paymentId` (pagos en efectivo) ya usaba `fetch()` + blob + descarga por su propia cuenta de auth y funcionaba bien; se unificó el caso de `token` al mismo patrón en `admin/index.html` y `pay/index.html`. Confirmado el diagnóstico reproduciendo el error exacto sin header, y confirmado el fix con header vía `curl` antes de desplegar.
 - **2026-07-22:** **Recibos PDF reales + invoices versionadas + UI colapsable** (extensión del Payment Tracking del mismo día, a pedido de Luis tras revisar el feature en vivo). Tres piezas:
   1. **Invoices versionadas:** `sendPayableInvoice()` en `admin/index.html` ya no reusa/sobreescribe una sola fila de `invoices` por job — ahora cada envío (Send Invoice / Send Payable Invoice) crea una fila nueva, con su propio monto/token/fecha. Antes, reenviar una solicitud con un monto distinto perdía el detalle del envío anterior para siempre. `job.invoiceHistory` (array, todas las solicitudes del job) reemplaza el viejo patrón de sobrescribir `job.invoice` en cada fila cargada; `job.invoice` sigue existiendo como alias de la más reciente para no romper el resto del código. No requirió migración — todas las columnas ya existían.
