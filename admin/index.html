@@ -1655,6 +1655,17 @@
 
       <!-- ===== CALENDAR VIEW ===== -->
       <section class="view active" id="view-calendar">
+        <!-- Checklist de setup post-aprobación (2026-08-05, SaaS onboarding)
+             — oculto por defecto, se muestra vía refreshSetupChecklist()
+             si setup_complete=false para el tenant actual. Dismissible sin
+             marcar nada como completo (solo oculta hasta el próximo login). -->
+        <div class="panel" id="setup-checklist-banner" hidden style="border-left:3px solid var(--orange); margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong style="font-family:'Rajdhani',sans-serif; font-size:15px;">Complete your setup (<span id="setup-checklist-count">0/4</span>)</strong>
+            <button type="button" id="setup-checklist-dismiss" style="background:none; border:none; color:var(--ink-faint); font-size:16px; cursor:pointer;">✕</button>
+          </div>
+          <div id="setup-checklist-items" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;"></div>
+        </div>
         <div class="panel" id="mini-calendar-panel">
           <div class="calendar-header">
             <button type="button" class="cal-nav mini-cal-nav-btn" id="admin-cal-prev" aria-label="Previous month" hidden>‹</button>
@@ -1993,19 +2004,29 @@
 
           <!-- TAB 6: Payments -->
           <div class="settings-pane" id="settab-payments">
-            <p class="modal-section-title">Square <span class="badge" id="set-square-status">Not connected</span></p>
-            <div class="settings-grid">
-              <div class="field"><label for="set-square-app-id">Square App ID</label><input type="text" id="set-square-app-id"></div>
-              <div class="field"><label for="set-square-location-id">Square Location ID</label><input type="text" id="set-square-location-id"></div>
-              <div class="field"><label for="set-square-token">Square Access Token</label>
-                <div class="color-field"><input type="password" id="set-square-token" autocomplete="off"><button type="button" class="btn btn-ghost btn-mini" id="set-square-token-toggle">Show</button></div></div>
-              <div class="field"><label for="set-square-env">Square Environment</label>
-                <select id="set-square-env"><option value="production">Production</option><option value="sandbox">Sandbox</option></select></div>
+            <!-- Tenants que no sean 'altalux' no tienen forma real de cobrar
+                 todavía (Square OAuth por-tenant es una fase futura) — se
+                 les muestra "Coming soon" en vez de campos de Square reales,
+                 para que no guarden credenciales que no hacen nada. -->
+            <div id="set-square-coming-soon" hidden>
+              <p class="modal-section-title">Square <span class="badge">Coming soon</span></p>
+              <p style="color:var(--ink-muted); font-size:13.5px; max-width:440px;">Activation pending — our team will enable online payments for your account.</p>
             </div>
-            <div class="modal-actions">
-              <button type="button" class="btn btn-ghost" id="set-square-test">Test Connection</button>
-              <button type="button" class="btn btn-primary" id="set-payments-save">Save Payment Settings</button>
-              <span class="settings-save-status" id="set-payments-status"></span>
+            <div id="set-square-real-fields">
+              <p class="modal-section-title">Square <span class="badge" id="set-square-status">Not connected</span></p>
+              <div class="settings-grid">
+                <div class="field"><label for="set-square-app-id">Square App ID</label><input type="text" id="set-square-app-id"></div>
+                <div class="field"><label for="set-square-location-id">Square Location ID</label><input type="text" id="set-square-location-id"></div>
+                <div class="field"><label for="set-square-token">Square Access Token</label>
+                  <div class="color-field"><input type="password" id="set-square-token" autocomplete="off"><button type="button" class="btn btn-ghost btn-mini" id="set-square-token-toggle">Show</button></div></div>
+                <div class="field"><label for="set-square-env">Square Environment</label>
+                  <select id="set-square-env"><option value="production">Production</option><option value="sandbox">Sandbox</option></select></div>
+              </div>
+              <div class="modal-actions">
+                <button type="button" class="btn btn-ghost" id="set-square-test">Test Connection</button>
+                <button type="button" class="btn btn-primary" id="set-payments-save">Save Payment Settings</button>
+                <span class="settings-save-status" id="set-payments-status"></span>
+              </div>
             </div>
             <p class="modal-section-title" style="margin-top:24px; opacity:.5;">Stripe <span class="badge">Coming soon</span></p>
             <div class="settings-grid" style="opacity:.4; pointer-events:none;">
@@ -4490,6 +4511,7 @@
       loadAllDataFromSupabase();
       setupRealtimeBookingsSubscription();
       subscribeToPaymentEvents();
+      refreshSetupChecklist();
     }
   }
 
@@ -4531,6 +4553,36 @@
       if (!db) throw new Error('Working offline — cannot sign in.');
       const { error: authError } = await db.auth.signInWithPassword({ email, password });
       if (authError) throw authError;
+
+      // Bug real encontrado el 2026-08-05 probando el login de un tenant
+      // recién aprobado (sin sesión previa en el navegador): EMPLOYEES se
+      // carga una sola vez al inicio de la página, ANTES de autenticar —
+      // en ese momento RLS bloquea `anon` por completo (auth_select_
+      // employees_same_business es solo para `authenticated`), así que
+      // EMPLOYEES queda vacío. En un navegador con sesión ya persistida
+      // esto pasa desapercibido (el fetch inicial ya corre autenticado),
+      // pero cualquier login genuinamente nuevo — exactamente el caso de
+      // un owner de tenant entrando por primera vez tras ser aprobado —
+      // siempre fallaba con "No active employee profile". Se recarga acá,
+      // ya autenticado, antes de buscar el empleado.
+      await loadEmployeesFromSupabase();
+
+      // Tenant status guard (2026-08-05, SaaS onboarding) — un tenant
+      // pending/rejected/suspended nunca debería entrar al dashboard,
+      // sin importar que sus credenciales de empleado sean correctas.
+      const tenantStatus = window.APP_CONFIG && window.APP_CONFIG.settings && window.APP_CONFIG.settings.status;
+      if (tenantStatus && tenantStatus !== 'approved'){
+        await db.auth.signOut();
+        const statusMessages = {
+          pending: "Your application is under review. We'll email you when it's ready.",
+          rejected: 'This account is not active. Contact support if you believe this is an error.',
+          suspended: 'Account suspended — contact support.'
+        };
+        triggerShake(statusMessages[tenantStatus] || 'This account is not active.');
+        loginSubmitBtn.disabled = false;
+        loginSubmitBtn.textContent = 'Sign In';
+        return;
+      }
 
       const employee = findEmployeeByEmail(email);
       if (!employee){
@@ -5230,6 +5282,77 @@
       </div>
     `;
   }
+
+  // ================= SETUP CHECKLIST (2026-08-05, SaaS onboarding) =================
+  // Banner "Complete your setup (X/4)" en Calendar — solo para tenants con
+  // setup_complete=false. Hace su propio fetch chico e independiente de
+  // settingsRow (que solo se llena al abrir Settings) para poder mostrarse
+  // apenas se entra al dashboard, sin depender de haber visitado Settings.
+  async function refreshSetupChecklist(){
+    const banner = document.getElementById('setup-checklist-banner');
+    if (!db || !banner) return;
+    try {
+      const { data: biz } = await db
+        .from('business_settings')
+        .select('setup_complete, logo_url, primary_color, secondary_color, accent_color, background_color, booking_settings_confirmed')
+        .eq('business_id', BUSINESS_ID)
+        .single();
+      if (!biz || biz.setup_complete){ banner.hidden = true; return; }
+
+      const brandingDone = !!(biz.logo_url || biz.primary_color !== '#104872' || biz.secondary_color !== '#FF8C00' || biz.accent_color !== '#FFAA00' || biz.background_color !== '#0a1628');
+      const { count: svcCount } = await db.from('business_services').select('id', { count: 'exact', head: true }).eq('business_id', BUSINESS_ID);
+      const { count: addonCount } = await db.from('business_addons').select('id', { count: 'exact', head: true }).eq('business_id', BUSINESS_ID);
+      const servicesDone = (svcCount || 0) > 0 || (addonCount || 0) > 0;
+      const bookingDone = !!biz.booking_settings_confirmed;
+      // Ningún tenant salvo altalux puede cobrar de verdad todavía (Square
+      // OAuth por-tenant es una fase futura) — este ítem queda pendiente
+      // para todos los demás hasta que esa fase exista, sin importar lo
+      // que hayan guardado en la pestaña Payments.
+      const paymentsDone = BUSINESS_ID === 'altalux';
+
+      const items = [
+        { label: 'Branding — colors & logo', done: brandingDone, tab: 'branding' },
+        { label: 'Services & pricing — review your catalog', done: servicesDone, tab: 'services' },
+        { label: 'Availability — days, hours, deposit %', done: bookingDone, tab: 'booking' },
+        { label: 'Payments — connect Square', done: paymentsDone, tab: 'payments' }
+      ];
+      const doneCount = items.filter(i => i.done).length;
+
+      if (doneCount === items.length){
+        // Ratchet de un solo sentido — una vez completo, queda completo
+        // (no se re-deriva en cada carga aunque el tenant borre servicios
+        // después; evita re-molestarlo mientras reorganiza su catálogo).
+        await db.from('business_settings').update({ setup_complete: true }).eq('business_id', BUSINESS_ID);
+        banner.hidden = true;
+        return;
+      }
+
+      document.getElementById('setup-checklist-count').textContent = `${doneCount}/4`;
+      document.getElementById('setup-checklist-items').innerHTML = items.map(i => `
+        <div style="display:flex; align-items:center; gap:8px; font-size:13px;">
+          <span>${i.done ? '✅' : '⬜'}</span>
+          <span style="flex:1; color:${i.done ? 'var(--ink-faint)' : 'var(--white)'};">${i.label}</span>
+          ${i.done ? '' : `<button type="button" class="btn-mini setup-checklist-goto" data-tab="${i.tab}">Go</button>`}
+        </div>
+      `).join('');
+      banner.hidden = false;
+    } catch (err){
+      console.error('[Setup Checklist] Failed to load:', err);
+    }
+  }
+
+  document.getElementById('setup-checklist-dismiss').addEventListener('click', () => {
+    document.getElementById('setup-checklist-banner').hidden = true;
+  });
+  document.getElementById('setup-checklist-items').addEventListener('click', (e) => {
+    const btn = e.target.closest('.setup-checklist-goto');
+    if (!btn) return;
+    switchView('settings');
+    setTimeout(() => {
+      const subtab = document.querySelector(`#settings-subtabs .subtab[data-settab="${btn.dataset.tab}"]`);
+      if (subtab) subtab.click();
+    }, 50);
+  });
 
   // ================= LINK ACTIVITY (payment tracking) =================
   function formatEventTime(iso){
@@ -8163,6 +8286,7 @@
       root.setProperty('--brand-accent', patch.accent_color); root.setProperty('--gold', patch.accent_color);
       root.setProperty('--brand-bg', patch.background_color); root.setProperty('--dark', patch.background_color);
       setSettingsStatus('set-branding-status', 'Saved & applied ✓');
+      refreshSetupChecklist();
     } catch (err){ setSettingsStatus('set-branding-status', 'Save failed: ' + err.message, true); }
   });
 
@@ -8281,18 +8405,28 @@
       late_fee: parseFloat(document.getElementById('set-late-fee').value) || 0,
       cancellation_policy: document.getElementById('set-cancel-policy').value.trim(),
       available_days: days,
-      available_time_slots: slots
+      available_time_slots: slots,
+      // Ítem "Booking" del checklist de setup (2026-08-05) — los defaults
+      // de esta pestaña ya son valores válidos desde que se crea el
+      // tenant, así que no hay forma de distinguir "nunca lo revisó" de
+      // "eligió dejarlo igual" sin este flag explícito.
+      booking_settings_confirmed: true
     };
     try {
       const { error } = await db.from('business_settings').update(patch).eq('business_id', BUSINESS_ID);
       if (error) throw error;
       Object.assign(settingsRow, patch);
       setSettingsStatus('set-booking-status', 'Saved ✓');
+      refreshSetupChecklist();
     } catch (err){ setSettingsStatus('set-booking-status', 'Save failed: ' + err.message, true); }
   });
 
   // ---------- Tab 6: Payments ----------
   function populatePaymentsTab(s){
+    const comingSoon = BUSINESS_ID !== 'altalux';
+    document.getElementById('set-square-coming-soon').hidden = !comingSoon;
+    document.getElementById('set-square-real-fields').hidden = comingSoon;
+    if (comingSoon) return;
     document.getElementById('set-square-app-id').value = s.square_app_id || '';
     document.getElementById('set-square-location-id').value = s.square_location_id || '';
     document.getElementById('set-square-token').value = s.square_access_token || '';

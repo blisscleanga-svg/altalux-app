@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apply — AltaLux App</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --brand-primary:#104872;
+    --brand-secondary:#FF8C00;
+    --brand-accent:#FFAA00;
+    --dark:#0a1628;
+    --ink-muted:#a0aec0;
+    --ink-faint:#5b6b7a;
+    --line:rgba(255,170,0,.16);
+    --danger:#ff6767;
+    --green:#22c55e;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; padding:0; background:var(--dark); color:#fff;
+    font-family:'Inter', Arial, sans-serif; font-size:15px; line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1, h2, .brand-word{ font-family:'Rajdhani', sans-serif; font-weight:700; }
+  .page{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px 16px; }
+  .wrap{ max-width:460px; width:100%; }
+  .brand{ text-align:center; margin-bottom:28px; }
+  .brand-name{ font-size:30px; letter-spacing:.05em; margin:0; }
+  .brand-name .lux{ color:var(--brand-secondary); }
+  .brand-tagline{ color:var(--ink-muted); font-size:13.5px; margin:6px 0 0; }
+  .card{ background:#0f2138; border:1px solid var(--line); border-radius:16px; padding:32px 28px; }
+  .step-title{ font-size:20px; margin:0 0 6px; }
+  .step-sub{ color:var(--ink-muted); font-size:13.5px; margin:0 0 24px; }
+  .field{ margin-bottom:16px; }
+  .field label{ display:block; font-size:12.5px; color:var(--ink-muted); margin-bottom:6px; font-weight:600; }
+  .field input{
+    width:100%; padding:12px 14px; border-radius:9px; border:1.5px solid var(--line);
+    background:#0a1628; color:#fff; font-size:14.5px; font-family:inherit;
+  }
+  .field input:focus{ outline:none; border-color:var(--brand-secondary); }
+  .field-row{ display:flex; gap:10px; }
+  .field-row .field{ flex:1; }
+  .checkbox-row{ display:flex; align-items:flex-start; gap:10px; margin:18px 0; }
+  .checkbox-row input{ margin-top:3px; }
+  .checkbox-row label{ font-size:13px; color:var(--ink-muted); }
+  .checkbox-row a{ color:var(--brand-secondary); }
+  .btn{
+    width:100%; padding:14px; border:none; border-radius:9px; cursor:pointer;
+    background:var(--brand-secondary); color:#1a1a1a; font-family:'Rajdhani',sans-serif;
+    font-weight:700; font-size:16px; letter-spacing:.3px; margin-top:6px;
+  }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; }
+  .btn-spinner{
+    width:15px; height:15px; border:2px solid rgba(0,0,0,.25); border-top-color:#1a1a1a;
+    border-radius:50%; display:inline-block; animation:spin .7s linear infinite; vertical-align:-2px; margin-right:6px;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .error-text{ color:var(--danger); font-size:13px; margin:12px 0 0; display:none; }
+  .status-icon{ font-size:38px; text-align:center; margin-bottom:14px; }
+  .status-block{ text-align:center; }
+  .status-block p{ color:var(--ink-muted); font-size:14.5px; }
+  .status-block strong{ color:#fff; }
+  .progress-dots{ display:flex; justify-content:center; gap:8px; margin-bottom:22px; }
+  .progress-dots span{ width:8px; height:8px; border-radius:50%; background:var(--line); }
+  .progress-dots span.active{ background:var(--brand-secondary); }
+  .progress-dots span.done{ background:var(--green); }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="wrap">
+    <div class="brand">
+      <h1 class="brand-name">ALTA<span class="lux">LUX</span> APP</h1>
+      <p class="brand-tagline">The platform built by detailers, for detailers</p>
+    </div>
+
+    <div class="card">
+      <div class="progress-dots" id="progress-dots" hidden>
+        <span data-dot="0"></span><span data-dot="1"></span><span data-dot="2"></span>
+      </div>
+
+      <!-- STEP 0 — Account -->
+      <div id="screen-step0">
+        <h2 class="step-title">Create your account</h2>
+        <p class="step-sub">Apply to bring your detailing business onto AltaLux App.</p>
+        <div class="field"><label for="s0-business-name">Business Name</label><input type="text" id="s0-business-name" placeholder="e.g. Joe's Mobile Detail"></div>
+        <div class="field"><label for="s0-email">Owner Email</label><input type="email" id="s0-email" placeholder="you@example.com"></div>
+        <div class="field"><label for="s0-password">Password</label><input type="password" id="s0-password" placeholder="At least 6 characters"></div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="s0-tos">
+          <label for="s0-tos">I agree to the <a href="/terms.html" target="_blank">Terms of Service</a> and <a href="/privacy.html" target="_blank">Privacy Policy</a>.</label>
+        </div>
+        <button type="button" class="btn" id="s0-submit">Create Account</button>
+        <p class="error-text" id="s0-error"></p>
+      </div>
+
+      <!-- Check your inbox -->
+      <div id="screen-verify" class="status-block" hidden>
+        <div class="status-icon">📬</div>
+        <h2 class="step-title">Check your inbox</h2>
+        <p>We sent a confirmation link to <strong id="verify-email"></strong>. Click it to continue your application — this page will pick up right where you left off.</p>
+      </div>
+
+      <!-- Recovery: verified but no business name available (edge case) -->
+      <div id="screen-recover" hidden>
+        <h2 class="step-title">One more thing</h2>
+        <p class="step-sub">What's your business name?</p>
+        <div class="field"><label for="rec-business-name">Business Name</label><input type="text" id="rec-business-name" placeholder="e.g. Joe's Mobile Detail"></div>
+        <button type="button" class="btn" id="rec-submit">Continue</button>
+        <p class="error-text" id="rec-error"></p>
+      </div>
+
+      <!-- STEP 1 — Business Info -->
+      <div id="screen-step1" hidden>
+        <h2 class="step-title">Business Info</h2>
+        <p class="step-sub">A few details so customers can find you.</p>
+        <div class="field"><label for="s1-phone">Phone</label><input type="tel" id="s1-phone"></div>
+        <div class="field"><label for="s1-address">Address</label><input type="text" id="s1-address"></div>
+        <div class="field-row">
+          <div class="field"><label for="s1-city">City</label><input type="text" id="s1-city"></div>
+          <div class="field"><label for="s1-state">State</label><input type="text" id="s1-state" maxlength="2"></div>
+          <div class="field"><label for="s1-zip">Zip</label><input type="text" id="s1-zip"></div>
+        </div>
+        <div class="field"><label for="s1-website">Website <span style="text-transform:none;font-weight:400;">(optional)</span></label><input type="text" id="s1-website"></div>
+        <div class="field"><label for="s1-notify-email">Notification Email</label><input type="email" id="s1-notify-email"></div>
+        <button type="button" class="btn" id="s1-submit">Submit Application</button>
+        <p class="error-text" id="s1-error"></p>
+      </div>
+
+      <!-- DONE -->
+      <div id="screen-done" class="status-block" hidden>
+        <div class="status-icon">✅</div>
+        <h2 class="step-title">Application received!</h2>
+        <p>We'll review it within <strong>1-2 business days</strong> and email you at <strong id="done-email"></strong> when your workspace is ready.</p>
+      </div>
+
+      <!-- Loading -->
+      <div id="screen-loading" class="status-block">
+        <p>Loading…</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+  "use strict";
+
+  var SUPABASE_URL = 'https://xmhsehfdmiqbwhpqjgon.supabase.co';
+  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtaHNlaGZkbWlxYndocHFqZ29uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzODU5NzQsImV4cCI6MjA5ODk2MTk3NH0.J2UOp-pgzP6ByvDBoHcocFAmarWdlDK8M31YgKrUNss';
+  var MANAGE_TENANT_URL = SUPABASE_URL + '/functions/v1/manage-tenant';
+
+  var db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  var screens = ['step0', 'verify', 'recover', 'step1', 'done', 'loading'];
+  function showScreen(name){
+    screens.forEach(function(s){
+      document.getElementById('screen-' + s).hidden = (s !== name);
+    });
+    var dots = document.getElementById('progress-dots');
+    var dotMap = { step0: 0, verify: 0, recover: 0, step1: 1, done: 2 };
+    if (name === 'step0' || name === 'step1' || name === 'done'){
+      dots.hidden = false;
+      var idx = dotMap[name];
+      dots.querySelectorAll('span').forEach(function(el){
+        var d = Number(el.dataset.dot);
+        el.className = d < idx ? 'done' : (d === idx ? 'active' : '');
+      });
+    } else {
+      dots.hidden = true;
+    }
+  }
+
+  async function callManageTenant(action, extra){
+    var session = (await db.auth.getSession()).data.session;
+    if (!session) throw new Error('Not signed in.');
+    var res = await fetch(MANAGE_TENANT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token, apikey: SUPABASE_ANON_KEY },
+      body: JSON.stringify(Object.assign({ action: action }, extra))
+    });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Request failed.');
+    return data;
+  }
+
+  // ---------- STEP 0 — Create account ----------
+  document.getElementById('s0-submit').addEventListener('click', async function(){
+    var businessName = document.getElementById('s0-business-name').value.trim();
+    var email = document.getElementById('s0-email').value.trim();
+    var password = document.getElementById('s0-password').value;
+    var tosChecked = document.getElementById('s0-tos').checked;
+    var errorEl = document.getElementById('s0-error');
+    errorEl.style.display = 'none';
+
+    if (!businessName){ errorEl.textContent = 'Business name is required.'; errorEl.style.display = 'block'; return; }
+    if (!email){ errorEl.textContent = 'Email is required.'; errorEl.style.display = 'block'; return; }
+    if (!password || password.length < 6){ errorEl.textContent = 'Password must be at least 6 characters.'; errorEl.style.display = 'block'; return; }
+    if (!tosChecked){ errorEl.textContent = 'You must agree to the Terms of Service and Privacy Policy.'; errorEl.style.display = 'block'; return; }
+
+    var btn = document.getElementById('s0-submit');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="btn-spinner"></span> Creating account...';
+    try {
+      // El nombre del negocio viaja en el query string del link de
+      // confirmación (emailRedirectTo), no en localStorage/sessionStorage
+      // — este archivo se recarga completo cuando el usuario vuelve del
+      // email, así que no hay estado de JS que sobreviva ese salto.
+      var redirectUrl = window.location.origin + window.location.pathname + '?bn=' + encodeURIComponent(businessName);
+      var { error } = await db.auth.signUp({
+        email: email, password: password,
+        options: { emailRedirectTo: redirectUrl }
+      });
+      if (error) throw error;
+      document.getElementById('verify-email').textContent = email;
+      showScreen('verify');
+    } catch (err){
+      console.error('Signup failed:', err);
+      errorEl.textContent = err.message || 'Something went wrong. Please try again.';
+      errorEl.style.display = 'block';
+      btn.disabled = false;
+      btn.innerHTML = 'Create Account';
+    }
+  });
+
+  // ---------- Recovery screen (verified, no business name in URL) ----------
+  document.getElementById('rec-submit').addEventListener('click', async function(){
+    var businessName = document.getElementById('rec-business-name').value.trim();
+    var errorEl = document.getElementById('rec-error');
+    errorEl.style.display = 'none';
+    if (!businessName){ errorEl.textContent = 'Business name is required.'; errorEl.style.display = 'block'; return; }
+    var btn = document.getElementById('rec-submit');
+    btn.disabled = true; btn.innerHTML = '<span class="btn-spinner"></span> Continuing...';
+    try {
+      await createTenantAndGoToStep1(businessName);
+    } catch (err){
+      console.error(err);
+      errorEl.textContent = err.message || 'Something went wrong.';
+      errorEl.style.display = 'block';
+      btn.disabled = false; btn.innerHTML = 'Continue';
+    }
+  });
+
+  async function createTenantAndGoToStep1(businessName){
+    var slugResult = await callManageTenant('generate_slug', { businessName: businessName });
+    await callManageTenant('save_step', { step: 0, data: { businessName: businessName, slug: slugResult.slug } });
+    showScreen('step1');
+  }
+
+  // ---------- STEP 1 — Business Info ----------
+  document.getElementById('s1-submit').addEventListener('click', async function(){
+    var errorEl = document.getElementById('s1-error');
+    errorEl.style.display = 'none';
+    var data = {
+      phone: document.getElementById('s1-phone').value.trim(),
+      address: document.getElementById('s1-address').value.trim(),
+      city: document.getElementById('s1-city').value.trim(),
+      state: document.getElementById('s1-state').value.trim(),
+      zip: document.getElementById('s1-zip').value.trim(),
+      website: document.getElementById('s1-website').value.trim(),
+      notification_email: document.getElementById('s1-notify-email').value.trim()
+    };
+    var btn = document.getElementById('s1-submit');
+    btn.disabled = true; btn.innerHTML = '<span class="btn-spinner"></span> Submitting...';
+    try {
+      await callManageTenant('save_step', { step: 1, data: data });
+      document.getElementById('done-email').textContent = data.notification_email;
+      showScreen('done');
+    } catch (err){
+      console.error('Save step 1 failed:', err);
+      errorEl.textContent = err.message || 'Something went wrong. Please try again.';
+      errorEl.style.display = 'block';
+      btn.disabled = false; btn.innerHTML = 'Submit Application';
+    }
+  });
+
+  // ---------- Arranque: resume del wizard según sesión + onboarding_step ----------
+  async function init(){
+    var session = (await db.auth.getSession()).data.session;
+    if (!session){
+      showScreen('step0');
+      return;
+    }
+
+    var params = new URLSearchParams(window.location.search);
+    var pendingBusinessName = params.get('bn');
+
+    try {
+      // Sin businessId: manage-tenant busca por owner_email del caller —
+      // es exactamente lo que hace falta acá, todavía no sabemos el slug.
+      var details = await callManageTenant('tenant_details', {});
+      resumeAt(details.tenant, pendingBusinessName);
+    } catch (err){
+      // No existe fila de business_settings para este owner todavía.
+      if (pendingBusinessName){
+        await createTenantAndGoToStep1(pendingBusinessName);
+      } else {
+        showScreen('recover');
+      }
+    }
+  }
+
+  function resumeAt(tenant, pendingBusinessName){
+    if (tenant.onboarding_step >= 2){
+      document.getElementById('done-email').textContent = tenant.notification_email || '';
+      showScreen('done');
+    } else {
+      document.getElementById('s1-notify-email').value = ''; // el owner lo llena
+      showScreen('step1');
+    }
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

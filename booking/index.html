@@ -962,8 +962,8 @@
 </head>
 <body>
 
-<div class="page">
-  <div class="wrap">
+<div class="page" id="page-root">
+  <div class="wrap" id="booking-page-wrap">
 
     <div class="brand">
       <img class="brand-logo-img" id="brand-logo-img" src="" alt="AltaLux Mobile Detail" hidden>
@@ -1201,6 +1201,18 @@
   </aside>
 </div>
 
+<!-- Pantalla de bloqueo — tenant pending/rejected/suspended (2026-08-05,
+     SaaS onboarding). Oculta por defecto, reemplaza .page entera si el
+     status del negocio detectado no es 'approved'. -->
+<div class="page" id="tenant-status-block" style="text-align:center;" hidden>
+  <div class="wrap" style="padding:60px 20px;">
+    <div class="brand">
+      <h1 class="brand-name">ALTA<span class="lux">LUX</span></h1>
+    </div>
+    <p id="tenant-status-message" style="color:#94a3b8; font-size:15px; margin-top:24px;"></p>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://web.squarecdn.com/v1/square.js"></script>
 <script>
@@ -1262,6 +1274,19 @@
 
   function isLocalPreview(){
     return ['localhost','127.0.0.1',''].includes(window.location.hostname) && window.location.protocol !== 'https:';
+  }
+
+  // Payment guard (2026-08-05, SaaS onboarding) — real Square OAuth
+  // por-tenant es una fase futura sin implementar todavía; hasta que
+  // exista, ningún negocio salvo 'altalux' puede cobrar de verdad (un
+  // solo SQUARE_ACCESS_TOKEN global en la Edge Function). Esto es la
+  // mitad "cosmética" del guard — esconde el formulario de tarjeta. La
+  // mitad REAL vive en square-payment/index.ts (rechaza el cobro server-
+  // side aunque alguien salte este check llamando la función directo).
+  // window.APP_CONFIG.businessId ya está disponible de forma síncrona en
+  // cuanto shared/config.js corre (no hace falta esperar appConfigLoaded).
+  function isPaymentBlockedForTenant(){
+    return !!(window.APP_CONFIG && window.APP_CONFIG.businessId && window.APP_CONFIG.businessId !== 'altalux');
   }
 
   let db = null;
@@ -1541,6 +1566,23 @@
     if (currentStep === 4 && typeof renderFinalSummary === 'function') renderFinalSummary();
   }
   document.addEventListener('appConfigLoaded', syncFromAppConfig);
+
+  // Pantalla de bloqueo por status (2026-08-05, SaaS onboarding) — listener
+  // aditivo separado, no toca syncFromAppConfig. Un tenant pending/rejected/
+  // suspended nunca debería ver el widget de booking en absoluto.
+  document.addEventListener('appConfigLoaded', function(){
+    var status = window.APP_CONFIG && window.APP_CONFIG.settings && window.APP_CONFIG.settings.status;
+    if (!status || status === 'approved') return;
+    var messages = {
+      pending: 'This business is still being reviewed — check back soon.',
+      rejected: 'This business is not currently active.',
+      suspended: 'This business is not currently active.'
+    };
+    document.getElementById('page-root').hidden = true;
+    var block = document.getElementById('tenant-status-block');
+    document.getElementById('tenant-status-message').textContent = messages[status] || 'This business is not currently active.';
+    block.hidden = false;
+  });
 
   const state = {
     category: 'full',
@@ -1953,7 +1995,7 @@
     document.getElementById('final-deposit-pct').textContent = DEPOSIT_PERCENT_LABEL;
     document.getElementById('final-balance-pct').textContent = round2(100 - DEPOSIT_PERCENT_LABEL);
 
-    payBtn.disabled = !canPay() || isLocalPreview();
+    payBtn.disabled = !canPay() || isLocalPreview() || isPaymentBlockedForTenant();
   }
 
   function showConfirmation(paymentConfirmed){
@@ -2048,6 +2090,11 @@
   let squareCard = null;
 
   async function initSquareCard(){
+    if (isPaymentBlockedForTenant()){
+      document.getElementById('square-card-container').innerHTML =
+        '<p style="text-align:center; color:#94a3b8; font-size:13px; margin:0; padding:22px 10px;">Online payments coming soon — we\'ll contact you to confirm your booking.</p>';
+      return;
+    }
     if (isLocalPreview()){
       document.getElementById('square-card-container').innerHTML =
         '<p style="text-align:center; color:#94a3b8; font-size:13px; margin:0; padding:22px 10px;">Payment form will activate on the live site.</p>';
@@ -2086,6 +2133,10 @@
 
   payBtn.addEventListener('click', async () => {
     if (payBtn.disabled) return;
+    if (isPaymentBlockedForTenant()){
+      showError('Online payments coming soon — we\'ll contact you to confirm your booking.');
+      return;
+    }
     if (!squareCard){
       showError('The payment form is still loading. Please wait a moment and try again.');
       return;
@@ -2105,7 +2156,8 @@
       const chargeResult = await callSquareFunction('charge', {
         sourceId: tokenResult.token,
         amount: Math.round(depositAmount() * 100),
-        jobId: 'BOOKING'
+        jobId: 'BOOKING',
+        businessId: (window.APP_CONFIG && window.APP_CONFIG.businessId) || 'altalux'
       });
 
       if (!db) throw new Error('Supabase client is not available.');

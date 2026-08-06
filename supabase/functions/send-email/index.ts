@@ -412,6 +412,70 @@ function buildPaymentReceipt(biz: BizSettings, d: any) {
   return { subject, html: emailShell(biz, subject, body) };
 }
 
+// ---------- Onboarding de tenants (SaaS) — emails de la PLATAFORMA, no de
+// un negocio específico. El tenant nuevo todavía no tiene Resend
+// configurado (biz.resend_from_email vacío hasta que llegue a Settings >
+// Notifications), así que estos 4 siempre se mandan usando la config ya
+// funcional de 'altalux' (contact@altaluxdetail.com) — ver el dispatcher
+// más abajo, donde se fuerza ese businessId para este grupo de acciones.
+// Se pisa biz.name a "AltaLux App" solo para el header/footer del email
+// (no se toca la fila real de business_settings) porque esto es sobre la
+// plataforma, no sobre "AltaLux Mobile Detail" el negocio de detailing.
+const PLATFORM_URL = 'https://altalux.io';
+
+function platformBrand(biz: BizSettings): BizSettings {
+  return { ...biz, name: 'AltaLux App' };
+}
+
+function buildTenantPending(biz: BizSettings, d: any) {
+  const subject = `Application Received — AltaLux App`;
+  const body = `
+    <h2 style="font-family:'Rajdhani',Georgia,sans-serif; color:${biz.primary_color || '#104872'}; margin:0 0 8px; font-size:22px;">We've got your application!</h2>
+    <p style="color:#4a5568; font-size:15px; margin:0 0 24px;">Hi, thanks for applying to bring <strong>${esc(d.businessName)}</strong> onto AltaLux App.</p>
+    <p style="color:#4a5568;">Our team will review your application within <strong>1-2 business days</strong>. We'll email you at <strong>${esc(d.ownerEmail)}</strong> as soon as your workspace is ready.</p>
+    <p style="color:#4a5568; margin-top:16px;">No action needed from you right now — just sit tight.</p>
+  `;
+  return { subject, html: emailShell(platformBrand(biz), subject, body) };
+}
+
+function buildTenantApproved(biz: BizSettings, d: any) {
+  const subject = `Welcome to AltaLux App! Your workspace is ready`;
+  const loginUrl = `${PLATFORM_URL}/admin/?b=${encodeURIComponent(d.slug)}`;
+  const body = `
+    <h2 style="font-family:'Rajdhani',Georgia,sans-serif; color:${biz.primary_color || '#104872'}; margin:0 0 8px; font-size:22px;">You're approved! 🎉</h2>
+    <p style="color:#4a5568; font-size:15px; margin:0 0 24px;">Hi, great news — <strong>${esc(d.businessName)}</strong> is now live on AltaLux App.</p>
+    <p style="color:#4a5568;">Log in with the email and password you created during signup, and complete the quick setup checklist (branding, services, availability) to get your booking page ready for customers.</p>
+    ${ctaButton(loginUrl, 'Log In to Your Workspace →', biz.secondary_color || '#FF8C00')}
+    <p style="font-size:12.5px; color:#718096; text-align:center; margin:0;">Or copy this link: <a href="${esc(loginUrl)}" style="color:${biz.primary_color || '#104872'}; word-break:break-all;">${esc(loginUrl)}</a></p>
+  `;
+  return { subject, html: emailShell(platformBrand(biz), subject, body) };
+}
+
+function buildTenantRejected(biz: BizSettings, d: any) {
+  const subject = `Update on your AltaLux App application`;
+  const body = `
+    <h2 style="font-family:'Rajdhani',Georgia,sans-serif; color:${biz.primary_color || '#104872'}; margin:0 0 8px; font-size:22px;">About your application</h2>
+    <p style="color:#4a5568; font-size:15px; margin:0 0 20px;">Hi, thanks for your interest in bringing <strong>${esc(d.businessName)}</strong> onto AltaLux App.</p>
+    <p style="color:#4a5568;">After review, we're not able to move forward with your application at this time.</p>
+    ${d.reason ? `<p style="background:#f7f9fb; border-left:3px solid ${biz.secondary_color || '#FF8C00'}; padding:12px 16px; font-size:13.5px; margin:16px 0; color:#4a5568;">${esc(d.reason)}</p>` : ''}
+    <p style="color:#4a5568; margin-top:16px;">If you have questions, just reply to this email.</p>
+  `;
+  return { subject, html: emailShell(platformBrand(biz), subject, body) };
+}
+
+function buildInternalNewSignup(biz: BizSettings, d: any) {
+  const subject = `New detailer signup: ${esc(d.businessName)} (${esc(d.ownerEmail)}) — review in platform panel`;
+  const body = `
+    <h2 style="font-family:'Rajdhani',Georgia,sans-serif; color:${biz.primary_color || '#104872'}; margin:0 0 8px; font-size:20px;">New Tenant Application</h2>
+    ${detailCard([
+      { label: 'Business', value: esc(d.businessName) },
+      { label: 'Owner Email', value: esc(d.ownerEmail) },
+    ], biz.secondary_color || '#FF8C00')}
+    ${ctaButton(`${PLATFORM_URL}/platform/`, 'Review in Platform Panel →', biz.primary_color || '#104872')}
+  `;
+  return { subject, html: emailShell(platformBrand(biz), subject, body) };
+}
+
 const BUILDERS: Record<string, (biz: BizSettings, d: any) => { subject: string; html: string }> = {
   booking_confirmation: buildBookingConfirmation,
   job_confirmed: buildJobConfirmed,
@@ -421,6 +485,10 @@ const BUILDERS: Record<string, (biz: BizSettings, d: any) => { subject: string; 
   invoice_link: buildInvoiceLink,
   payment_receipt: buildPaymentReceipt,
   payment_notification_admin: buildPaymentNotificationAdmin,
+  tenant_pending: buildTenantPending,
+  tenant_approved: buildTenantApproved,
+  tenant_rejected: buildTenantRejected,
+  internal_new_signup: buildInternalNewSignup,
 };
 
 const TOGGLE_KEY: Record<string, string> = {
@@ -436,6 +504,11 @@ const TOGGLE_KEY: Record<string, string> = {
 
 // Va al mismo destinatario que internal_notification — el admin, no el cliente.
 const ADMIN_RECIPIENT_ACTIONS = ['internal_notification', 'payment_notification_admin'];
+
+// Emails de plataforma (onboarding de tenants) — nunca usan la config de
+// Resend del tenant que se está discutiendo (todavía no la tiene
+// configurada), siempre la de 'altalux'. Ver dispatcher.
+const PLATFORM_ACTIONS = ['tenant_pending', 'tenant_approved', 'tenant_rejected', 'internal_new_signup'];
 
 async function sendViaResend(to: string, from: string, subject: string, html: string, attachments?: Array<{ filename: string; content: string }>) {
   if (!RESEND_API_KEY) throw new Error('RESEND_API_KEY is not configured. Set it with `supabase secrets set RESEND_API_KEY=...`.');
@@ -467,7 +540,10 @@ Deno.serve(async (req: Request) => {
     }
     if (!businessId) return jsonResponse({ error: 'businessId is required.' }, 400);
 
-    const biz = await getBizSettings(businessId);
+    // Emails de plataforma: siempre usan la config de Resend de 'altalux'
+    // (ya funcional) — el tenant nuevo del que habla el email todavía no
+    // tiene la suya propia configurada.
+    const biz = await getBizSettings(PLATFORM_ACTIONS.includes(action) ? 'altalux' : businessId);
 
     const toggleKey = TOGGLE_KEY[action];
     if (biz.email_toggles && toggleKey && biz.email_toggles[toggleKey] === false) {
@@ -478,7 +554,16 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: `Resend is not configured for business "${businessId}" (no resend_from_email set in Settings > Notifications).` }, 400);
     }
 
-    const to = ADMIN_RECIPIENT_ACTIONS.includes(action) ? biz.notification_email : (data && data.customerEmail);
+    let to: string | null;
+    if (action === 'internal_new_signup') {
+      to = 'altaluxdetail@gmail.com';
+    } else if (PLATFORM_ACTIONS.includes(action)) {
+      to = (data && data.ownerEmail) || null;
+    } else if (ADMIN_RECIPIENT_ACTIONS.includes(action)) {
+      to = biz.notification_email;
+    } else {
+      to = data && data.customerEmail;
+    }
     if (!to) return jsonResponse({ error: `No recipient email available for action "${action}".` }, 400);
     // Validación de input (auditoría de seguridad 2026-07-15). El resto de los
     // campos interpolados en el HTML del email ya pasan por esc() más abajo

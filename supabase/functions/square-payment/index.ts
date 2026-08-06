@@ -67,6 +67,39 @@ async function squareRequest(path: string, method: string, body?: unknown) {
   return data;
 }
 
+// ---- Payment tenant guard (2026-08-05) ----------------------------
+// Hoy existe un solo SQUARE_ACCESS_TOKEN/SQUARE_LOCATION_ID global para
+// todo el archivo — real Square OAuth por-tenant es una fase futura sin
+// implementar. Hasta que exista, esto es la única barrera REAL (no
+// cosmética) contra que un tenant que no sea 'altalux' cobre por
+// accidente contra la cuenta de Square de AltaLux (ej. si alguien fuerza
+// business_settings.square_enabled=true a mano en un tenant nuevo).
+//
+// Solo se aplica a create_link/charge — las dos únicas acciones que
+// realmente llaman a Square. record_payment nunca toca Square (solo
+// registra un pago manual en Supabase), así que no representa el mismo
+// riesgo y queda sin guard a propósito.
+class TenantGuardError extends Error {}
+
+async function assertAltaluxCharge(supabase: ReturnType<typeof getSupabaseAdmin>, jobId: unknown, bodyBusinessId: unknown) {
+  if (jobId && jobId !== 'BOOKING') {
+    // Ya existe un job real → su business_id es la fuente de verdad,
+    // cubre automáticamente los cobros en persona de admin/technician
+    // (que mandan job.jobNumber real, nunca business_id en el payload).
+    const numericJobNumber = Number(jobId);
+    if (Number.isFinite(numericJobNumber)) {
+      const { data: job } = await supabase.from('jobs').select('business_id').eq('job_number', numericJobNumber).maybeSingle();
+      if (job && job.business_id !== 'altalux') throw new TenantGuardError();
+    }
+    return;
+  }
+  // jobId === 'BOOKING' (depósito nuevo desde booking/index.html, el job
+  // todavía no existe) — deny-by-default: rechaza salvo que el caller
+  // mande business_id === 'altalux' explícitamente. Ausente = rechazado,
+  // nunca "permitido por default".
+  if (bodyBusinessId !== 'altalux') throw new TenantGuardError();
+}
+
 // ---- Auditoría (auditoría de seguridad 2026-07-15) — nunca bloquea el flujo de pago ----
 async function writeAuditLog(params: {
   businessId?: string | null; action: string; entityType?: string; entityId?: string | null; metadata?: unknown;
@@ -142,8 +175,15 @@ Deno.serve(async (req: Request) => {
     const { action } = body;
 
     if (action === 'create_link') {
-      const { amount, jobId, customerName, description, redirectUrl } = body;
+      const { amount, jobId, customerName, description, redirectUrl, businessId } = body;
       if (!amount || !jobId) return jsonResponse({ error: 'amount and jobId are required.' }, 400);
+
+      try {
+        await assertAltaluxCharge(getSupabaseAdmin(), jobId, businessId);
+      } catch (guardErr) {
+        if (guardErr instanceof TenantGuardError) return jsonResponse({ error: 'This business is not enabled for online payments yet.' }, 403);
+        throw guardErr;
+      }
 
       const result = await squareRequest('/online-checkout/payment-links', 'POST', {
         idempotency_key: crypto.randomUUID(),
@@ -180,6 +220,8 @@ Deno.serve(async (req: Request) => {
         if (invErr || !invoice) return jsonResponse({ error: 'Invoice not found.' }, 404);
         if (invoice.status === 'Paid') return jsonResponse({ error: 'Invoice already paid.' }, 409);
         if (!invoice.sent_at) return jsonResponse({ error: 'Invoice not available for payment.' }, 403);
+        // Payment tenant guard — ver assertAltaluxCharge más arriba.
+        if (invoice.business_id !== 'altalux') return jsonResponse({ error: 'This business is not enabled for online payments yet.' }, 403);
 
         const amountInCents = Math.round(Number(invoice.final_amount) * 100);
         if (!amountInCents || amountInCents <= 0) {
@@ -294,7 +336,7 @@ Deno.serve(async (req: Request) => {
         return jsonResponse({ success: true, paymentId, invoice_number: invoiceDisplayNumber, amount_paid: invoice.final_amount });
       }
 
-      // ---- flujo existente (depósitos de booking / balance en persona) — sin cambios ----
+      // ---- flujo existente (depósitos de booking / balance en persona) ----
       if (!sourceId || !amount || !jobId) {
         return jsonResponse({ error: 'sourceId, amount, and jobId are required.' }, 400);
       }
@@ -304,6 +346,16 @@ Deno.serve(async (req: Request) => {
       }
       if (typeof sourceId !== 'string' || sourceId.length < 10) {
         return jsonResponse({ error: 'Token de pago inválido.' }, 400);
+      }
+      // Payment tenant guard — ver assertAltaluxCharge más arriba. Cubre
+      // automáticamente los cobros en persona de admin/technician (job real,
+      // lookup por job_number) y el depósito nuevo de booking (jobId==='BOOKING',
+      // deny-by-default sobre body.businessId).
+      try {
+        await assertAltaluxCharge(getSupabaseAdmin(), jobId, body.businessId);
+      } catch (guardErr) {
+        if (guardErr instanceof TenantGuardError) return jsonResponse({ error: 'This business is not enabled for online payments yet.' }, 403);
+        throw guardErr;
       }
 
       const result = await squareRequest('/payments', 'POST', {

@@ -24,17 +24,29 @@
   var SUPABASE_URL = 'https://xmhsehfdmiqbwhpqjgon.supabase.co';
   var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtaHNlaGZkbWlxYndocHFqZ29uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzODU5NzQsImV4cCI6MjA5ODk2MTk3NH0.J2UOp-pgzP6ByvDBoHcocFAmarWdlDK8M31YgKrUNss';
 
+  // Prioridad de detección (2026-08-05, SaaS onboarding):
+  //   1. ?b=<slug> en la URL — usado por altalux.io (el dominio de la
+  //      plataforma) para servir booking/admin/technician/pay a
+  //      CUALQUIER tenant, ej. https://altalux.io/booking/?b=joes-detail
+  //   2. Mapa de dominios existente — sin cambios, altaluxdetail.com y
+  //      blisscleandetail.com siguen siendo el acceso directo de esos 2
+  //      negocios específicos.
+  //   3. localhost / altalux.io sin ?b / cualquier otra cosa → altalux
+  //      (default de siempre, sin cambios).
   function detectBusinessId() {
+    var qsBusiness = new URLSearchParams(window.location.search).get('b');
+    if (qsBusiness) return qsBusiness.toLowerCase();
     var host = (window.location.hostname || '').toLowerCase();
     if (host.indexOf('blisscleandetail.com') !== -1) return 'blissclean';
     if (host.indexOf('altaluxdetail.com') !== -1) return 'altalux';
-    return 'altalux'; // localhost / 127.0.0.1 / anything else — dev default
+    return 'altalux'; // localhost / altalux.io sin ?b / anything else — dev default
   }
 
   // ---------- Hardcoded AltaLux fallback (used only if Supabase is
   // unreachable, or returns no row for the detected business) ----------
   var FALLBACK_SETTINGS = {
     business_id: 'altalux',
+    status: 'approved',
     name: 'AltaLux Mobile Detail',
     email: null,
     phone: '(888) 853-0590',
@@ -175,6 +187,11 @@
     loaded: false
   });
 
+  // settings.status ('pending'|'approved'|'suspended'|'rejected') viaja
+  // como una columna más de business_settings_public — no hace falta
+  // plumbing extra acá. Cada app decide su propia pantalla de bloqueo
+  // leyendo window.APP_CONFIG.settings.status después de appConfigLoaded
+  // (ver booking/index.html y admin/index.html).
   function finish(settings, services, addons) {
     window.APP_CONFIG.settings = settings;
     window.APP_CONFIG.services = services;
