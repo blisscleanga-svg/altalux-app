@@ -6160,9 +6160,21 @@
       item.classList.toggle('selected', e.target.checked);
       const list = item.closest('.assign-to-list');
       if (list && list.id === 'modal-assign-list' && currentModalJobId !== null){
-        findJob(currentModalJobId).assignedEmployeeIds = getSelectedAssignIds('modal-assign-list');
+        const job = findJob(currentModalJobId);
+        job.assignedEmployeeIds = getSelectedAssignIds('modal-assign-list');
         renderWeekView();
         renderJobsListForDay();
+        // Antes este checkbox solo mutaba el job en memoria — la asignación
+        // nunca llegaba a Supabase, así que el técnico nunca la veía en su panel.
+        if (job.supabaseId){
+          const assignedEmp = job.assignedEmployeeIds.length ? findEmployee(job.assignedEmployeeIds[0]) : null;
+          attemptSupabaseWrite(async () => {
+            const { error } = await db.from('jobs')
+              .update({ assigned_to: assignedEmp ? assignedEmp.supabaseId : null })
+              .eq('id', job.supabaseId);
+            if (error) throw error;
+          }, `Job #${job.jobNumber} assignment synced.`, `Job #${job.jobNumber} assignment sync`);
+        }
       }
     }
   });
@@ -7337,13 +7349,14 @@
       ? JOB_CATALOG.full.packages[document.getElementById('cj-package').value].label
       : JOB_CATALOG[cat].label;
 
+    const assignedIds = getSelectedAssignIds('cj-assign-list');
     const job = createJobFromData({
       customer: { name, phone, email },
       service: serviceLabel, vehicleType: vehicleTypeLabel, vehicle,
       address, date: fromInputDate(dateVal), time,
       subtotal: price, addonsTotal: 0, total: price,
       status, notes,
-      assignedEmployeeIds: getSelectedAssignIds('cj-assign-list')
+      assignedEmployeeIds: assignedIds
     });
 
     closeCreateJobModal();
@@ -7361,13 +7374,15 @@
       // job_number lo asigna la DB (default nextval de sequence) — ver
       // nota igual en convertProposalToJob sobre por qué no lo mandamos
       // desde acá.
+      const assignedEmp = assignedIds.length ? findEmployee(assignedIds[0]) : null;
       const { data: jobData, error: jobErr } = await db
         .from('jobs')
         .insert([{
           customer_id: custData.id,
           category: JOB_CATALOG[cat].label, package: serviceLabel,
           service_date: dateVal, service_time: time,
-          subtotal: price, addons_total: 0, total: price, status, notes
+          subtotal: price, addons_total: 0, total: price, status, notes,
+          assigned_to: assignedEmp ? assignedEmp.supabaseId : null
         }])
         .select()
         .single();
@@ -7613,6 +7628,7 @@
       }, 'Customer info synced to database.', 'Customer info sync');
     }
     if (job.supabaseId){
+      const assignedEmp = job.assignedEmployeeIds.length ? findEmployee(job.assignedEmployeeIds[0]) : null;
       attemptSupabaseWrite(async () => {
         const { error } = await db.from('jobs').update({
           category: JOB_CATALOG[cat].label,
@@ -7623,7 +7639,8 @@
           addons_total: addonsTotal,
           total: newTotal,
           status,
-          notes
+          notes,
+          assigned_to: assignedEmp ? assignedEmp.supabaseId : null
         }).eq('id', job.supabaseId);
         if (error) throw error;
       }, `Job #${job.jobNumber} synced to database.`, `Job #${job.jobNumber} database sync`);
