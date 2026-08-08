@@ -1521,7 +1521,13 @@
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = loginEmailInput.value.trim();
-    const password = loginPasswordInput.value;
+    // .trim() acá también (igual que el email) — copiar/pegar una
+    // contraseña desde un mensaje suele traer un espacio invisible al
+    // final, que Supabase rechaza sin avisar que es "solo un espacio de
+    // más" (aparece como "Invalid email or password" genérico, indistinguible
+    // de una contraseña realmente incorrecta). Encontrado el 2026-08-08
+    // diagnosticando un login que fallaba con la contraseña correcta.
+    const password = loginPasswordInput.value.trim();
     loginErrorEl.textContent = '';
 
     try {

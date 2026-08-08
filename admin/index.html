@@ -4543,7 +4543,10 @@
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = emailInput.value.trim();
-    const password = passwordInput.value;
+    // .trim() acá también (mismo criterio que technician/index.html,
+    // 2026-08-08) — evita que un espacio invisible de copiar/pegar la
+    // contraseña rompa el login sin ningún aviso claro.
+    const password = passwordInput.value.trim();
 
     loginSubmitBtn.disabled = true;
     loginSubmitBtn.textContent = 'Signing in...';
