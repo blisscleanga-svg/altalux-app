@@ -1529,6 +1529,15 @@
       const { error: authError } = await db.auth.signInWithPassword({ email, password });
       if (authError) throw authError;
 
+      // Mismo bug/fix que admin/index.html (2026-08-05/08): EMPLOYEES se
+      // carga una sola vez al entrar a la pantalla de login, ANTES de
+      // autenticar — en ese momento RLS bloquea `anon` por completo, así
+      // que queda vacío. Un login genuinamente nuevo (sin sesión previa en
+      // el navegador — el caso real de un empleado recién creado) siempre
+      // fallaba con "Invalid email or password" aunque la contraseña fuera
+      // correcta. Se recarga acá, ya autenticado, antes de buscar el perfil.
+      await loadEmployeesFromSupabase();
+
       const emp = findEmployeeByEmail(email);
       if (!emp){
         await db.auth.signOut();
