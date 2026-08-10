@@ -235,7 +235,19 @@ cd /home/blisscleanga/altalux-saas
 supabase db push --linked --yes
 ```
 
-Expected: `Finished supabase db push.` `NOTICE ... does not exist, skipping` lines are expected and harmless (from `DROP ... IF EXISTS` statements running for the first time). Any real `ERROR` means stop and fix before re-running — do not skip ahead. If you need to retry from scratch after a partial failure, wipe first: `supabase db query --linked "drop schema public cascade; create schema public; grant all on schema public to postgres, anon, authenticated, service_role;"` then `supabase db query --linked "delete from supabase_migrations.schema_migrations;"`.
+Expected: `Finished supabase db push.` `NOTICE ... does not exist, skipping` lines are expected and harmless (from `DROP ... IF EXISTS` statements running for the first time). Any real `ERROR` means stop and fix before re-running — do not skip ahead. If you need to retry from scratch after a partial failure, wipe first with **exactly** this sequence (found the hard way: a version of this that only re-granted schema usage, without the 3 `ALTER DEFAULT PRIVILEGES` lines, left `anon`/`authenticated`/`service_role` with zero table grants after the migrations re-ran — RLS policies were perfect but every request got `42501 permission denied` before RLS was ever consulted):
+
+```bash
+supabase db query --linked "
+drop schema public cascade;
+create schema public;
+grant all on schema public to postgres, anon, authenticated, service_role;
+alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+alter default privileges in schema public grant all on routines to anon, authenticated, service_role;
+"
+supabase db query --linked "delete from supabase_migrations.schema_migrations;"
+```
 
 - [ ] **Step 4: Verify every expected table exists (20 tables, matching the live project exactly)**
 
