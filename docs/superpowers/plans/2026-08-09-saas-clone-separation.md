@@ -285,6 +285,8 @@ Expected: `{"services": 21, "addons": 10}`.
 
 ### Task 5: Genericize the client code for a neutral SaaS deploy
 
+> **⚠️ AMENDMENT — scope gap found during execution (2026-08-09):** `shared/config.js`'s own header comment claims it's the single source of truth for the Supabase connection, specifically to avoid a `supabase-js` dependency. But `booking/index.html`, `admin/index.html`, `technician/index.html`, `pay/index.html`, and `onboarding/index.html` each separately load `supabase-js` and hardcode their **own** copy of `SUPABASE_URL`/`SUPABASE_ANON_KEY` (for auth/RPCs/mutations beyond `config.js`'s plain-REST reads) — all 6 (plus `platform/index.html`, already in scope) still pointed at AltaLux's live project. Left as originally scoped, the new deploy would have booked, authenticated, and processed payments against AltaLux's real production database for everything except the initial branding read. Fixed in all 6 files as part of this task, same mechanical replace as Step 1. Also found and fixed, while auditing: a hardcoded `businessId: 'altalux'` in an email call, hardcoded `app.altaluxdetail.com` pay-link URLs in 2 files, and an invoice contact-info fallback that would have leaked AltaLux's real email/website onto other tenants' invoices. Two things were found but deliberately **not** fixed here, flagged for later: (1) AltaLux's real Square merchant credentials (`square_app_id`/`square_location_id`) remain hardcoded client-side in 3 places — inert in practice, since the server-side `square-payment` guard rejects any non-`'altalux'` business regardless, and the new project's `SQUARE_ACCESS_TOKEN` is a dummy value that wouldn't authenticate with Square even if reached, but still worth cleaning up eventually; (2) `send-email/index.ts` has its own hardcoded `app.altaluxdetail.com` fallback URL — server-side, folded into Task 6's scope instead of duplicating work across two tasks.
+
 **Files:**
 - Modify: `/home/blisscleanga/altalux-saas/shared/config.js`
 - Modify: `/home/blisscleanga/altalux-saas/supabase/functions/manage-tenant/index.ts`
@@ -414,7 +416,10 @@ git push origin main
 
 ### Task 6: Deploy Edge Functions with their own secrets
 
-**Files:** none (deploy operation; Edge Function source is unchanged from the fork)
+> **⚠️ AMENDMENT — carried over from Task 5's audit:** `supabase/functions/send-email/index.ts` has its own hardcoded fallback URL, `'https://app.altaluxdetail.com/booking/'`, used when building links inside actual customer-facing emails (booking confirmations, invoice notifications, etc.). Same category of bug as the pay-link URLs fixed in Task 5, just server-side and therefore this task's territory. Find and fix it (replace with `'https://altalux.io/booking/'`, matching the pattern already used for the client-side URLs) before deploying.
+
+**Files:**
+- Modify: `supabase/functions/send-email/index.ts` (the hardcoded fallback URL described above)
 
 **Interfaces:**
 - Consumes: `PROJECT_REF` from Task 3.
