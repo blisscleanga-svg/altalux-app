@@ -1,5 +1,5 @@
 # AltaLux App — Contexto del Proyecto
-> Última actualización: 2026-08-09
+> Última actualización: 2026-08-10
 
 ## ¿Qué es esto?
 App de field service para AltaLux Mobile Detail (Roswell, GA).
@@ -137,8 +137,8 @@ App mobile-optimized para el equipo de campo.
 - Nueva Edge Function `manage-employee-auth` para crear/resetear logins sin exponer passwords al cliente.
 - **2026-07-13:** typo de una letra en el Square Application ID (`z` minúscula en vez de `Z` mayúscula) causaba 401 Unauthorized y el formulario de pago de Square no cargaba en booking/admin/technician. Corregido (commit `e2f45b8`).
 
-## Clon SaaS independiente (altalux.io) — en planificación
-Luis decidió (2026-08-09) clonar toda la infraestructura (código + esquema, sin datos reales de AltaLux) a un stack 100% aparte para lanzar la plataforma SaaS como producto propio: repo nuevo `altalux-saas`, proyecto Supabase nuevo, Resend nuevo, Hostinger/dominio `altalux.io` (ya provisionados). `altalux-app`/`altaluxdetail.com` no se toca. Diseño completo aprobado en `docs/superpowers/specs/2026-08-09-saas-clone-separation-design.md` — siguiente paso es el plan de implementación (skill `writing-plans`).
+## Clon SaaS independiente (altalux.io) — completo y en vivo (2026-08-10)
+Infraestructura 100% separada de AltaLux/este repo, desplegada y verificada end-to-end: repo `blisscleanga-svg/altalux-saas`, proyecto Supabase propio (`bgbjrmkgjhjnvyffpxiu`), 7 Edge Functions desplegadas, Hostinger sirviendo `altalux.io` con el código nuevo. `altalux-app`/`altaluxdetail.com` (este repo) no se tocó — cero cambios de código de producto, solo estas dos entradas de contexto. **Este archivo ya no trackea el desarrollo de la plataforma SaaS de acá en adelante** — ver `altalux-saas/CONTEXT.md` para eso. Detalle completo de cómo se hizo (incluidos varios hallazgos importantes: 8 tablas core que nunca existieron como migración, un bug de grants, fugas de datos de AltaLux limpiadas) en `docs/superpowers/plans/2026-08-09-saas-clone-separation.md` y `.superpowers/sdd/progress.md`.
 
 ## Pendiente / Próximos pasos
 - [ ] Envío real de invoices/confirmaciones por email (Resend) — hoy son placeholders "coming soon"
