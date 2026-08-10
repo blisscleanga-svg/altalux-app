@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - `altalux-app` (repo, Supabase project `xmhsehfdmiqbwhpqjgon`, `altaluxdetail.com`) must not be modified by any task in this plan. Every command below targets the new repo/project explicitly — never the linked default.
-- The new Supabase CLI commands must use `--project-ref`/`--db-url` explicitly and must never run `supabase link` inside the `altalux-app` working directory (that would repoint its saved link away from the real project).
+- The new Supabase CLI commands must use `--project-ref`/`--linked` explicitly and must never run `supabase link` inside the `altalux-app` working directory (that would repoint its saved link away from the real project). **Amendment (discovered during Task 4 execution):** this sandbox's network blocks direct outbound Postgres connections (port 5432) — `--db-url` fails with a connection error for both `db push` and `psql` (not installed anyway). `supabase link --project-ref <ref> --password <pw>` run from *within* `/home/blisscleanga/altalux-saas` (never from `altalux-app`) followed by `--linked` on `db push`/`db query`/`db dump` works, because it tunnels through the Management API over HTTPS instead of raw Postgres wire protocol. All Task 4/8 commands use `--linked` from the altalux-saas directory, not `--db-url`. `psql` is not available in this sandbox — `supabase db query --linked "<SQL>"` replaces every `psql -c "<SQL>"` verification command in this plan.
 - New GitHub repo: `blisscleanga-svg/altalux-saas`, public (matches the visibility of `altalux-app`, confirmed via GitHub API before writing this plan).
 - The new stack's Super Admin email is `altaluxtech@gmail.com` — different from AltaLux's `blisscleanmobilega@gmail.com`. This requires changing the hardcoded `SUPER_ADMIN_EMAIL` constant in `manage-tenant/index.ts:27` and `platform/index.html:195` (Task 5) before the new project's Super Admin Auth account is created (Task 7).
 - `SQUARE_ACCESS_TOKEN` in the new project is a dummy, non-functional value (`unused-guard-blocks-all-charges`) — never the real AltaLux production token. The payment guard blocks every charge in the new project regardless (no tenant there will ever have `business_id = 'altalux'`), so a real token is both unnecessary and an avoidable secret-sprawl risk.
@@ -199,54 +199,75 @@ Expected: `ACTIVE_HEALTHY` (may need to retry after a minute if it prints `COMIN
 
 ### Task 4: Apply the full schema to the new project
 
-**Files:** none (database operation against the new project)
+> **⚠️ AMENDMENT — this task's original design was wrong, discovered and fixed during execution (2026-08-09):**
+>
+> 1. **The 18 renamed/original migration files are not the full schema.** Testing `db push` against the empty new project failed immediately on `employees.sql`'s `ALTER TABLE jobs ...` — the `jobs` table doesn't exist. Investigation (comparing the live project's real 20 tables against every `create table` in every migration file) found **8 core tables never created by any migration**: `bookings`, `customers`, `jobs`, `payments`, `invoices`, `vehicles`, `job_addons`, `job_vehicles`. They were created directly via the Supabase SQL Editor when the project started, before this repo adopted migrations — every existing migration only `ALTER`s them, assuming they already exist. A new file, `supabase/migrations/20260707120000_baseline_core_tables.sql`, reconstructs these 8 tables (columns, PKs, FKs, RLS enablement, and the one undocumented RLS policy — `"Allow public insert on bookings"`, anon INSERT — that no migration ever creates) by introspecting the live project's `information_schema`/`pg_catalog` (`pg_dump`/`supabase db dump` need Docker, unavailable in this sandbox). It deliberately excludes any column/constraint a *later* migration already adds via `ADD COLUMN IF NOT EXISTS` (idempotent, so redundant either way) — except `jobs_job_number_unique`, a non-idempotent bare `ADD CONSTRAINT` in `20260718150000_fix_duplicate_job_number.sql` that would fail if the baseline also created it.
+> 2. **`phase_a_seed_altalux.sql` (deleted in Task 2) turned out to be a hard dependency, not just discardable seed data.** `20260805190000_onboarding_system.sql` seeds `service_templates`/`addon_templates` (the generic catalog every new tenant gets) via `INSERT ... SELECT ... FROM business_services WHERE business_id = 'altalux'` — with the seed gone, that SELECT matches nothing and the demo/future tenants would get an empty catalog. Fix: restored the file from `altalux-app`'s working tree as `supabase/migrations/20260713231400_phase_a_seed_altalux.sql` (same historical slot as the other `phase_a_*` files, positioned last among them since it has no dependency requiring otherwise), and added `supabase/migrations/20260805190100_purge_altalux_seed_after_templates_copied.sql` immediately after `onboarding_system.sql` to `DELETE` the `business_id = 'altalux'` rows from `business_settings`/`business_services`/`business_addons` once the copy is done — `service_templates`/`addon_templates` keep their 21+10 rows (no `business_id` column, unaffected by the delete). Net effect: AltaLux's real catalog exists only transiently, mid-migration, purely to bootstrap the generic templates; the final database has zero AltaLux rows anywhere, same as originally intended.
+> 3. **Direct Postgres connections don't work from this sandbox** — see the Global Constraints amendment above. Every command below uses `--linked` (via `supabase link` run once, from within `/home/blisscleanga/altalux-saas`) instead of `--db-url`, and `supabase db query --linked "<SQL>"` instead of `psql`.
+>
+> The steps below reflect what was actually run, not the original (incomplete) design.
+
+**Files:**
+- Create: `supabase/migrations/20260707120000_baseline_core_tables.sql` (in `/home/blisscleanga/altalux-saas`)
+- Create: `supabase/migrations/20260713231400_phase_a_seed_altalux.sql` (restored from `altalux-app`, retimestamped)
+- Create: `supabase/migrations/20260805190100_purge_altalux_seed_after_templates_copied.sql`
 
 **Interfaces:**
 - Consumes: `PROJECT_REF`, `DB_PASSWORD` from `/home/blisscleanga/altalux-saas/.secrets/supabase.env` (Task 3).
-- Produces: a fully-migrated schema on the new Supabase project — every table/view/RLS policy that exists on `xmhsehfdmiqbwhpqjgon` today, minus AltaLux's seed row.
+- Produces: a fully-migrated schema on the new Supabase project — every table/view/RLS policy that exists on `xmhsehfdmiqbwhpqjgon` today, with zero AltaLux tenant rows anywhere but a fully-populated generic template catalog.
 
-- [ ] **Step 1: Load the secrets and push migrations by explicit connection string (never `--linked`)**
+- [ ] **Step 1: Link the altalux-saas directory to the new project (Management-API-based, not a direct DB connection)**
 
 ```bash
-source /home/blisscleanga/altalux-saas/.secrets/supabase.env
 cd /home/blisscleanga/altalux-saas
-supabase db push --db-url "postgresql://postgres:${DB_PASSWORD}@db.${PROJECT_REF}.supabase.co:5432/postgres"
+source .secrets/supabase.env
+supabase link --project-ref "$PROJECT_REF" --password "$DB_PASSWORD"
 ```
 
-Expected: 18 migrations listed and applied, no errors. If any migration fails partway, stop and fix before re-running — do not skip ahead.
+Expected: `{"project_ref":"<PROJECT_REF>","message":""}`. Verify `altalux-app`'s own link is untouched: `cat /home/blisscleanga/altalux-app/supabase/.temp/project-ref` must still print `xmhsehfdmiqbwhpqjgon`.
 
-- [ ] **Step 2: Verify every expected table exists**
+- [ ] **Step 2: Write the 3 new migration files** (content given in the amendment above / in the actual files — a fresh implementer should read the existing files in `/home/blisscleanga/altalux-saas/supabase/migrations/` rather than re-deriive them, they already exist from this session's recovery work)
+
+- [ ] **Step 3: Push all 21 migrations**
 
 ```bash
-source /home/blisscleanga/altalux-saas/.secrets/supabase.env
-psql "postgresql://postgres:${DB_PASSWORD}@db.${PROJECT_REF}.supabase.co:5432/postgres" -c "\dt public.*" 
+cd /home/blisscleanga/altalux-saas
+supabase db push --linked --yes
 ```
 
-Expected table list includes at minimum: `business_settings`, `business_services`, `business_addons`, `service_templates`, `addon_templates`, `employees`, `customers`, `vehicles`, `jobs`, `job_addons`, `job_vehicles`, `bookings`, `payments`, `invoices`, `invoice_payments`, `invoice_refunds`, `proposals`, `events`, `payment_events`.
+Expected: `Finished supabase db push.` `NOTICE ... does not exist, skipping` lines are expected and harmless (from `DROP ... IF EXISTS` statements running for the first time). Any real `ERROR` means stop and fix before re-running — do not skip ahead. If you need to retry from scratch after a partial failure, wipe first: `supabase db query --linked "drop schema public cascade; create schema public; grant all on schema public to postgres, anon, authenticated, service_role;"` then `supabase db query --linked "delete from supabase_migrations.schema_migrations;"`.
 
-- [ ] **Step 3: Verify `business_settings` has zero rows (no AltaLux data leaked in)**
+- [ ] **Step 4: Verify every expected table exists (20 tables, matching the live project exactly)**
 
 ```bash
-psql "postgresql://postgres:${DB_PASSWORD}@db.${PROJECT_REF}.supabase.co:5432/postgres" -c "select count(*) from business_settings;"
+supabase db query --linked "select tablename from pg_tables where schemaname='public' order by tablename;"
 ```
 
-Expected: `0`.
+Expected: `addon_templates, audit_log, bookings, business_addons, business_services, business_settings, customers, employees, events, invoice_payments, invoice_refunds, invoices, job_addons, job_vehicles, jobs, payment_events, payments, proposals, service_templates, vehicles` — 20 rows.
 
-- [ ] **Step 4: Verify the `business_settings_public` view has the exact final column set**
+- [ ] **Step 5: Verify `business_settings`/`business_services`/`business_addons` have zero rows (no AltaLux data leaked in)**
 
 ```bash
-psql "postgresql://postgres:${DB_PASSWORD}@db.${PROJECT_REF}.supabase.co:5432/postgres" -c "\d business_settings_public"
+supabase db query --linked "select (select count(*) from business_settings) as settings, (select count(*) from business_services) as services, (select count(*) from business_addons) as addons;"
+```
+
+Expected: `{"settings": 0, "services": 0, "addons": 0}`.
+
+- [ ] **Step 6: Verify the `business_settings_public` view has the exact final column set**
+
+```bash
+supabase db query --linked "select column_name from information_schema.columns where table_name='business_settings_public' order by ordinal_position;"
 ```
 
 Expected columns (in order): `id, created_at, business_id, name, email, phone, address, city, state, zip, website, logo_url, primary_color, secondary_color, accent_color, background_color, deposit_percentage, cancellation_hours, late_fee, cancellation_policy, notification_email, booking_url, admin_url, technician_url, square_app_id, square_location_id, square_environment, square_enabled, stripe_public_key, stripe_enabled, resend_from_email, resend_from_name, resend_enabled, twilio_phone, twilio_enabled, is_active, available_days, available_time_slots, status`. If this doesn't match exactly, the migration reordering in Task 2 was wrong — stop and re-derive the order before continuing.
 
-- [ ] **Step 5: Verify template catalog was seeded (21 services + 10 add-ons, from `20260805190000_onboarding_system.sql`)**
+- [ ] **Step 7: Verify template catalog was seeded (21 services + 10 add-ons) and survived the purge**
 
 ```bash
-psql "postgresql://postgres:${DB_PASSWORD}@db.${PROJECT_REF}.supabase.co:5432/postgres" -c "select count(*) from service_templates; select count(*) from addon_templates;"
+supabase db query --linked "select (select count(*) from service_templates) as services, (select count(*) from addon_templates) as addons;"
 ```
 
-Expected: `21` and `10`.
+Expected: `{"services": 21, "addons": 10}`.
 
 ---
 
@@ -517,11 +538,14 @@ curl -s -X POST "https://${PROJECT_REF}.supabase.co/auth/v1/admin/users" \
 - [ ] **Step 3: Insert the pending application row directly**
 
 ```bash
-psql "postgresql://postgres:${DB_PASSWORD}@db.${PROJECT_REF}.supabase.co:5432/postgres" -c "
+cd /home/blisscleanga/altalux-saas
+supabase db query --linked "
 insert into business_settings (business_id, name, city, state, slug, owner_email, status, tos_accepted_at)
 values ('demo', 'Demo Detailing Co', 'Atlanta', 'GA', 'demo', '${DEMO_OWNER_EMAIL}', 'pending', now());
 "
 ```
+
+Requires the directory to already be linked to the new project (`supabase link --project-ref "$PROJECT_REF" --password "$DB_PASSWORD"` — done once in Task 4/Step 1; re-run it here if this is a fresh shell/session).
 
 - [ ] **Step 4: Approve it via the real `manage-tenant` Edge Function, authenticated as Super Admin**
 
@@ -541,7 +565,8 @@ Expected: `{"success": true, ...}` (check the function's actual response shape b
 - [ ] **Step 5: Verify all 4 steps landed**
 
 ```bash
-psql "postgresql://postgres:${DB_PASSWORD}@db.${PROJECT_REF}.supabase.co:5432/postgres" -c "
+cd /home/blisscleanga/altalux-saas
+supabase db query --linked "
 select status, approved_at is not null as has_approved_at from business_settings where business_id = 'demo';
 select count(*) from employees where business_id = 'demo' and role = 'Owner';
 select count(*) from business_services where business_id = 'demo';
@@ -620,11 +645,11 @@ Expected: both `200`.
 
 - [ ] **Step 1: Full public onboarding wizard, for a NEW third tenant (not the seeded demo)**
 
-Using `headless-browser-sandbox`, navigate to `https://altalux.io/onboarding/`, complete both wizard steps for a throwaway test business (e.g. "E2E Test Detailing"), accept ToS, and confirm the signup succeeds (check for the wizard's success state, then confirm a `pending` row landed in `business_settings` via `psql` against the new project).
+Using `headless-browser-sandbox`, navigate to `https://altalux.io/onboarding/`, complete both wizard steps for a throwaway test business (e.g. "E2E Test Detailing"), accept ToS, and confirm the signup succeeds (check for the wizard's success state, then confirm a `pending` row landed in `business_settings` via `supabase db query --linked` against the new project).
 
 - [ ] **Step 2: Approve the new test tenant as Super Admin**
 
-Log into `https://altalux.io/platform/` as the Super Admin (Task 7 credentials), find the test tenant in the Tenants list, approve it. Verify via `psql` that the same 4 steps checked in Task 8/Step 5 landed for this tenant too.
+Log into `https://altalux.io/platform/` as the Super Admin (Task 7 credentials), find the test tenant in the Tenants list, approve it. Verify via `supabase db query --linked` that the same 4 steps checked in Task 8/Step 5 landed for this tenant too.
 
 - [ ] **Step 3: Demo tenant full admin flow**
 
@@ -644,11 +669,11 @@ Create a technician employee for the demo tenant (via `admin/index.html` > Emple
 supabase db query --linked "select business_id from jobs where business_id in ('demo', 'e2e-test-detailing');"
 ```
 
-Run this against `xmhsehfdmiqbwhpqjgon` (the currently-linked AltaLux project, unchanged in this task) — expected: zero rows. Then run the equivalent query against the new project's `psql` connection for `business_id = 'altalux'` — expected: zero rows there too (proves neither stack's tenant data leaked into the other's database, since they're physically separate databases this should be trivially true, but confirm it explicitly).
+Run this against `xmhsehfdmiqbwhpqjgon` (the currently-linked AltaLux project, unchanged in this task) — expected: zero rows. Then run the equivalent query against the new project's `supabase db query --linked` connection for `business_id = 'altalux'` — expected: zero rows there too (proves neither stack's tenant data leaked into the other's database, since they're physically separate databases this should be trivially true, but confirm it explicitly).
 
 - [ ] **Step 7: Clean up test data**
 
-Delete the throwaway "E2E Test Detailing" tenant's rows (`business_settings`, `employees`, `business_services`, `business_addons`, any `jobs`/`customers` created) from the new project via `psql`. Leave the seeded `demo` tenant's data as-is — it's meant to stay as the permanent demo.
+Delete the throwaway "E2E Test Detailing" tenant's rows (`business_settings`, `employees`, `business_services`, `business_addons`, any `jobs`/`customers` created) from the new project via `supabase db query --linked`. Leave the seeded `demo` tenant's data as-is — it's meant to stay as the permanent demo.
 
 ---
 
