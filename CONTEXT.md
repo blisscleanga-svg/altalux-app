@@ -1,5 +1,5 @@
 # AltaLux App — Contexto del Proyecto
-> Última actualización: 2026-08-08
+> Última actualización: 2026-08-09
 
 ## ¿Qué es esto?
 App de field service para AltaLux Mobile Detail (Roswell, GA).
@@ -136,6 +136,9 @@ App mobile-optimized para el equipo de campo.
 - Se eliminó la cuenta maestra de Supabase Auth que antes estaba embebida en el código fuente de `admin/index.html` (visible por "Ver código fuente", con acceso completo de lectura/escritura a la DB).
 - Nueva Edge Function `manage-employee-auth` para crear/resetear logins sin exponer passwords al cliente.
 - **2026-07-13:** typo de una letra en el Square Application ID (`z` minúscula en vez de `Z` mayúscula) causaba 401 Unauthorized y el formulario de pago de Square no cargaba en booking/admin/technician. Corregido (commit `e2f45b8`).
+
+## Clon SaaS independiente (altalux.io) — en planificación
+Luis decidió (2026-08-09) clonar toda la infraestructura (código + esquema, sin datos reales de AltaLux) a un stack 100% aparte para lanzar la plataforma SaaS como producto propio: repo nuevo `altalux-saas`, proyecto Supabase nuevo, Resend nuevo, Hostinger/dominio `altalux.io` (ya provisionados). `altalux-app`/`altaluxdetail.com` no se toca. Diseño completo aprobado en `docs/superpowers/specs/2026-08-09-saas-clone-separation-design.md` — siguiente paso es el plan de implementación (skill `writing-plans`).
 
 ## Pendiente / Próximos pasos
 - [ ] Envío real de invoices/confirmaciones por email (Resend) — hoy son placeholders "coming soon"
