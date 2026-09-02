@@ -4733,6 +4733,36 @@
     }
   }
 
+  // ================= AUTO-REFRESH ON REGAINED FOCUS =================
+  // Realtime subscriptions only cover bookings/payment_events/sms_messages
+  // — `jobs`/`customers`/`invoices`/etc. only ever refresh on login or an
+  // explicit action. That's invisible on a desktop browser tab someone
+  // refreshes out of habit, but on a phone "Added to Home Screen" the app
+  // is opened and left running for hours — stale JOBS there isn't a
+  // once-in-a-while annoyance, it's the default experience. Refresh
+  // whenever the tab/webapp regains focus, throttled so rapid app-switching
+  // doesn't hammer the database.
+  let lastAutoRefreshAt = Date.now();
+  const AUTO_REFRESH_MIN_INTERVAL_MS = 15000;
+
+  async function autoRefreshOnFocus(){
+    if (!db || dashboard.hidden) return; // not logged in, or on the technician layout
+    const now = Date.now();
+    if (now - lastAutoRefreshAt < AUTO_REFRESH_MIN_INTERVAL_MS) return;
+    lastAutoRefreshAt = now;
+    try {
+      await loadAllDataFromSupabase();
+      await refreshMessagesFromSupabase();
+      if (document.getElementById('view-messages').classList.contains('active')) renderMessagesView();
+    } catch (err){
+      console.error('[auto-refresh] Failed to refresh on regained focus:', err);
+    }
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') autoRefreshOnFocus();
+  });
+  window.addEventListener('focus', autoRefreshOnFocus);
+
   function messageThreads(){
     const byPhone = new Map();
     MESSAGES.forEach(m => {
