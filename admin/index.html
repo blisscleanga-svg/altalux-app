@@ -4036,6 +4036,7 @@
       total: Number(row.total) || 0,
       status: row.status || 'Pending',
       notes: row.notes || '',
+      source: row.source || 'manual',
       paymentStatusOverride: null,
       assignedEmployeeIds: [],
       priceOverride: null, auditLog: [],
@@ -4372,7 +4373,7 @@
           subtotal: b.subtotal, addons_total: b.addonsTotal, total: b.total,
           deposit: depositAmount, balance_due: round2(b.total - depositAmount),
           payment_status: depositAmount > 0 ? 'Deposit Paid' : 'Unpaid',
-          status: 'Confirmed', notes: ''
+          status: 'Confirmed', notes: '', source: 'online_booking'
         }])
         .select()
         .single();
