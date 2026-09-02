@@ -1267,6 +1267,7 @@
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtaHNlaGZkbWlxYndocHFqZ29uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzODU5NzQsImV4cCI6MjA5ODk2MTk3NH0.J2UOp-pgzP6ByvDBoHcocFAmarWdlDK8M31YgKrUNss';
   const SQUARE_FUNCTION_URL = SUPABASE_URL + '/functions/v1/square-payment';
   const SEND_EMAIL_FUNCTION_URL = SUPABASE_URL + '/functions/v1/send-email';
+  const SEND_SMS_FUNCTION_URL = SUPABASE_URL + '/functions/v1/send-sms';
 
   // ---------- Square ----------
   const SQUARE_APP_ID = 'sq0idp-jVMn1EDrut74rDnsRGgZrQ';
@@ -2081,8 +2082,17 @@
       }).catch(err => console.warn('[send-email] "' + action + '" request failed (non-blocking):', err));
     }
 
+    function sendSmsAction(action){
+      fetch(SEND_SMS_FUNCTION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + SUPABASE_ANON_KEY, apikey: SUPABASE_ANON_KEY },
+        body: JSON.stringify({ action, businessId: 'altalux', data: commonData })
+      }).catch(err => console.warn('[send-sms] "' + action + '" request failed (non-blocking):', err));
+    }
+
     sendEmailAction('booking_confirmation');
     sendEmailAction('internal_notification');
+    if (state.smsReminders) sendSmsAction('booking_confirmation');
   }
 
   // ---------- Square Web Payments SDK ----------
