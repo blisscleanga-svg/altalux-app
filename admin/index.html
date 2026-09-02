@@ -2187,6 +2187,23 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="sms-thread-overlay" hidden>
+  <div class="modal-box" id="sms-thread-box">
+    <button type="button" class="modal-close" id="sms-thread-close" aria-label="Close">✕</button>
+    <h2 class="modal-title" id="sms-thread-title">Messages</h2>
+    <div id="sms-thread-list" style="max-height:360px; overflow-y:auto; margin:16px 0; display:flex; flex-direction:column; gap:10px;"></div>
+    <hr class="summary-divider">
+    <div class="field">
+      <label for="sms-reply-text">Reply</label>
+      <textarea id="sms-reply-text" rows="3" maxlength="1600" placeholder="Type a message..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-primary" id="sms-reply-send">Send</button>
+      <span class="settings-save-status" id="sms-reply-status"></span>
+    </div>
+  </div>
+</div>
+
 <!-- ================= STATUS PICKER MODAL ================= -->
 <div class="modal-overlay" id="status-picker-overlay" hidden>
   <div class="modal-box" id="status-picker-box" style="max-width:420px;">
@@ -4702,6 +4719,72 @@
       row.addEventListener('click', () => openMessageThread(row.dataset.phone));
     });
   }
+
+  let currentThreadPhone = null;
+
+  async function openMessageThread(phone){
+    currentThreadPhone = phone;
+    const thread = messageThreads().find(t => t.phone === phone);
+    if (!thread) return;
+    document.getElementById('sms-thread-title').textContent = thread.customerName;
+    document.getElementById('sms-thread-list').innerHTML = thread.messages.map(m => `
+      <div style="align-self:${m.direction === 'outbound' ? 'flex-end' : 'flex-start'}; max-width:80%; background:${m.direction === 'outbound' ? '#104872' : '#f7f8fa'}; color:${m.direction === 'outbound' ? '#fff' : '#1a202c'}; padding:8px 12px; border-radius:10px; font-size:13.5px;">
+        ${escapeHtml(m.body)}
+        <div style="font-size:10.5px; opacity:.7; margin-top:4px;">${new Date(m.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</div>
+      </div>
+    `).join('');
+    document.getElementById('sms-thread-overlay').hidden = false;
+
+    const unreadIds = thread.messages.filter(m => m.direction === 'inbound' && !m.read).map(m => m.id);
+    if (unreadIds.length && db){
+      await attemptSupabaseWrite(
+        async () => { await db.from('sms_messages').update({ read: true }).in('id', unreadIds); },
+        () => '',
+        'Mark messages read'
+      );
+      unreadIds.forEach(id => { const m = MESSAGES.find(mm => mm.id === id); if (m) m.read = true; });
+      renderMessagesView();
+    }
+  }
+
+  function closeMessageThreadModal(){
+    document.getElementById('sms-thread-overlay').hidden = true;
+    document.getElementById('sms-reply-text').value = '';
+    document.getElementById('sms-reply-status').textContent = '';
+    currentThreadPhone = null;
+  }
+
+  document.getElementById('sms-thread-close').addEventListener('click', closeMessageThreadModal);
+  document.getElementById('sms-thread-overlay').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('sms-thread-overlay')) closeMessageThreadModal();
+  });
+
+  document.getElementById('sms-reply-send').addEventListener('click', async () => {
+    const text = document.getElementById('sms-reply-text').value.trim();
+    const statusEl = document.getElementById('sms-reply-status');
+    if (!text || !currentThreadPhone) return;
+    statusEl.textContent = 'Sending...';
+    try {
+      const res = await fetch(SEND_SMS_FUNCTION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + SUPABASE_ANON_KEY, apikey: SUPABASE_ANON_KEY },
+        body: JSON.stringify({ action: 'manual_reply', businessId: BUSINESS_ID, data: { phone: currentThreadPhone, body: text } }),
+      });
+      const result = await res.json();
+      if (!res.ok || result.error) throw new Error(result.error || 'Send failed');
+      document.getElementById('sms-reply-text').value = '';
+      statusEl.textContent = '';
+      const { data: refreshed } = await db.from('sms_messages').select('*').eq('phone', currentThreadPhone).order('created_at', { ascending: true });
+      const others = MESSAGES.filter(m => m.phone !== currentThreadPhone);
+      MESSAGES.length = 0;
+      others.concat(refreshed || []).forEach(m => MESSAGES.push(m));
+      renderMessagesView();
+      openMessageThread(currentThreadPhone);
+    } catch (err) {
+      console.error('[Message Center] Failed to send reply:', err);
+      statusEl.textContent = 'Failed to send.';
+    }
+  });
 
   document.querySelectorAll('[data-view]').forEach(btn => {
     btn.addEventListener('click', () => switchView(btn.dataset.view));
