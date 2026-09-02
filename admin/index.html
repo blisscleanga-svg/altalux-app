@@ -804,6 +804,28 @@
   .job-card[data-status="inprogress"]{ border-left:3px solid var(--orange); }
   .job-card[data-status="completed"]{ border-left:3px solid var(--green); }
   .job-card[data-status="cancelled"]{ border-left:3px solid var(--danger); opacity:.7; }
+  .job-card-compact{
+    display:flex; align-items:center; gap:12px; padding:12px 14px;
+    background:rgba(255,255,255,.02); border:1px solid var(--line);
+    border-radius:var(--radius-sm); border-left-width:3px; border-left-style:solid;
+    cursor:pointer; margin-bottom:8px;
+  }
+  .job-card-compact:hover{ background:rgba(255,255,255,.05); }
+  .job-card-compact[data-status="pending"]{ border-left-color:#90a4ae; }
+  .job-card-compact[data-status="confirmed"]{ border-left-color:var(--blue-light); }
+  .job-card-compact[data-status="inprogress"]{ border-left-color:var(--orange); }
+  .job-card-compact[data-status="completed"]{ border-left-color:var(--green); }
+  .job-card-compact[data-status="cancelled"]{ border-left-color:var(--danger); opacity:.7; }
+  .job-card-compact-main{ flex:1; min-width:0; }
+  .job-card-compact-title{
+    font-size:13.5px; font-weight:600; color:var(--white);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .job-card-compact-pin{ margin-left:4px; font-size:11px; opacity:.7; }
+  .job-card-compact-customer{ font-size:12px; color:var(--ink-muted); margin-top:2px; }
+  .job-card-compact-right{ text-align:right; flex:none; }
+  .job-card-compact-amount{ font-size:12.5px; font-weight:600; color:var(--green); margin-bottom:4px; white-space:nowrap; }
+  .job-card-compact-chevron{ color:var(--ink-faint); font-size:18px; flex:none; }
   .job-number{
     font-size:12px;
     color:var(--ink-faint);
@@ -5215,6 +5237,29 @@
           <button type="button" class="btn-mini job-editstatus-btn" data-job-id="${j.id}">Edit Status</button>
           ${canEditJobs() ? `<button type="button" class="btn-mini job-edit-btn" data-job-id="${j.id}">Edit</button>` : ''}
         </div>
+      </div>
+    `;
+  }
+
+  // Lean row-card for the Jobs list (Task: unified Jobs card view) —
+  // shows only what's needed to identify/tap into a job; everything else
+  // (address, deposit breakdown, vehicle) stays in the detail modal
+  // (openJobModal), same as Urable's reference pattern. Does NOT replace
+  // buildJobCardHtml() — Agenda keeps the fuller card on purpose.
+  function buildJobCardCompactHtml(j){
+    return `
+      <div class="job-card-compact" data-status="${STATUS_SLUG[j.status]}" data-job-id="${j.id}">
+        <div class="job-card-compact-main">
+          <div class="job-card-compact-title">
+            JOB #${escapeHtml(j.jobNumber)} — ${escapeHtml(j.service)}${j.address ? '<span class="job-card-compact-pin">📍</span>' : ''}
+          </div>
+          <div class="job-card-compact-customer">${escapeHtml(j.customer.name)}</div>
+        </div>
+        <div class="job-card-compact-right">
+          <div class="job-card-compact-amount">${formatCurrency(balanceDue(j))} due</div>
+          ${renderStatusBadge(j)}
+        </div>
+        <span class="job-card-compact-chevron">›</span>
       </div>
     `;
   }
