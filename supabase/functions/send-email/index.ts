@@ -412,6 +412,25 @@ function buildPaymentReceipt(biz: BizSettings, d: any) {
   return { subject, html: emailShell(biz, subject, body) };
 }
 
+// ---------- Formulario de contacto del sitio de marketing (altaluxdetail.com) ----------
+function buildWebsiteContact(biz: BizSettings, d: any) {
+  const subject = `New Website Contact — ${esc(d.name || 'Unknown')}`;
+  const body = `
+    <h2 style="font-family:'Rajdhani',Georgia,sans-serif; color:${biz.primary_color || '#104872'}; margin:0 0 8px; font-size:20px;">New Contact Form Submission</h2>
+    <p style="color:#4a5568; font-size:14px; margin:0 0 20px;">Someone filled out the contact form on altaluxdetail.com.</p>
+    ${detailCard([
+      { label: 'Name', value: esc(d.name) },
+      { label: 'Email', value: `<a href="mailto:${esc(d.email)}" style="color:${biz.primary_color || '#104872'};">${esc(d.email)}</a>` },
+      ...(d.vehicle ? [{ label: 'Vehicle', value: esc(d.vehicle) }] : []),
+      ...(d.service ? [{ label: 'Service Interested', value: esc(d.service) }] : []),
+      { label: 'Service Address', value: esc(d.address) },
+      ...(d.notes ? [{ label: 'Notes', value: esc(d.notes) }] : []),
+    ], biz.secondary_color || '#FF8C00')}
+    <p style="font-size:12.5px; color:#718096; margin-top:20px;">Reply directly to this email to respond to the customer.</p>
+  `;
+  return { subject, html: emailShell(biz, subject, body) };
+}
+
 // ---------- Onboarding de tenants (SaaS) — emails de la PLATAFORMA, no de
 // un negocio específico. El tenant nuevo todavía no tiene Resend
 // configurado (biz.resend_from_email vacío hasta que llegue a Settings >
@@ -485,6 +504,7 @@ const BUILDERS: Record<string, (biz: BizSettings, d: any) => { subject: string; 
   invoice_link: buildInvoiceLink,
   payment_receipt: buildPaymentReceipt,
   payment_notification_admin: buildPaymentNotificationAdmin,
+  website_contact: buildWebsiteContact,
   tenant_pending: buildTenantPending,
   tenant_approved: buildTenantApproved,
   tenant_rejected: buildTenantRejected,
@@ -503,7 +523,7 @@ const TOGGLE_KEY: Record<string, string> = {
 };
 
 // Va al mismo destinatario que internal_notification — el admin, no el cliente.
-const ADMIN_RECIPIENT_ACTIONS = ['internal_notification', 'payment_notification_admin'];
+const ADMIN_RECIPIENT_ACTIONS = ['internal_notification', 'payment_notification_admin', 'website_contact'];
 
 // Emails de plataforma (onboarding de tenants) — nunca usan la config de
 // Resend del tenant que se está discutiendo (todavía no la tiene
