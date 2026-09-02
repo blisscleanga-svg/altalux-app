@@ -11,7 +11,9 @@
 //       message (and picks the recipient) entirely from that row's own
 //       columns. Nothing the caller types ends up in the SMS or decides
 //       who receives it. `bookings.receive_reminders` is the SOURCE OF
-//       TRUTH for whether to send at all.
+//       TRUTH for whether to send at all, and the row must carry a
+//       `square_payment_id` — i.e. it went through the payment flow, not
+//       just any anonymous insert.
 //
 //   - manual_reply         : to customer, staff reply typed in the
 //       admin Message Center (raw body, no template). Requires a real
@@ -115,6 +117,7 @@ interface BookingRow {
   deposit: number | string | null;
   total: number | string | null;
   receive_reminders: boolean | null;
+  square_payment_id: string | null;
 }
 
 function buildBookingConfirmation(biz: BizSettings, row: BookingRow): string {
@@ -296,7 +299,7 @@ Deno.serve(async (req: Request) => {
 
       const { data: booking, error: bookingErr } = await supabase
         .from('bookings')
-        .select('id, full_name, phone, category, service_date, service_time, deposit, total, receive_reminders')
+        .select('id, full_name, phone, category, service_date, service_time, deposit, total, receive_reminders, square_payment_id')
         .eq('id', bookingId)
         .eq('business_id', businessId)
         .maybeSingle();
@@ -304,6 +307,18 @@ Deno.serve(async (req: Request) => {
       if (!booking) return jsonResponse({ error: 'Booking not found for this business.' }, 404);
 
       const row = booking as BookingRow;
+      // `bookings` has an anon INSERT policy (the booking widget is
+      // legitimately anonymous), so "a real row exists" alone is a low bar —
+      // anyone can insert one. Requiring a recorded Square payment raises it:
+      // a confirmation only goes out for a booking that actually went through
+      // the payment flow. NOT a hard close — square_payment_id isn't verified
+      // against Square here, so a determined attacker who knows to fake this
+      // specific field can still get past it. Accepted: combined with the
+      // rate limit and the opt-out check, that's a reasonable bar for an
+      // endpoint that has no caller to authenticate by design.
+      if (!row.square_payment_id || !String(row.square_payment_id).trim()) {
+        return jsonResponse({ skipped: true, reason: 'no_payment_recorded' });
+      }
       // The booking row itself is the source of truth for consent — the
       // client-side check in booking/index.html is only a first gate.
       if (!row.receive_reminders) {
