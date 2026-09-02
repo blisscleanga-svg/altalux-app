@@ -1733,6 +1733,7 @@
           <div class="cal-revenue-bar">
             <button type="button" class="cal-nav" id="cal-period-prev" aria-label="Previous period">‹</button>
             <button type="button" class="btn-mini" id="cal-period-today">Today</button>
+            <input type="date" id="cal-jump-date" aria-label="Jump to date" class="btn-mini">
             <span class="cal-period-label" id="cal-period-label"></span>
             <button type="button" class="cal-nav" id="cal-period-next" aria-label="Next period">›</button>
             <span class="cal-period-revenue" id="cal-period-revenue"></span>
@@ -5011,6 +5012,12 @@
     state.calendarViewDate = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
     renderCalendarViews();
   });
+  document.getElementById('cal-jump-date').addEventListener('change', (e) => {
+    if (!e.target.value) return;
+    state.selectedDate = fromInputDate(e.target.value);
+    state.calendarViewDate = new Date(state.selectedDate.getFullYear(), state.selectedDate.getMonth(), 1);
+    renderCalendarViews();
+  });
   document.getElementById('calendar-employee-filter').addEventListener('change', () => renderCalendarViews());
 
   // Navega el periodo mostrado según la pestaña activa: ±7 días para
@@ -5064,6 +5071,7 @@
     const { start, end } = getCalendarPeriodRange();
     const label = isSameDay(start, end) ? formatLongDate(start) : `${formatShortDate(start)} – ${formatShortDate(end)}`;
     document.getElementById('cal-period-label').textContent = label;
+    document.getElementById('cal-jump-date').value = toInputDate(state.selectedDate);
     const jobs = jobsInRange(start, end);
     document.getElementById('cal-period-revenue').textContent = `${formatCurrency(periodRevenue(jobs))} · ${jobs.length} job${jobs.length === 1 ? '' : 's'}`;
   }
