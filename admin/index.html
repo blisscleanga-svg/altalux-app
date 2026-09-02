@@ -1605,6 +1605,7 @@
       <button type="button" class="nav-link" data-view="proposals">Proposals</button>
       <button type="button" class="nav-link" data-view="customers">Customers</button>
       <button type="button" class="nav-link" data-view="payments">Payments</button>
+      <button type="button" class="nav-link" data-view="messages">Messages</button>
       <button type="button" class="nav-link" data-view="employees">Employees</button>
       <button type="button" class="nav-link" data-view="schedule">Schedule</button>
       <button type="button" class="nav-link" data-view="settings">Settings</button>
@@ -1620,6 +1621,7 @@
       <button type="button" class="sidebar-link" data-view="proposals"><span class="icon"></span> Proposals</button>
       <button type="button" class="sidebar-link" data-view="customers"><span class="icon"></span> Customers</button>
       <button type="button" class="sidebar-link" data-view="payments"><span class="icon"></span> Payments</button>
+      <button type="button" class="sidebar-link" data-view="messages"><span class="icon"></span> Messages</button>
       <p class="section-label" style="margin:18px 0 4px; padding-left:14px; font-size:11px;">Team</p>
       <button type="button" class="sidebar-link" data-view="employees"><span class="icon"></span> Employees</button>
       <button type="button" class="sidebar-link" data-view="schedule"><span class="icon"></span> Schedule</button>
@@ -1854,6 +1856,23 @@
                 </tr>
               </thead>
               <tbody id="payments-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== MESSAGES VIEW (SMS Message Center) ===== -->
+      <section class="view" id="view-messages">
+        <div class="panel">
+          <h3 class="section-title">Messages</h3>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Customer</th><th>Last Message</th><th>Time</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="messages-table-body"></tbody>
             </table>
           </div>
         </div>
@@ -3187,6 +3206,7 @@
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtaHNlaGZkbWlxYndocHFqZ29uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzODU5NzQsImV4cCI6MjA5ODk2MTk3NH0.J2UOp-pgzP6ByvDBoHcocFAmarWdlDK8M31YgKrUNss';
   const SQUARE_FUNCTION_URL = SUPABASE_URL + '/functions/v1/square-payment';
   const SEND_EMAIL_FUNCTION_URL = SUPABASE_URL + '/functions/v1/send-email';
+  const SEND_SMS_FUNCTION_URL = SUPABASE_URL + '/functions/v1/send-sms';
 
   // ---------- Square ----------
   const SQUARE_APP_ID = 'sq0idp-jVMn1EDrut74rDnsRGgZrQ';
@@ -3675,8 +3695,8 @@
   const ROLE_COLOR = { Owner: '#FFAA00', Manager: '#104872', Technician: '#1D9E75', Contractor: 'rgba(255,255,255,.4)' };
 
   const ROLE_PERMISSIONS = {
-    Owner:      { views: ['calendar','jobs','proposals','customers','payments','employees','schedule','settings'], canManageEmployees: true,  canCollectPayment: true,  canEditJobs: true,  canEditCustomers: true,  canOverridePrice: true,  canDelete: true,  mobileLayout: 'full' },
-    Manager:    { views: ['calendar','jobs','proposals','customers','payments'], canManageEmployees: false, canCollectPayment: true,  canEditJobs: true,  canEditCustomers: true,  canOverridePrice: true,  canDelete: false, mobileLayout: 'full' },
+    Owner:      { views: ['calendar','jobs','proposals','customers','payments','messages','employees','schedule','settings'], canManageEmployees: true,  canCollectPayment: true,  canEditJobs: true,  canEditCustomers: true,  canOverridePrice: true,  canDelete: true,  mobileLayout: 'full' },
+    Manager:    { views: ['calendar','jobs','proposals','customers','payments','messages'], canManageEmployees: false, canCollectPayment: true,  canEditJobs: true,  canEditCustomers: true,  canOverridePrice: true,  canDelete: false, mobileLayout: 'full' },
     Technician: { views: ['calendar'], canManageEmployees: false, canCollectPayment: true,  canEditJobs: false, canEditCustomers: false, canOverridePrice: false, canDelete: false, mobileLayout: 'technician' },
     Contractor: { views: ['calendar'], canManageEmployees: false, canCollectPayment: false, canEditJobs: false, canEditCustomers: false, canOverridePrice: false, canDelete: false, mobileLayout: 'technician' }
   };
@@ -4115,6 +4135,11 @@
       } else {
         console.log('[Supabase] No jobs in database yet — keeping sample data.');
       }
+
+      const { data: messageRows, error: messagesErr } = await db.from('sms_messages').select('*').order('created_at', { ascending: true });
+      if (messagesErr) console.error('[Supabase] Failed to load sms_messages:', messagesErr);
+      MESSAGES.length = 0;
+      (messageRows || []).forEach(m => MESSAGES.push(m));
 
       const { data: customerRows, error: customersErr } = await db.from('customers').select('*, vehicles(*)');
       if (customersErr) console.error('[Supabase] Failed to load customers:', customersErr);
@@ -4629,6 +4654,53 @@
     if (name === 'employees') renderEmployeesView();
     if (name === 'schedule') renderScheduleView();
     if (name === 'settings') renderSettingsView();
+    if (name === 'messages') renderMessagesView();
+  }
+
+  // ================= MESSAGE CENTER (SMS) =================
+  const MESSAGES = [];
+
+  function messageThreads(){
+    const byPhone = new Map();
+    MESSAGES.forEach(m => {
+      if (!byPhone.has(m.phone)) byPhone.set(m.phone, []);
+      byPhone.get(m.phone).push(m);
+    });
+    return Array.from(byPhone.entries()).map(([phone, msgs]) => {
+      const sorted = msgs.slice().sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      const last = sorted[sorted.length - 1];
+      const unread = sorted.some(m => m.direction === 'inbound' && !m.read);
+      const customerName = findCustomerNameByPhone(phone);
+      return { phone, messages: sorted, last, unread, customerName };
+    }).sort((a, b) => new Date(b.last.created_at) - new Date(a.last.created_at));
+  }
+
+  function findCustomerNameByPhone(phone){
+    const digits = phone.replace(/\D/g, '').slice(-10);
+    const all = STANDALONE_CUSTOMERS.concat(JOBS.map(j => j.customer).filter(Boolean));
+    const match = all.find(c => c && c.phone && c.phone.replace(/\D/g, '').slice(-10) === digits);
+    return match ? match.name : phone;
+  }
+
+  function renderMessagesView(){
+    const tbody = document.getElementById('messages-table-body');
+    if (!tbody) return;
+    const threads = messageThreads();
+    tbody.innerHTML = threads.map(t => `
+      <tr style="cursor:pointer;" data-phone="${escapeHtml(t.phone)}">
+        <td>${t.unread ? '🔴 ' : ''}${escapeHtml(t.customerName)}</td>
+        <td>${escapeHtml((t.last.body || '').slice(0, 60))}</td>
+        <td>${new Date(t.last.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</td>
+        <td><button type="button" class="btn btn-outline btn-sm open-thread-btn" data-phone="${escapeHtml(t.phone)}">Open</button></td>
+      </tr>
+    `).join('') || '<tr><td colspan="4" style="text-align:center; color:#a0aec0;">No messages yet.</td></tr>';
+
+    tbody.querySelectorAll('.open-thread-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); openMessageThread(btn.dataset.phone); });
+    });
+    tbody.querySelectorAll('tr[data-phone]').forEach(row => {
+      row.addEventListener('click', () => openMessageThread(row.dataset.phone));
+    });
   }
 
   document.querySelectorAll('[data-view]').forEach(btn => {
