@@ -2088,6 +2088,7 @@
     <button type="button" class="bottom-nav-link" data-view="jobs"><span class="icon">🧾</span>Jobs</button>
     <button type="button" class="bottom-nav-link" data-view="customers"><span class="icon">👥</span>Customers</button>
     <button type="button" class="bottom-nav-link" data-view="payments"><span class="icon">💳</span>Payments</button>
+    <button type="button" class="bottom-nav-link" data-view="messages"><span class="icon">💬</span>Messages</button>
     <button type="button" class="bottom-nav-link" data-view="employees"><span class="icon">🧑‍🔧</span>Team</button>
   </nav>
 </div>
@@ -4153,10 +4154,7 @@
         console.log('[Supabase] No jobs in database yet — keeping sample data.');
       }
 
-      const { data: messageRows, error: messagesErr } = await db.from('sms_messages').select('*').order('created_at', { ascending: true });
-      if (messagesErr) console.error('[Supabase] Failed to load sms_messages:', messagesErr);
-      MESSAGES.length = 0;
-      (messageRows || []).forEach(m => MESSAGES.push(m));
+      await refreshMessagesFromSupabase();
 
       const { data: customerRows, error: customersErr } = await db.from('customers').select('*, vehicles(*)');
       if (customersErr) console.error('[Supabase] Failed to load customers:', customersErr);
@@ -4553,6 +4551,7 @@
       loadAllDataFromSupabase();
       setupRealtimeBookingsSubscription();
       subscribeToPaymentEvents();
+      subscribeToSmsMessages();
       refreshSetupChecklist();
     }
   }
@@ -4664,18 +4663,69 @@
   document.getElementById('tech-logout-btn').addEventListener('click', () => doLogout());
 
   // ================= VIEW SWITCHING =================
-  function switchView(name){
+  async function switchView(name){
     if (currentRole && !canAccessView(name)) return;
     document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === `view-${name}`));
     document.querySelectorAll('[data-view]').forEach(btn => btn.classList.toggle('active', btn.dataset.view === name));
     if (name === 'employees') renderEmployeesView();
     if (name === 'schedule') renderScheduleView();
     if (name === 'settings') renderSettingsView();
-    if (name === 'messages') renderMessagesView();
+    if (name === 'messages'){
+      // Render immediately from what's in memory, then re-fetch as a
+      // fallback in case the realtime channel dropped while we were away.
+      renderMessagesView();
+      await refreshMessagesFromSupabase();
+      renderMessagesView();
+    }
   }
 
   // ================= MESSAGE CENTER (SMS) =================
   const MESSAGES = [];
+
+  // Newest-first + a hard row cap, then reversed back to chronological.
+  // Ordering ascending with a server-side limit would silently hide the
+  // NEWEST messages — exactly backwards for a message center.
+  const MESSAGES_FETCH_LIMIT = 500;
+
+  async function refreshMessagesFromSupabase(){
+    if (!db) return;
+    const { data: messageRows, error: messagesErr } = await db
+      .from('sms_messages')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(MESSAGES_FETCH_LIMIT);
+    if (messagesErr){
+      console.error('[Supabase] Failed to load sms_messages:', messagesErr);
+      return;
+    }
+    MESSAGES.length = 0;
+    (messageRows || []).slice().reverse().forEach(m => MESSAGES.push(m));
+  }
+
+  // ================= REALTIME — INBOUND/OUTBOUND SMS =================
+  let smsMessagesSubscribed = false;
+
+  function subscribeToSmsMessages(){
+    if (!db || smsMessagesSubscribed) return;
+    smsMessagesSubscribed = true;
+    try {
+      db.channel('altalux-sms-messages')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sms_messages', filter: `business_id=eq.${BUSINESS_ID}` }, (payload) => {
+          // Dedupe: the reply handler re-fetches the thread right after
+          // sending, so its own outbound row can arrive twice.
+          if (MESSAGES.some(m => m.id === payload.new.id)) return;
+          MESSAGES.push(payload.new);
+          const view = document.getElementById('view-messages');
+          if (view && view.classList.contains('active')) renderMessagesView();
+          if (payload.new.direction === 'inbound'){
+            showToast(`New message from ${findCustomerNameByPhone(payload.new.phone)}`, 'success');
+          }
+        })
+        .subscribe();
+    } catch (err){
+      console.error('[Supabase] Failed to set up sms_messages subscription:', err);
+    }
+  }
 
   function messageThreads(){
     const byPhone = new Map();
@@ -4762,32 +4812,51 @@
   document.getElementById('sms-reply-send').addEventListener('click', async () => {
     const text = document.getElementById('sms-reply-text').value.trim();
     const statusEl = document.getElementById('sms-reply-status');
+    const sendBtn = document.getElementById('sms-reply-send');
     if (!text || !currentThreadPhone) return;
+    // Re-entrancy guard: a double-click must not fire two overlapping sends.
+    if (sendBtn.disabled) return;
+    const phoneAtSend = currentThreadPhone;
+    sendBtn.disabled = true;
     statusEl.textContent = 'Sending...';
     try {
+      // send-sms's manual_reply action requires a real employee session —
+      // the anon key is no longer accepted (it made this an open SMS relay).
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) throw new Error('You must be signed in to send a reply.');
       const res = await fetch(SEND_SMS_FUNCTION_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + SUPABASE_ANON_KEY, apikey: SUPABASE_ANON_KEY },
-        body: JSON.stringify({ action: 'manual_reply', businessId: BUSINESS_ID, data: { phone: currentThreadPhone, body: text } }),
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token, apikey: SUPABASE_ANON_KEY },
+        body: JSON.stringify({ action: 'manual_reply', businessId: BUSINESS_ID, data: { phone: phoneAtSend, body: text } }),
       });
       const result = await res.json();
       if (!res.ok || result.error) throw new Error(result.error || 'Send failed');
+      if (result.skipped){
+        statusEl.textContent = result.reason === 'rate_limited'
+          ? 'Too many messages just now — try again in a few minutes.'
+          : 'Not sent: ' + result.reason;
+        return;
+      }
       document.getElementById('sms-reply-text').value = '';
       statusEl.textContent = '';
-      const { data: refreshed } = await db.from('sms_messages').select('*').eq('phone', currentThreadPhone).order('created_at', { ascending: true });
-      const others = MESSAGES.filter(m => m.phone !== currentThreadPhone);
+      const { data: refreshed } = await db.from('sms_messages').select('*').eq('phone', phoneAtSend).order('created_at', { ascending: true });
+      const others = MESSAGES.filter(m => m.phone !== phoneAtSend);
       MESSAGES.length = 0;
       others.concat(refreshed || []).forEach(m => MESSAGES.push(m));
       renderMessagesView();
-      openMessageThread(currentThreadPhone);
+      openMessageThread(phoneAtSend);
     } catch (err) {
       console.error('[Message Center] Failed to send reply:', err);
       statusEl.textContent = 'Failed to send.';
+    } finally {
+      sendBtn.disabled = false;
     }
   });
 
   document.querySelectorAll('[data-view]').forEach(btn => {
-    btn.addEventListener('click', () => switchView(btn.dataset.view));
+    // switchView is async now (the Messages view re-fetches) — fire and
+    // forget, same as the other async handlers in this file.
+    btn.addEventListener('click', () => { switchView(btn.dataset.view).catch(console.error); });
   });
 
   // ================= MINI CALENDAR =================
