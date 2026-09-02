@@ -1,5 +1,5 @@
 # AltaLux App — Contexto del Proyecto
-> Última actualización: 2026-09-01
+> Última actualización: 2026-09-02
 
 ## ¿Qué es esto?
 App de field service para AltaLux Mobile Detail (Roswell, GA).
@@ -76,6 +76,7 @@ App mobile-optimized para el equipo de campo.
 - Alertas realtime de jobs asignados.
 
 ## Fixes recientes
+- **2026-09-02:** **Migración SMS Fase 5 Sub-fase 1+2 iniciada** — `20260902120000_sms_messaging.sql` creó tablas `sms_messages` (id, business_id, customer_id, phone, direction, body, twilio_sid, status, action, read, created_at) y `sms_opt_outs` (business_id, phone, opted_out_at con PK compuesta), más columna `sms_toggles jsonb` en `business_settings`. RLS habilitado: `SELECT`/`UPDATE` para `authenticated` del mismo negocio (via `current_business_id()`), sin policy de INSERT (todos los writes vienen de Edge Functions `send-sms`/`twilio-webhook` con service-role key). Verificado: 11 columnas de `sms_messages` en orden, `sms_toggles` retorna `{"booking_confirmation": true}` para `altalux`.
 - **2026-09-01:** Arranca Fase 5 (SMS vía Twilio). Modelo de referencia: Urable (usan Twilio con número toll-free dedicado por negocio + Message Center bidireccional en el admin — inbox por cliente, campañas manuales, botón "On My Way" con geolocalización/ETA). Se decidió trabajar la Sub-fase 1+2 primero (envío saliente `booking_confirmation` + conversación bidireccional/webhook), dejando "On My Way" y campañas para después. Número: toll-free comprado directo en Twilio (no vía LeadConnector/GHL — ese número, `+1 888-853-0590`, seguía "Rejected" en la verificación de GHL). Mientras Luis completaba el registro Toll-Free en la consola de Twilio, se resolvieron 2 bloqueantes reales encontrados en el camino:
   - `privacy.html` y `terms.html` existían en el repo desde el 2026-08-05 pero **nunca habían sido incluidos en ningún zip de deploy a Hostinger** (confirmado con 404 en vivo) — Twilio/GHL los piden como URLs públicas para la verificación. Se agregaron al zip (ver [[altalux_deploy_workflow]]) y quedan en `https://app.altaluxdetail.com/privacy.html` / `.../terms.html` una vez subido el zip `altalux-hostinger-2026-09-01.zip`.
   - El checkbox de consentimiento SMS en `booking/index.html` (`#c-sms`, `#c-offers`, sección "Notifications") venía **pre-marcado** (`checked`) y sin frecuencia de mensajes, disclaimer de rates, instrucciones HELP/STOP, ni links a Terms/Privacy — Twilio exige explícitamente que el checkbox de opt-in no venga premarcado y que incluya esos elementos, o rechaza la verificación (como ya pasó una vez en GHL). Corregido: ambos checkboxes arrancan sin marcar, el label de `#c-sms` ahora incluye frecuencia (~2-4 msgs/booking), "Msg & data rates may apply", "Reply STOP to cancel, HELP for help", y links a Terms/Privacy. Verificado con Playwright headless contra el archivo local: ambos checkboxes `checked === false` por default, links resuelven a las URLs correctas, sin errores de consola nuevos.
