@@ -1,7 +1,7 @@
 // ============================================================
 // AltaLux / multi-tenant — Send SMS Edge Function (Twilio)
 // ============================================================
-// Handles 2 actions from the client, with two DIFFERENT trust models:
+// Handles 3 actions from the client, with two DIFFERENT trust models:
 //
 //   - booking_confirmation : to customer, right after a booking is paid.
 //       Callable with the public anon key (the booking widget is
@@ -22,7 +22,17 @@
 //       customers day to day too). Same verification shape as
 //       manage-employee-auth.
 //
-// Both actions are additionally rate limited per (business_id, phone).
+//   - invoice_link         : to customer, "Send via SMS"/"Both" channel
+//       on the Send Invoice / Send Payable Invoice flows (admin +
+//       technician). Same auth requirement as manual_reply — an active
+//       employee of the business — since it's always staff-initiated
+//       from an already-authenticated session, never anonymous. The
+//       invoice fields/pay link come from the client (the employee just
+//       created that invoice row moments earlier in the same request
+//       flow, mirroring send-email's invoice_link action, which has
+//       always trusted the same client data).
+//
+// All three actions are additionally rate limited per (business_id, phone).
 //
 // Mirrors supabase/functions/send-email's structure and conventions.
 // One global Twilio account serves every business for now (per Fase 5
@@ -127,9 +137,21 @@ function buildBookingConfirmation(biz: BizSettings, row: BookingRow): string {
 
 const TEMPLATED_ACTIONS = new Set(['booking_confirmation']);
 
+// Actions a client can only trigger as a real, active employee of the
+// business — anything that takes an arbitrary recipient/body/link from
+// the request instead of deriving it server-side from a DB row.
+const EMPLOYEE_AUTHED_ACTIONS = new Set(['manual_reply', 'invoice_link']);
+
+const KNOWN_ACTIONS = new Set([...TEMPLATED_ACTIONS, ...EMPLOYEE_AUTHED_ACTIONS]);
+
 const TOGGLE_KEY: Record<string, string> = {
   booking_confirmation: 'booking_confirmation',
 };
+
+function buildInvoiceLinkSms(d: any): string {
+  const due = d.dueBy ? ` by ${fmtDate(d.dueBy)}` : '';
+  return `Hi ${d.customerName || 'there'}, your invoice ${d.invoiceNumber || ''} for ${d.service || 'your detail'} is ready — ${fmtCurrency(d.total)} due${due}. Pay here: ${d.payUrl}`;
+}
 
 class TwilioError extends Error {
   code: number | null;
@@ -253,17 +275,17 @@ Deno.serve(async (req: Request) => {
     const body = await req.json();
     const { action, businessId, data } = body;
 
-    if (!action || (action !== 'manual_reply' && !TEMPLATED_ACTIONS.has(action))) {
-      return jsonResponse({ error: `Unknown action: ${action}. Expected one of ${[...TEMPLATED_ACTIONS, 'manual_reply'].join(', ')}.` }, 400);
+    if (!action || !KNOWN_ACTIONS.has(action)) {
+      return jsonResponse({ error: `Unknown action: ${action}. Expected one of ${[...KNOWN_ACTIONS].join(', ')}.` }, 400);
     }
     if (!businessId) return jsonResponse({ error: 'businessId is required.' }, 400);
 
     const supabase = getSupabaseAdmin();
 
-    // manual_reply lets a caller pick an arbitrary recipient AND write an
-    // arbitrary body — it must be an authenticated employee of this very
-    // business. Checked BEFORE anything else touches the database.
-    if (action === 'manual_reply') {
+    // manual_reply / invoice_link let a caller pick an arbitrary recipient
+    // AND supply arbitrary content — must be an authenticated employee of
+    // this very business. Checked BEFORE anything else touches the database.
+    if (EMPLOYEE_AUTHED_ACTIONS.has(action)) {
       const authFailure = await requireActiveEmployee(supabase, req, businessId);
       if (authFailure) return jsonResponse({ error: authFailure.error }, authFailure.status);
     }
@@ -287,6 +309,11 @@ Deno.serve(async (req: Request) => {
     if (action === 'manual_reply') {
       rawPhone = (data && (data.customerPhone || data.phone)) || null;
       messageBody = String((data && data.body) || '').slice(0, 1600);
+      customerId = (data && data.customerId) || null;
+    } else if (action === 'invoice_link') {
+      rawPhone = (data && data.phone) || null;
+      if (!data || !data.payUrl) return jsonResponse({ error: 'data.payUrl is required for invoice_link.' }, 400);
+      messageBody = buildInvoiceLinkSms(data);
       customerId = (data && data.customerId) || null;
     } else if (action === 'booking_confirmation') {
       const bookingId = data && data.bookingId;

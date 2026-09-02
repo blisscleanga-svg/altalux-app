@@ -807,10 +807,10 @@
         <button type="button" class="btn btn-primary btn-sm" id="cp-invoice-send-top-btn">SEND</button>
       </div>
       <p class="addon-group-label" style="margin-top:14px;">Payment Request</p>
-      <div class="payment-method-grid" style="grid-template-columns:1fr 1fr 1fr;">
-        <div class="payment-method-btn selected" id="cp-invoice-channel-email"><span class="pm-name">Email</span></div>
-        <div class="payment-method-btn locked" data-locked="1"><span class="pm-name">SMS<span class="pm-coming-soon">Coming soon</span></span></div>
-        <div class="payment-method-btn locked" data-locked="1"><span class="pm-name">Both<span class="pm-coming-soon">Coming soon</span></span></div>
+      <div class="payment-method-grid" id="cp-invoice-channel-group" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="payment-method-btn selected" id="cp-invoice-channel-email" data-channel="email"><span class="pm-name">Email</span></div>
+        <div class="payment-method-btn" data-channel="sms"><span class="pm-name">SMS</span></div>
+        <div class="payment-method-btn" data-channel="both"><span class="pm-name">Both</span></div>
       </div>
       <button type="button" class="btn btn-ghost btn-full" id="cp-invoice-preview-btn" style="margin-top:12px;">👁 Preview Invoice</button>
       <p class="addon-group-label" style="margin-top:16px;">Recipient</p>
@@ -998,6 +998,16 @@
   const SUPABASE_URL = 'https://xmhsehfdmiqbwhpqjgon.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtaHNlaGZkbWlxYndocHFqZ29uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzODU5NzQsImV4cCI6MjA5ODk2MTk3NH0.J2UOp-pgzP6ByvDBoHcocFAmarWdlDK8M31YgKrUNss';
   const SEND_EMAIL_FUNCTION_URL = SUPABASE_URL + '/functions/v1/send-email';
+  const SEND_SMS_FUNCTION_URL = SUPABASE_URL + '/functions/v1/send-sms';
+
+  // Mirrors supabase/functions/send-sms's toE164() — see admin/index.html
+  // for the same helper; sms_messages.phone is always E.164.
+  function toE164Client(raw){
+    const digits = String(raw || '').replace(/\D/g, '');
+    if (digits.length === 10) return '+1' + digits;
+    if (digits.length === 11 && digits[0] === '1') return '+' + digits;
+    return null;
+  }
   const BUSINESS_ID = (window.APP_CONFIG && window.APP_CONFIG.businessId) || 'altalux';
   const SQUARE_FUNCTION_URL = SUPABASE_URL + '/functions/v1/square-payment';
   let db = null;
@@ -2484,6 +2494,8 @@
     document.getElementById('cp-invoice-email').value = (job.customer && job.customer.email) || '';
     document.getElementById('cp-invoice-phone').value = (job.customer && job.customer.phone) || '';
     document.getElementById('cp-invoice-error').textContent = '';
+    cpInvoiceChannelState.channel = 'email';
+    document.querySelectorAll('#cp-invoice-channel-group [data-channel]').forEach(b => b.classList.toggle('selected', b.dataset.channel === 'email'));
     showCpPanel('invoice');
   }
 
@@ -2497,10 +2509,15 @@
     }
   });
 
-  async function sendPayableInvoiceTech(job, amount, recipientEmail){
+  async function sendPayableInvoiceTech(job, amount, recipientEmail, recipientPhone, channel){
     if (!db) throw new Error('Supabase client unavailable — cannot send.');
     if (!job.supabaseId || !job.customerId) throw new Error('This job is not fully synced to the database yet.');
-    if (!recipientEmail) throw new Error('An email is required to send the invoice.');
+    channel = channel || 'email';
+    const wantsEmail = channel === 'email' || channel === 'both';
+    const wantsSms = channel === 'sms' || channel === 'both';
+    const phoneE164 = wantsSms ? toE164Client(recipientPhone) : null;
+    if (wantsEmail && !recipientEmail) throw new Error('An email is required to send the invoice.');
+    if (wantsSms && !phoneE164) throw new Error('A valid phone is required to send via SMS.');
 
     const publicToken = crypto.randomUUID();
     const { data: existing } = await db.from('invoices').select('id')
@@ -2526,42 +2543,80 @@
 
     const invoiceDisplayNumber = 'INV-' + new Date(invRow.created_at).getFullYear() + '-' + String(invRow.invoice_number).padStart(4, '0');
 
-    const res = await fetch(SEND_EMAIL_FUNCTION_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + SUPABASE_ANON_KEY, apikey: SUPABASE_ANON_KEY },
-      body: JSON.stringify({
-        action: 'invoice_link', businessId: BUSINESS_ID,
-        data: {
-          customerName: job.customer.name, customerEmail: recipientEmail,
-          invoiceNumber: invoiceDisplayNumber, service: job.service,
-          total: amount, publicToken
-        }
-      })
-    });
-    const result = await res.json();
-    if (!res.ok || result.error) throw new Error(result.error || 'Failed to send invoice email.');
+    if (wantsEmail){
+      const res = await fetch(SEND_EMAIL_FUNCTION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + SUPABASE_ANON_KEY, apikey: SUPABASE_ANON_KEY },
+        body: JSON.stringify({
+          action: 'invoice_link', businessId: BUSINESS_ID,
+          data: {
+            customerName: job.customer.name, customerEmail: recipientEmail,
+            invoiceNumber: invoiceDisplayNumber, service: job.service,
+            total: amount, publicToken
+          }
+        })
+      });
+      const result = await res.json();
+      if (!res.ok || result.error) throw new Error(result.error || 'Failed to send invoice email.');
+    }
+
+    if (wantsSms){
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) throw new Error('Your session expired — please log in again to send via SMS.');
+      const payUrl = 'https://app.altaluxdetail.com/pay/?token=' + encodeURIComponent(publicToken);
+      const res = await fetch(SEND_SMS_FUNCTION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token, apikey: SUPABASE_ANON_KEY },
+        body: JSON.stringify({
+          action: 'invoice_link', businessId: BUSINESS_ID,
+          data: {
+            customerName: job.customer.name, phone: phoneE164, customerId: job.customerId,
+            invoiceNumber: invoiceDisplayNumber, service: job.service,
+            total: amount, payUrl
+          }
+        })
+      });
+      const result = await res.json();
+      if (!res.ok || result.error) throw new Error(result.error || 'Failed to send invoice SMS.');
+      if (result.skipped) showToast(`Invoice SMS skipped: ${result.reason}`, 'error');
+    }
 
     job.invoice = job.invoice || {};
     job.invoice.number = invoiceDisplayNumber;
     job.invoice.status = 'Sent';
     job.invoice.publicToken = publicToken;
-    logJobActivity(job, `Invoice sent — ${invoiceDisplayNumber} to ${recipientEmail}`);
+    const via = channel === 'both' ? `${recipientEmail} + ${phoneE164}` : (wantsSms ? phoneE164 : recipientEmail);
+    logJobActivity(job, `Invoice sent — ${invoiceDisplayNumber} to ${via}`);
     return invoiceDisplayNumber;
   }
+
+  // ---------- Channel toggle (Email / SMS / Both) ----------
+  const cpInvoiceChannelState = { channel: 'email' };
+  document.querySelectorAll('#cp-invoice-channel-group [data-channel]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      cpInvoiceChannelState.channel = btn.dataset.channel;
+      document.querySelectorAll('#cp-invoice-channel-group [data-channel]').forEach(b => b.classList.toggle('selected', b === btn));
+    });
+  });
 
   async function submitCpInvoice(){
     const job = findJob(currentJobId);
     if (!job) return;
+    const channel = cpInvoiceChannelState.channel;
     const email = document.getElementById('cp-invoice-email').value.trim();
+    const phone = document.getElementById('cp-invoice-phone').value.trim();
     const errorEl = document.getElementById('cp-invoice-error');
     errorEl.textContent = '';
+    if (channel !== 'sms' && !email){ errorEl.textContent = 'An email is required to send the invoice.'; return; }
+    if (channel !== 'email' && !toE164Client(phone)){ errorEl.textContent = 'A valid phone is required to send via SMS.'; return; }
 
     const amount = cpEffectiveAmount(job);
     const btns = [document.getElementById('cp-invoice-send-btn'), document.getElementById('cp-invoice-send-top-btn')];
     btns.forEach(b => { b.disabled = true; });
     try {
-      const invoiceDisplayNumber = await sendPayableInvoiceTech(job, amount, email);
-      showToast(`Invoice ${invoiceDisplayNumber} sent to ${email}`, 'success');
+      const invoiceDisplayNumber = await sendPayableInvoiceTech(job, amount, email, phone, channel);
+      const via = channel === 'both' ? `${email} + ${phone}` : (channel === 'sms' ? phone : email);
+      showToast(`Invoice ${invoiceDisplayNumber} sent to ${via}`, 'success');
       closeModal('collect-payment-modal');
     } catch (err){
       console.error('[Send Payable Invoice] failed:', err);

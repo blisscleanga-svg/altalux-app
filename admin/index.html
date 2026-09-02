@@ -2122,7 +2122,10 @@
     <hr class="summary-divider">
     <p class="modal-section-title">Customer</p>
     <div class="summary-line"><span>Name</span><span id="modal-customer-name"></span></div>
-    <div class="summary-line"><span>Phone</span><span id="modal-customer-phone"></span></div>
+    <div class="summary-line"><span>Phone</span><span>
+      <span id="modal-customer-phone"></span>
+      <a id="modal-customer-sms" href="#" title="Message this customer" style="margin-left:6px; text-decoration:none;">💬</a>
+    </span></div>
     <div class="summary-line"><span>Email</span><span id="modal-customer-email"></span></div>
 
     <hr class="summary-divider">
@@ -2337,10 +2340,10 @@
         <button type="button" class="btn btn-primary btn-sm" id="rp-invoice-send-top-btn">SEND</button>
       </div>
       <p class="modal-section-title" style="margin-top:14px;">Payment Request</p>
-      <div class="pm-method-grid" style="grid-template-columns:1fr 1fr 1fr;">
-        <button type="button" class="pm-method-btn selected" id="rp-invoice-channel-email">Email</button>
-        <button type="button" class="pm-method-btn locked" disabled>SMS<span class="pm-coming-soon">Coming soon</span></button>
-        <button type="button" class="pm-method-btn locked" disabled>Both<span class="pm-coming-soon">Coming soon</span></button>
+      <div class="pm-method-grid" id="rp-invoice-channel-group" style="grid-template-columns:1fr 1fr 1fr;">
+        <button type="button" class="pm-method-btn selected" id="rp-invoice-channel-email" data-channel="email">Email</button>
+        <button type="button" class="pm-method-btn" data-channel="sms">SMS</button>
+        <button type="button" class="pm-method-btn" data-channel="both">Both</button>
       </div>
       <button type="button" class="btn btn-ghost btn-full" id="rp-invoice-preview-btn" style="margin-top:12px;">👁 Preview Invoice</button>
       <p class="modal-section-title" style="margin-top:16px;">Recipient</p>
@@ -2384,10 +2387,13 @@
     </p>
 
     <p class="modal-section-title" style="margin-top:16px;">Send Via</p>
-    <div class="pm-method-grid">
-      <button type="button" class="pm-method-btn selected" id="si-send-email-btn">✉ Email</button>
-      <button type="button" class="pm-method-btn locked" disabled>📱 Send via SMS<span class="pm-coming-soon">Coming soon</span></button>
+    <div class="pm-method-grid" id="si-channel-group">
+      <button type="button" class="pm-method-btn selected" id="si-send-email-btn" data-channel="email">✉ Email</button>
+      <button type="button" class="pm-method-btn" data-channel="sms">📱 SMS</button>
     </div>
+    <p class="step-error" id="si-phone-warning" style="display:none; color:var(--danger,#ef4444); font-size:12.5px; margin-top:10px;">
+      ⚠ No phone on file for this customer — cannot send via SMS.
+    </p>
 
     <div class="field" style="margin-top:14px;" id="si-link-preview-wrap" hidden>
       <label>Payment Link</label>
@@ -4749,6 +4755,17 @@
     return match ? match.name : phone;
   }
 
+  // Mirrors supabase/functions/send-sms's toE164() — customer phones are
+  // stored free-text (US), but sms_messages.phone is always E.164, so any
+  // client-side code that needs to match/open a thread by phone number has
+  // to normalize the same way the backend does before comparing.
+  function toE164Client(raw){
+    const digits = String(raw || '').replace(/\D/g, '');
+    if (digits.length === 10) return '+1' + digits;
+    if (digits.length === 11 && digits[0] === '1') return '+' + digits;
+    return null;
+  }
+
   function renderMessagesView(){
     const tbody = document.getElementById('messages-table-body');
     if (!tbody) return;
@@ -4772,17 +4789,21 @@
 
   let currentThreadPhone = null;
 
-  async function openMessageThread(phone){
+  // `fallbackName` covers opening a thread that doesn't exist yet (e.g. the
+  // chat deep-link from a job's detail modal, for a customer nobody has
+  // texted before) — without it, messageThreads() has no row for this phone
+  // and the thread used to silently no-op instead of opening an empty one.
+  async function openMessageThread(phone, fallbackName){
     currentThreadPhone = phone;
-    const thread = messageThreads().find(t => t.phone === phone);
-    if (!thread) return;
+    const thread = messageThreads().find(t => t.phone === phone)
+      || { phone, messages: [], customerName: fallbackName || findCustomerNameByPhone(phone) };
     document.getElementById('sms-thread-title').textContent = thread.customerName;
     document.getElementById('sms-thread-list').innerHTML = thread.messages.map(m => `
       <div style="align-self:${m.direction === 'outbound' ? 'flex-end' : 'flex-start'}; max-width:80%; background:${m.direction === 'outbound' ? '#104872' : '#f7f8fa'}; color:${m.direction === 'outbound' ? '#fff' : '#1a202c'}; padding:8px 12px; border-radius:10px; font-size:13.5px;">
         ${escapeHtml(m.body)}
         <div style="font-size:10.5px; opacity:.7; margin-top:4px;">${new Date(m.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</div>
       </div>
-    `).join('');
+    `).join('') || '<div style="color:#a0aec0; font-size:13px; text-align:center; padding:20px 0;">No messages yet — send the first one below.</div>';
     document.getElementById('sms-thread-overlay').hidden = false;
 
     const unreadIds = thread.messages.filter(m => m.direction === 'inbound' && !m.read).map(m => m.id);
@@ -5834,6 +5855,10 @@
     document.getElementById('modal-customer-name').textContent = job.customer.name;
     document.getElementById('modal-customer-phone').textContent = job.customer.phone;
     document.getElementById('modal-customer-email').textContent = job.customer.email;
+    const modalSmsLink = document.getElementById('modal-customer-sms');
+    const modalSmsE164 = toE164Client(job.customer.phone);
+    modalSmsLink.hidden = !modalSmsE164;
+    modalSmsLink.onclick = (e) => { e.preventDefault(); if (modalSmsE164) openMessageThread(modalSmsE164, job.customer.name); };
     document.getElementById('modal-subtotal').textContent = formatCurrency(job.subtotal);
     document.getElementById('modal-addons-total').textContent = formatCurrency(job.addonsTotal);
     document.getElementById('modal-total').innerHTML = formatCurrency(job.total) +
@@ -6120,14 +6145,25 @@
     document.getElementById('si-link-preview-wrap').hidden = true;
     document.getElementById('si-link-preview').value = '';
 
-    const emailWarning = document.getElementById('si-email-warning');
-    const submitBtn = document.getElementById('si-submit');
-    const hasEmail = !!job.customer.email;
-    emailWarning.style.display = hasEmail ? 'none' : 'block';
-    submitBtn.disabled = !hasEmail;
+    siChannelState.channel = 'email';
+    document.querySelectorAll('#si-channel-group [data-channel]').forEach(b => b.classList.toggle('selected', b.dataset.channel === 'email'));
+    updateSiValidation();
 
     sendInvoiceOverlay.hidden = false;
   }
+
+  function updateSiValidation(){
+    const job = findJob(currentSendInvoiceJobId);
+    if (!job) return;
+    const channel = siChannelState.channel;
+    const hasEmail = !!job.customer.email;
+    const hasPhone = !!toE164Client(job.customer.phone);
+    document.getElementById('si-email-warning').style.display = (channel !== 'sms' && !hasEmail) ? 'block' : 'none';
+    document.getElementById('si-phone-warning').style.display = (channel === 'sms' && !hasPhone) ? 'block' : 'none';
+    const ok = (channel === 'sms') ? hasPhone : hasEmail;
+    document.getElementById('si-submit').disabled = !ok;
+  }
+  document.querySelectorAll('#si-channel-group [data-channel]').forEach(btn => btn.addEventListener('click', updateSiValidation));
   function closeSendInvoiceModal(){
     sendInvoiceOverlay.hidden = true;
     currentSendInvoiceJobId = null;
@@ -6139,11 +6175,17 @@
   // Lógica compartida de envío — la usan tanto el modal standalone "Send
   // Invoice" (tabla de Payments) como el panel "Send Payable Invoice"
   // dentro de Collect Payment (mismo resultado, dos puntos de entrada).
-  async function sendPayableInvoice(job, { amount, title, comment, dueBy, recipientEmail }){
+  // `channel` es 'email' (default) | 'sms' | 'both'.
+  async function sendPayableInvoice(job, { amount, title, comment, dueBy, recipientEmail, recipientPhone, channel }){
     if (!db) throw new Error('Supabase client unavailable — cannot send.');
     if (!job.supabaseId || !job.customerId) throw new Error('This job is not fully synced to the database yet.');
+    channel = channel || 'email';
+    const wantsEmail = channel === 'email' || channel === 'both';
+    const wantsSms = channel === 'sms' || channel === 'both';
     const email = recipientEmail || job.customer.email;
-    if (!email) throw new Error('No email on file for this customer.');
+    const phoneE164 = wantsSms ? toE164Client(recipientPhone || job.customer.phone) : null;
+    if (wantsEmail && !email) throw new Error('No email on file for this customer.');
+    if (wantsSms && !phoneE164) throw new Error('No valid phone on file for this customer.');
 
     const publicToken = crypto.randomUUID();
 
@@ -6164,32 +6206,72 @@
 
     const invoiceDisplayNumber = 'INV-' + new Date(invRow.created_at).getFullYear() + '-' + String(invRow.invoice_number).padStart(4, '0');
 
-    const res = await fetch(SEND_EMAIL_FUNCTION_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + SUPABASE_ANON_KEY, apikey: SUPABASE_ANON_KEY },
-      body: JSON.stringify({
-        action: 'invoice_link', businessId: BUSINESS_ID,
-        data: {
-          customerName: job.customer.name, customerEmail: email,
-          invoiceNumber: invoiceDisplayNumber, service: job.service,
-          total: amount, dueBy: dueBy || null, comment: comment || null,
-          publicToken
-        }
-      })
-    });
-    const result = await res.json();
-    if (!res.ok || result.error) throw new Error(result.error || 'Failed to send invoice email.');
+    if (wantsEmail){
+      const res = await fetch(SEND_EMAIL_FUNCTION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + SUPABASE_ANON_KEY, apikey: SUPABASE_ANON_KEY },
+        body: JSON.stringify({
+          action: 'invoice_link', businessId: BUSINESS_ID,
+          data: {
+            customerName: job.customer.name, customerEmail: email,
+            invoiceNumber: invoiceDisplayNumber, service: job.service,
+            total: amount, dueBy: dueBy || null, comment: comment || null,
+            publicToken
+          }
+        })
+      });
+      const result = await res.json();
+      if (!res.ok || result.error) throw new Error(result.error || 'Failed to send invoice email.');
+    }
+
+    if (wantsSms){
+      const { data: { session } } = await db.auth.getSession();
+      if (!session) throw new Error('Your session expired — please log in again to send via SMS.');
+      const payUrl = 'https://app.altaluxdetail.com/pay/?token=' + encodeURIComponent(publicToken);
+      const res = await fetch(SEND_SMS_FUNCTION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token, apikey: SUPABASE_ANON_KEY },
+        body: JSON.stringify({
+          action: 'invoice_link', businessId: BUSINESS_ID,
+          data: {
+            customerName: job.customer.name, phone: phoneE164, customerId: job.customerId,
+            invoiceNumber: invoiceDisplayNumber, service: job.service,
+            total: amount, dueBy: dueBy || null, payUrl
+          }
+        })
+      });
+      const result = await res.json();
+      if (!res.ok || result.error) throw new Error(result.error || 'Failed to send invoice SMS.');
+      if (result.skipped) showToast(`Invoice SMS skipped: ${result.reason}`, 'error');
+    }
 
     job.invoice.number = invoiceDisplayNumber;
     job.invoice.status = 'Sent';
     job.invoice.publicToken = publicToken;
-    logJobActivity(job, `Invoice sent — ${invoiceDisplayNumber} to ${email}`);
+    const via = channel === 'both' ? `${email} + ${phoneE164}` : (wantsSms ? phoneE164 : email);
+    logJobActivity(job, `Invoice sent — ${invoiceDisplayNumber} to ${via}`);
     return invoiceDisplayNumber;
   }
 
+  // ---------- Channel toggle (Email / SMS / Both) — shared by both invoice-send UIs ----------
+  function wireInvoiceChannelToggle(groupSelector){
+    const state = { channel: 'email' };
+    const buttons = document.querySelectorAll(groupSelector + ' [data-channel]');
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.channel = btn.dataset.channel;
+        buttons.forEach(b => b.classList.toggle('selected', b === btn));
+      });
+    });
+    return state;
+  }
+  const siChannelState = wireInvoiceChannelToggle('#si-channel-group');
+  const rpInvoiceChannelState = wireInvoiceChannelToggle('#rp-invoice-channel-group');
+
   document.getElementById('si-submit').addEventListener('click', async () => {
     const job = findJob(currentSendInvoiceJobId);
-    if (!job || !job.customer.email) return;
+    if (!job) return;
+    const channel = siChannelState.channel;
 
     const btn = document.getElementById('si-submit');
     btn.disabled = true;
@@ -6202,9 +6284,10 @@
       const comment = document.getElementById('si-comment').value.trim();
       const dueByVal = document.getElementById('si-due-by').value;
 
-      const invoiceDisplayNumber = await sendPayableInvoice(job, { amount, title, comment, dueBy: dueByVal });
+      const invoiceDisplayNumber = await sendPayableInvoice(job, { amount, title, comment, dueBy: dueByVal, channel });
 
-      showToast(`Invoice ${invoiceDisplayNumber} sent to ${job.customer.email}`, 'success');
+      const via = channel === 'sms' ? job.customer.phone : job.customer.email;
+      showToast(`Invoice ${invoiceDisplayNumber} sent to ${via}`, 'success');
       renderPaymentsView();
       closeSendInvoiceModal();
     } catch (err){
@@ -6490,6 +6573,8 @@
     document.getElementById('rp-invoice-email').value = job.customer.email || '';
     document.getElementById('rp-invoice-phone').value = job.customer.phone || '';
     document.getElementById('rp-invoice-error').textContent = '';
+    rpInvoiceChannelState.channel = 'email';
+    document.querySelectorAll('#rp-invoice-channel-group [data-channel]').forEach(b => b.classList.toggle('selected', b.dataset.channel === 'email'));
     showRpPanel('invoice');
   });
   document.getElementById('rp-invoice-back').addEventListener('click', () => showRpPanel('square'));
@@ -6507,18 +6592,22 @@
   async function submitPayableInvoice(){
     const job = findJob(currentRecordPaymentJobId);
     if (!job) return;
+    const channel = rpInvoiceChannelState.channel;
     const email = document.getElementById('rp-invoice-email').value.trim();
+    const phone = document.getElementById('rp-invoice-phone').value.trim();
     const errorEl = document.getElementById('rp-invoice-error');
     errorEl.textContent = '';
-    if (!email){ errorEl.textContent = 'An email is required to send the invoice.'; return; }
+    if (channel !== 'sms' && !email){ errorEl.textContent = 'An email is required to send the invoice.'; return; }
+    if (channel !== 'email' && !toE164Client(phone)){ errorEl.textContent = 'A valid phone is required to send via SMS.'; return; }
 
     const amount = parseFloat(rpAmountInput.value) || balanceDue(job);
     const btns = [document.getElementById('rp-invoice-send-btn'), document.getElementById('rp-invoice-send-top-btn')];
     btns.forEach(b => { b.disabled = true; });
 
     try {
-      const invoiceDisplayNumber = await sendPayableInvoice(job, { amount, recipientEmail: email });
-      showToast(`Invoice ${invoiceDisplayNumber} sent to ${email}`, 'success');
+      const invoiceDisplayNumber = await sendPayableInvoice(job, { amount, recipientEmail: email, recipientPhone: phone, channel });
+      const via = channel === 'both' ? `${email} + ${phone}` : (channel === 'sms' ? phone : email);
+      showToast(`Invoice ${invoiceDisplayNumber} sent to ${via}`, 'success');
       renderPaymentsView();
       closeRecordPaymentModal();
     } catch (err){
