@@ -1090,6 +1090,14 @@
   .pm-method-btn .lock-icon{ margin-right:4px; }
   .pm-coming-soon{ display:block; font-size:9.5px; font-weight:700; color:var(--ink-faint); margin-top:2px; text-transform:uppercase; letter-spacing:.4px; }
   .pm-arrow{ float:right; opacity:.6; }
+  .job-status-tabs{ display:flex; gap:6px; overflow-x:auto; margin-bottom:12px; padding-bottom:2px; }
+  .job-status-tab{
+    flex:none; padding:6px 12px; border-radius:999px; border:1px solid var(--line);
+    background:transparent; color:var(--ink-muted); font-size:12.5px; font-weight:600;
+    cursor:pointer; white-space:nowrap;
+  }
+  .job-status-tab.active{ background:var(--gold); border-color:var(--gold); color:#1a1200; }
+  #jobs-online-toggle.active{ border-color:var(--gold); color:var(--gold); }
   .modal-back-btn{
     background:none; border:none; color:var(--gold); font-family:'Rajdhani',sans-serif;
     font-weight:700; font-size:15px; cursor:pointer; padding:4px 0; text-align:left;
@@ -1750,17 +1758,9 @@
             Showing jobs for <strong id="jobs-filter-name"></strong> —
             <button type="button" class="link-btn" id="jobs-filter-clear">Clear filter</button>
           </div>
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Job #</th><th>Date</th><th>Customer</th><th>Service</th><th>Vehicle</th>
-                  <th>Total</th><th>Deposit</th><th>Balance</th><th>Status</th><th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="jobs-table-body"></tbody>
-            </table>
-          </div>
+          <div class="job-status-tabs" id="jobs-status-tabs"></div>
+          <button type="button" class="pm-method-btn" id="jobs-online-toggle" style="margin-bottom:12px;">🌐 Online Bookings</button>
+          <div id="jobs-cards-list"></div>
         </div>
       </section>
 
@@ -3722,6 +3722,8 @@
     calendarViewDate: new Date(TODAY.getFullYear(), TODAY.getMonth(), 1),
     calendarView: 'agenda',
     customerFilterEmail: null,
+    jobsStatusFilter: 'all',
+    jobsOnlineOnly: false,
     paymentsFilters: { dateFrom:null, dateTo:null, status:'', customer:'', method:'' }
   };
 
@@ -5377,10 +5379,14 @@
   function renderJobsListForDay(){ renderCalendarViews(); }
   function renderEventsListForDay(){ renderCalendarViews(); }
 
-  // ================= JOBS TABLE =================
+  // ================= JOBS LIST (card view) =================
+  const JOB_STATUS_TABS = ['all', 'Pending', 'Confirmed', 'In Progress', 'Completed', 'Cancelled'];
+
   function renderJobsTable(){
-    const tbody = document.getElementById('jobs-table-body');
     const banner = document.getElementById('jobs-filter-banner');
+    const tabsEl = document.getElementById('jobs-status-tabs');
+    const listEl = document.getElementById('jobs-cards-list');
+    const onlineBtn = document.getElementById('jobs-online-toggle');
 
     let list = [...JOBS].sort((a,b) => a.date - b.date || ADMIN_TIME_SLOTS.indexOf(a.time) - ADMIN_TIME_SLOTS.indexOf(b.time));
 
@@ -5393,28 +5399,41 @@
       banner.hidden = true;
     }
 
-    tbody.innerHTML = list.map(j => `
-      <tr>
-        <td>#${j.jobNumber}</td>
-        <td>${formatShortDate(j.date)}</td>
-        <td>${j.customer.name}</td>
-        <td>${j.service}</td>
-        <td>${j.vehicle}</td>
-        <td>${formatCurrency(j.total)}</td>
-        <td>${formatCurrency(getDepositAmount(j))}</td>
-        <td>${formatCurrency(balanceDue(j))}</td>
-        <td><span class="status-display" data-job-id="${j.id}">${renderStatusBadge(j)}</span></td>
-        <td class="actions-cell">
-          <button type="button" class="btn-mini job-view-btn" data-job-id="${j.id}">View</button>
-          <button type="button" class="btn-mini job-editstatus-btn" data-job-id="${j.id}">Edit Status</button>
-          ${canEditJobs() ? `<button type="button" class="btn-mini job-edit-btn" data-job-id="${j.id}">Edit</button>` : ''}
-        </td>
-      </tr>
-    `).join('');
+    // Tab counts reflect the customer filter (if any) but not the other
+    // tab/online-toggle selections themselves, so switching tabs never
+    // makes another tab's count jump around.
+    tabsEl.innerHTML = JOB_STATUS_TABS.map(status => {
+      const count = status === 'all' ? list.length : list.filter(j => j.status === status).length;
+      const active = state.jobsStatusFilter === status;
+      const label = status === 'all' ? 'All' : status;
+      return `<button type="button" class="job-status-tab${active ? ' active' : ''}" data-status-tab="${escapeHtml(status)}">${escapeHtml(label)} (${count})</button>`;
+    }).join('');
+
+    onlineBtn.classList.toggle('active', state.jobsOnlineOnly);
+
+    if (state.jobsStatusFilter !== 'all'){
+      list = list.filter(j => j.status === state.jobsStatusFilter);
+    }
+    if (state.jobsOnlineOnly){
+      list = list.filter(j => j.source === 'online_booking');
+    }
+
+    listEl.innerHTML = list.map(buildJobCardCompactHtml).join('')
+      || '<p class="empty-state">No jobs match this filter.</p>';
   }
 
   document.getElementById('jobs-filter-clear').addEventListener('click', () => {
     state.customerFilterEmail = null;
+    renderJobsTable();
+  });
+  document.getElementById('jobs-status-tabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('[data-status-tab]');
+    if (!tab) return;
+    state.jobsStatusFilter = tab.dataset.statusTab;
+    renderJobsTable();
+  });
+  document.getElementById('jobs-online-toggle').addEventListener('click', () => {
+    state.jobsOnlineOnly = !state.jobsOnlineOnly;
     renderJobsTable();
   });
 
@@ -6419,6 +6438,11 @@
 
   // ---- Event delegation: View / Edit Status buttons + status <select> changes ----
   document.addEventListener('click', (e) => {
+    const compactCard = e.target.closest('.job-card-compact');
+    if (compactCard){
+      openJobModal(Number(compactCard.dataset.jobId));
+      return;
+    }
     const viewBtn = e.target.closest('.job-view-btn');
     if (viewBtn){
       openJobModal(Number(viewBtn.dataset.jobId));
