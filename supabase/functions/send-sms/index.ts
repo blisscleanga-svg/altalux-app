@@ -1,10 +1,26 @@
 // ============================================================
 // AltaLux / multi-tenant — Send SMS Edge Function (Twilio)
 // ============================================================
-// Handles 2 actions from the client:
-//   - booking_confirmation : to customer, right after a booking is paid
+// Handles 2 actions from the client, with two DIFFERENT trust models:
+//
+//   - booking_confirmation : to customer, right after a booking is paid.
+//       Callable with the public anon key (the booking widget is
+//       legitimately anonymous), but the client only sends
+//       { data: { bookingId } } — the function re-reads the real
+//       `bookings` row server-side with the service role and builds the
+//       message (and picks the recipient) entirely from that row's own
+//       columns. Nothing the caller types ends up in the SMS or decides
+//       who receives it. `bookings.receive_reminders` is the SOURCE OF
+//       TRUTH for whether to send at all.
+//
 //   - manual_reply         : to customer, staff reply typed in the
-//                             admin Message Center (raw body, no template)
+//       admin Message Center (raw body, no template). Requires a real
+//       Supabase Auth session belonging to an ACTIVE employee of the
+//       same business (any role — Managers/Technicians reply to
+//       customers day to day too). Same verification shape as
+//       manage-employee-auth.
+//
+// Both actions are additionally rate limited per (business_id, phone).
 //
 // Mirrors supabase/functions/send-email's structure and conventions.
 // One global Twilio account serves every business for now (per Fase 5
@@ -88,17 +104,38 @@ function fmtDate(date: string | null | undefined): string {
 }
 
 // ---------- SMS builders ----------
-function buildBookingConfirmation(biz: BizSettings, d: any): string {
-  return `Hi ${d.customerName || 'there'}, this is ${biz.name} confirming your ${d.service || 'detail'} appointment on ${fmtDate(d.date)} at ${d.time}. Deposit paid: ${fmtCurrency(d.deposit)}. Balance due at service: ${fmtCurrency(d.balance)}. Reply STOP to opt out.`;
+// `row` is ALWAYS a server-fetched database row, never client input.
+interface BookingRow {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  category: string | null;
+  service_date: string | null;
+  service_time: string | null;
+  deposit: number | string | null;
+  total: number | string | null;
+  receive_reminders: boolean | null;
 }
 
-const BUILDERS: Record<string, (biz: BizSettings, d: any) => string> = {
-  booking_confirmation: buildBookingConfirmation,
-};
+function buildBookingConfirmation(biz: BizSettings, row: BookingRow): string {
+  const balance = Number(row.total || 0) - Number(row.deposit || 0);
+  return `Hi ${row.full_name || 'there'}, this is ${biz.name} confirming your ${row.category || 'detail'} appointment on ${fmtDate(row.service_date)} at ${row.service_time || ''}. Deposit paid: ${fmtCurrency(row.deposit)}. Balance due at service: ${fmtCurrency(balance)}. Reply STOP to opt out.`;
+}
+
+const TEMPLATED_ACTIONS = new Set(['booking_confirmation']);
 
 const TOGGLE_KEY: Record<string, string> = {
   booking_confirmation: 'booking_confirmation',
 };
+
+class TwilioError extends Error {
+  code: number | null;
+  constructor(message: string, code: number | null) {
+    super(message);
+    this.name = 'TwilioError';
+    this.code = code;
+  }
+}
 
 async function sendViaTwilio(to: string, from: string, body: string): Promise<{ sid: string; status: string }> {
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
@@ -116,9 +153,84 @@ async function sendViaTwilio(to: string, from: string, body: string): Promise<{ 
   });
   const data = await res.json();
   if (!res.ok) {
-    throw new Error(data?.message || 'Twilio API request failed.');
+    const code = typeof data?.code === 'number' ? data.code : Number(data?.code) || null;
+    throw new TwilioError(data?.message || 'Twilio API request failed.', code);
   }
   return { sid: data.sid, status: data.status };
+}
+
+// Twilio error 21610 = "recipient unsubscribed" — Twilio handles STOP at
+// the carrier/number level independently of our sms_opt_outs table, so
+// treat its answer as authoritative and self-heal our local list.
+const TWILIO_UNSUBSCRIBED_CODE = 21610;
+
+async function recordTwilioOptOut(supabase: any, businessId: string, phone: string) {
+  const { error } = await supabase.from('sms_opt_outs').upsert(
+    { business_id: businessId, phone, opted_out_at: new Date().toISOString() },
+    { onConflict: 'business_id,phone' }
+  );
+  if (error) console.error('[send-sms] Failed to record Twilio-reported opt-out:', error);
+}
+
+// ---------- Rate limiting ----------
+// Cheap per-(business, phone) cap. 5 per 5 minutes: loose enough not to
+// break a legitimate rapid back-and-forth conversation in the Message
+// Center, tight enough that this endpoint can't be pumped. Over the
+// limit we skip quietly rather than erroring loudly, so a prober can't
+// distinguish "rate limited" from "nothing happened".
+const RATE_LIMIT_MAX = 5;
+const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
+
+async function isRateLimited(supabase: any, businessId: string, phone: string): Promise<boolean> {
+  const since = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
+  const { count, error } = await supabase
+    .from('sms_messages')
+    .select('id', { count: 'exact', head: true })
+    .eq('business_id', businessId)
+    .eq('phone', phone)
+    .gte('created_at', since);
+  if (error) {
+    console.error('[send-sms] Rate-limit check failed (allowing send):', error);
+    return false;
+  }
+  return (count ?? 0) >= RATE_LIMIT_MAX;
+}
+
+// ---------- Caller verification (manual_reply only) ----------
+// Same shape as manage-employee-auth: a real Supabase Auth access token,
+// resolved to an ACTIVE employee row of the SAME business as the payload.
+// Any active role may send a reply — this is not an Owner-only action.
+interface AuthFailure { status: number; error: string }
+
+async function requireActiveEmployee(admin: any, req: Request, businessId: string): Promise<AuthFailure | null> {
+  const authHeader = req.headers.get('Authorization') || '';
+  const callerToken = authHeader.replace(/^Bearer\s+/i, '').trim();
+  if (!callerToken) return { status: 401, error: 'Missing Authorization header.' };
+
+  let callerEmail: string | null = null;
+  try {
+    const { data: callerData, error: callerErr } = await admin.auth.getUser(callerToken);
+    if (callerErr || !callerData?.user?.email) return { status: 401, error: 'Not authenticated.' };
+    callerEmail = callerData.user.email;
+  } catch (_err) {
+    // A malformed/garbage bearer token must be a clean 401, never a 500.
+    return { status: 401, error: 'Not authenticated.' };
+  }
+
+  // ilike (not eq) because employees.email casing isn't normalized, but the
+  // LIKE metacharacters have to be escaped or `john_doe@x.com` would also
+  // match `johnXdoe@x.com` — i.e. a non-employee could match an employee row.
+  const emailPattern = (callerEmail as string).replace(/[\\%_]/g, '\\$&');
+  const { data: employee, error: empErr } = await admin
+    .from('employees')
+    .select('role, is_active, business_id')
+    .ilike('email', emailPattern)
+    .maybeSingle();
+  if (empErr) return { status: 403, error: 'Only an active employee of this business can send messages.' };
+  if (!employee || employee.is_active === false || employee.business_id !== businessId) {
+    return { status: 403, error: 'Only an active employee of this business can send messages.' };
+  }
+  return null;
 }
 
 async function logMessage(supabase: any, row: {
@@ -138,12 +250,21 @@ Deno.serve(async (req: Request) => {
     const body = await req.json();
     const { action, businessId, data } = body;
 
-    if (!action || (action !== 'manual_reply' && !BUILDERS[action])) {
-      return jsonResponse({ error: `Unknown action: ${action}. Expected one of ${[...Object.keys(BUILDERS), 'manual_reply'].join(', ')}.` }, 400);
+    if (!action || (action !== 'manual_reply' && !TEMPLATED_ACTIONS.has(action))) {
+      return jsonResponse({ error: `Unknown action: ${action}. Expected one of ${[...TEMPLATED_ACTIONS, 'manual_reply'].join(', ')}.` }, 400);
     }
     if (!businessId) return jsonResponse({ error: 'businessId is required.' }, 400);
 
     const supabase = getSupabaseAdmin();
+
+    // manual_reply lets a caller pick an arbitrary recipient AND write an
+    // arbitrary body — it must be an authenticated employee of this very
+    // business. Checked BEFORE anything else touches the database.
+    if (action === 'manual_reply') {
+      const authFailure = await requireActiveEmployee(supabase, req, businessId);
+      if (authFailure) return jsonResponse({ error: authFailure.error }, authFailure.status);
+    }
+
     const biz = await getBizSettings(businessId);
 
     if (!biz.twilio_enabled || !biz.twilio_phone) {
@@ -155,10 +276,47 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ skipped: true, reason: `SMS type "${action}" is disabled for this business.` });
     }
 
-    const rawPhone = data && (data.customerPhone || data.phone);
+    // ---- Recipient + body: derived server-side for templated actions ----
+    let rawPhone: string | null = null;
+    let messageBody = '';
+    let customerId: string | null = null;
+
+    if (action === 'manual_reply') {
+      rawPhone = (data && (data.customerPhone || data.phone)) || null;
+      messageBody = String((data && data.body) || '').slice(0, 1600);
+      customerId = (data && data.customerId) || null;
+    } else if (action === 'booking_confirmation') {
+      const bookingId = data && data.bookingId;
+      if (!bookingId) return jsonResponse({ error: 'data.bookingId is required for booking_confirmation.' }, 400);
+      // Shape-check before it reaches PostgREST, so a junk id is a clean 400
+      // rather than a 500 from the uuid cast.
+      if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(String(bookingId))) {
+        return jsonResponse({ error: 'data.bookingId must be a uuid.' }, 400);
+      }
+
+      const { data: booking, error: bookingErr } = await supabase
+        .from('bookings')
+        .select('id, full_name, phone, category, service_date, service_time, deposit, total, receive_reminders')
+        .eq('id', bookingId)
+        .eq('business_id', businessId)
+        .maybeSingle();
+      if (bookingErr) throw bookingErr;
+      if (!booking) return jsonResponse({ error: 'Booking not found for this business.' }, 404);
+
+      const row = booking as BookingRow;
+      // The booking row itself is the source of truth for consent — the
+      // client-side check in booking/index.html is only a first gate.
+      if (!row.receive_reminders) {
+        return jsonResponse({ skipped: true, reason: 'Customer did not opt in to SMS on this booking.' });
+      }
+      rawPhone = row.phone;
+      messageBody = buildBookingConfirmation(biz, row);
+    }
+
     if (!rawPhone) return jsonResponse({ error: `No recipient phone available for action "${action}".` }, 400);
     const to = toE164(rawPhone);
     if (!to) return jsonResponse({ error: `Phone number "${rawPhone}" could not be normalized to a US E.164 number.` }, 400);
+    if (!messageBody) return jsonResponse({ error: 'Message body is empty.' }, 400);
 
     const { data: optOut } = await supabase
       .from('sms_opt_outs')
@@ -170,10 +328,10 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ skipped: true, reason: 'Recipient has opted out of SMS.' });
     }
 
-    const messageBody = action === 'manual_reply'
-      ? String((data && data.body) || '').slice(0, 1600)
-      : BUILDERS[action](biz, data || {});
-    if (!messageBody) return jsonResponse({ error: 'Message body is empty.' }, 400);
+    if (await isRateLimited(supabase, businessId, to)) {
+      console.warn(`[send-sms] Rate limit hit for ${businessId} / ${to} — skipping "${action}".`);
+      return jsonResponse({ skipped: true, reason: 'rate_limited' });
+    }
 
     let sid: string | null = null;
     let status = 'failed';
@@ -182,18 +340,21 @@ Deno.serve(async (req: Request) => {
       sid = result.sid;
       status = result.status;
     } catch (sendErr) {
+      if (sendErr instanceof TwilioError && sendErr.code === TWILIO_UNSUBSCRIBED_CODE) {
+        await recordTwilioOptOut(supabase, businessId, to);
+      }
       await logMessage(supabase, {
-        business_id: businessId, customer_id: (data && data.customerId) || null, phone: to,
+        business_id: businessId, customer_id: customerId, phone: to,
         direction: 'outbound', body: messageBody, twilio_sid: null, status: 'failed',
-        action: action === 'manual_reply' ? 'manual_reply' : action,
+        action,
       });
       throw sendErr;
     }
 
     await logMessage(supabase, {
-      business_id: businessId, customer_id: (data && data.customerId) || null, phone: to,
+      business_id: businessId, customer_id: customerId, phone: to,
       direction: 'outbound', body: messageBody, twilio_sid: sid, status,
-      action: action === 'manual_reply' ? 'manual_reply' : action,
+      action,
     });
 
     return jsonResponse({ success: true, sid });

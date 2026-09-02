@@ -135,13 +135,30 @@ Deno.serve(async (req: Request) => {
 
     const supabase = getSupabaseAdmin();
 
-    const { data: biz } = await supabase
+    // Twilio's `To` is always clean E.164, but business_settings.twilio_phone
+    // is hand-typed, so an exact .eq() would silently drop every inbound
+    // message over a stray space or a "(888) 330-0491" style value. Normalize
+    // BOTH sides instead — same last-10/E.164 approach findMatchingCustomer
+    // already uses in this file. One row per business, so fetching them all
+    // and matching in JS costs nothing.
+    //
+    // NOTE: the candidate set is restricted to twilio_enabled = true (per the
+    // review's instruction). Side effect worth knowing: while a business has
+    // twilio_enabled = false, inbound messages to its number — including STOP —
+    // are dropped here. Twilio still honors STOP at the carrier level, and
+    // send-sms self-heals sms_opt_outs from Twilio error 21610, so this is
+    // covered; but if inbound must be logged while outbound is paused, drop
+    // the .eq('twilio_enabled', true) line below.
+    const toNormalized = toE164(to) || to;
+    const { data: bizRows, error: bizErr } = await supabase
       .from('business_settings')
-      .select('business_id')
-      .eq('twilio_phone', to)
-      .maybeSingle();
+      .select('business_id, twilio_phone')
+      .eq('twilio_enabled', true)
+      .not('twilio_phone', 'is', null);
+    if (bizErr) console.error('[twilio-webhook] Failed to load business_settings:', bizErr);
+    const biz = (bizRows || []).find((b: any) => (toE164(b.twilio_phone) || String(b.twilio_phone || '').trim()) === toNormalized);
     if (!biz) {
-      console.error(`[twilio-webhook] No business found for twilio_phone "${to}" — dropping message.`);
+      console.error(`[twilio-webhook] No twilio_enabled business found whose twilio_phone normalizes to "${toNormalized}" (raw To="${to}") — dropping message. Candidates: ${JSON.stringify((bizRows || []).map((b: any) => [b.business_id, b.twilio_phone]))}`);
       return twiml();
     }
     const businessId = biz.business_id as string;

@@ -1596,7 +1596,10 @@
     name: '', phone: '', email: '',
     address: '',
     vehicle: '',
-    smsReminders: true,
+    // An SMS-consent flag defaults to false on principle. #c-sms is
+    // unchecked by default and collectFormData() overwrites this from the
+    // checkbox before it's ever read, so this is belt-and-braces.
+    smsReminders: false,
     exclusiveOffers: true
   };
 
@@ -2024,10 +2027,27 @@
     document.querySelector('.card').scrollIntoView({ behavior:'smooth', block:'start' });
   }
 
+  // The booking row's id is generated here rather than by the database
+  // default, because this page can't read the row back afterwards (anon
+  // has INSERT but no SELECT on `bookings`) and send-sms needs the id to
+  // look the booking up server-side.
+  function newBookingId(){
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+    // Fallback for browsers without crypto.randomUUID (RFC 4122 v4).
+    const b = new Uint8Array(16);
+    if (window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(b);
+    else for (let i = 0; i < 16; i++) b[i] = Math.floor(Math.random() * 256);
+    b[6] = (b[6] & 0x0f) | 0x40;
+    b[8] = (b[8] & 0x3f) | 0x80;
+    const h = Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
+    return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;
+  }
+
   function buildBookingPayload(squarePaymentId){
     const v = state.package.vehicles[state.vehicleIndex];
     const selectedAddons = getSelectedAddonsDetailed();
     return {
+      id: newBookingId(),
       full_name: state.name,
       phone: state.phone,
       email: state.email,
@@ -2055,7 +2075,7 @@
   // Fire-and-forget: never awaited by the payment flow, never throws
   // into the caller, and never delays showConfirmation(). A failed
   // email must not look like a failed booking/payment to the customer.
-  function triggerBookingEmails(bookingPayload){
+  function triggerBookingEmails(bookingPayload, bookingId){
     const balance = round2(bookingPayload.total - bookingPayload.deposit);
     const commonData = {
       customerName: bookingPayload.full_name,
@@ -2082,11 +2102,21 @@
       }).catch(err => console.warn('[send-email] "' + action + '" request failed (non-blocking):', err));
     }
 
+    // send-sms deliberately gets ONLY the booking id — the Edge Function
+    // re-reads the real bookings row server-side and builds the message
+    // (and picks the recipient) from that row's own columns, so nothing
+    // typed into this page can end up in an SMS or redirect one. It also
+    // re-checks bookings.receive_reminders itself; the state.smsReminders
+    // gate below is just the first of the two.
     function sendSmsAction(action){
+      if (!bookingId){
+        console.warn('[send-sms] No booking id available — skipping "' + action + '".');
+        return;
+      }
       fetch(SEND_SMS_FUNCTION_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + SUPABASE_ANON_KEY, apikey: SUPABASE_ANON_KEY },
-        body: JSON.stringify({ action, businessId: 'altalux', data: commonData })
+        body: JSON.stringify({ action, businessId: 'altalux', data: { bookingId } })
       }).catch(err => console.warn('[send-sms] "' + action + '" request failed (non-blocking):', err));
     }
 
@@ -2175,7 +2205,13 @@
       const { error } = await db.from('bookings').insert([bookingPayload]);
       if (error) throw error;
 
-      triggerBookingEmails(bookingPayload);
+      // send-sms needs the row's real id (it re-reads the booking
+      // server-side instead of trusting anything this page sends). We
+      // can't read it back — `bookings` has an anon INSERT policy but no
+      // anon SELECT policy, so `.insert().select()` fails RLS (42501) —
+      // so buildBookingPayload() generates the uuid client-side and
+      // inserts it explicitly.
+      triggerBookingEmails(bookingPayload, bookingPayload.id);
       showConfirmation(true);
     } catch (err){
       console.error('Square payment failed:', err);
